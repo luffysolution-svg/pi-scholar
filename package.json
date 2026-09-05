@@ -1,6 +1,6 @@
 {
   "name": "@luffysolution/pi-scholar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi-native scholarly workflow for read-only Zotero and MinerU, with Ai4Scholar reuse",
   "type": "module",
   "license": "MIT",
