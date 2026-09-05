@@ -12,7 +12,7 @@ Use Pi Scholar's online tools deliberately. Calls may consume credits; prefer th
 1. Clarify the topic, date range, source, and evidence threshold when ambiguity would materially change results.
 2. Use `ai4scholar_search` for Semantic Scholar, PubMed, Google Scholar, or Google Patents. Start with a small result limit and refine before broadening.
 3. Use `ai4scholar_paper` for details, citations, references, related papers, authors, or single-paper recommendations.
-4. Use `ai4scholar_author` for author identity and publication history. Do not merge same-name authors without evidence.
+4. Use `ai4scholar_author` for author identity and publication history. Do not merge same-name authors without evidence. An empty Google Scholar profile response may reflect upstream blocking or rate limiting; verify with Semantic Scholar or retry later instead of concluding that the author does not exist.
 5. Prefer `ai4scholar_batch` over repeated detail calls for multiple known IDs.
 6. Use `ai4scholar_recommend` for seed-based discovery and `ai4scholar_snippets` for focused full-text evidence.
 7. Use `ai4scholar_journal` for JCR/CAS metrics or submission recommendations. State the metric year/source returned by the service.

@@ -10,6 +10,10 @@ const RESERVED=/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
 const IMAGE_EXT=/^\.(png|jpe?g|gif|webp|bmp|svg)$/;
 const MAX_ENTRIES=10_000;
 const MAX_EXPANDED=1024*1024*1024;
+const MAX_PORTABLE_PATH_LENGTH=240;
+const MAX_STEM_BYTES=220;
+const MIN_READABLE_STEM_LENGTH=16;
+const ASSET_NAME_LENGTH_RESERVE=80;
 
 function component(value:string,fallback:string):string {
   let s=value.normalize("NFC").replace(/<[^>]*>/g,"").replace(/\+/g," ").replace(INVALID," ").replace(/\s+/g," ").trim().replace(/[. ]+$/g,"");
@@ -17,17 +21,17 @@ function component(value:string,fallback:string):string {
   if(RESERVED.test(s))s=`_${s}`;
   return s;
 }
-function utf8Limit(value:string,max:number):string {
+function utf8Limit(value:string,maxBytes:number,maxCharacters=Number.POSITIVE_INFINITY):string {
   const points=Array.from(value);
-  while(Buffer.byteLength(points.join(""),"utf8")>max)points.pop();
+  while(points.length){const candidate=points.join("");if(Buffer.byteLength(candidate,"utf8")<=maxBytes&&candidate.length<=maxCharacters)break;points.pop();}
   return points.join("").replace(/[. ]+$/g,"")||"Untitled";
 }
-export function paperStem(paper: Pick<Paper,"creators"|"year"|"title">,separator="-"):string {
+export function paperStem(paper: Pick<Paper,"creators"|"year"|"title">,separator="-",maxCharacters=MAX_STEM_BYTES):string {
   const first=paper.creators.find(c=>c.creatorType==="author");
   const author=component(first?.lastName ?? first?.name ?? "UnknownAuthor","UnknownAuthor");
   const year=component(paper.year ?? "UnknownYear","UnknownYear");
   const title=component(paper.title,"Untitled");
-  return utf8Limit([author,year,title].join(separator),220);
+  return utf8Limit([author,year,title].join(separator),MAX_STEM_BYTES,maxCharacters);
 }
 
 export interface NormalizedArchive { body:string; assets:{name:string;bytes:Buffer}[] }
@@ -166,15 +170,17 @@ async function existingOwner(directory:string):Promise<string|null>{try{const va
 async function exists(p:string):Promise<boolean>{try{await readFile(p);return true;}catch{try{return (await readdir(p)).length>=0;}catch{return false;}}}
 async function rejectSymbolicDirectory(p:string,label:string):Promise<void>{const stat=await lstat(p);if(stat.isSymbolicLink())throw new Error(`${label} must not be a symbolic link or directory junction`);}
 async function priorStem(root:string,zoteroKey:string):Promise<string|null>{for(const entry of (await readdir(root,{withFileTypes:true})).filter(entry=>entry.isDirectory()&&!entry.name.startsWith(".pi-scholar-")).sort((a,b)=>a.name.localeCompare(b.name))){if(await existingOwner(path.join(root,entry.name))===zoteroKey)return entry.name;}return null;}
-
-async function allocateStem(root:string,base:string,zoteroKey:string):Promise<string>{
-  const prior=await priorStem(root,zoteroKey);
-  if(prior)return prior;
+function portablePathsFit(root:string,stem:string):boolean{return path.join(root,stem,`${stem}.md`).length<=MAX_PORTABLE_PATH_LENGTH&&path.join(root,stem,"assets","x".repeat(ASSET_NAME_LENGTH_RESERVE)).length<=MAX_PORTABLE_PATH_LENGTH;}
+function stemCharacterLimit(root:string):number{
+  for(let length=MAX_STEM_BYTES;length>=MIN_READABLE_STEM_LENGTH;length-=1)if(portablePathsFit(root,"x".repeat(length)))return length;
+  throw new Error(`output.directory is too deeply nested to keep paper paths within ${MAX_PORTABLE_PATH_LENGTH} characters`);
+}
+async function allocateStem(root:string,base:string,maxCharacters:number):Promise<string>{
   for(let index=1;;index+=1){
-    const stem=index===1?base:`${base} (${index})`;
-    const directory=path.join(root,stem);
-    if(await existingOwner(directory)===zoteroKey)return stem;
-    if(!await exists(directory))return stem;
+    const suffix=index===1?"":` (${index})`;
+    if(suffix.length>=maxCharacters)throw new Error("Too many papers share the same readable filename");
+    const stem=`${utf8Limit(base,MAX_STEM_BYTES-Buffer.byteLength(suffix,"utf8"),maxCharacters-suffix.length)}${suffix}`;
+    if(!await exists(path.join(root,stem)))return stem;
   }
 }
 
@@ -190,30 +196,36 @@ export async function publishPaper(outputRoot:string,paper:Paper,normalized:Norm
   const locks=path.join(resolved,".pi-scholar-locks");
   await mkdir(locks,{recursive:true});
   const filenameSeparator=naming.filenameSeparator??"-";
-  const base=paperStem(paper,filenameSeparator);
+  const maxStemCharacters=stemCharacterLimit(literatureRoot);
+  const base=paperStem(paper,filenameSeparator,maxStemCharacters);
   const lock=path.join(locks,"publish.lock");
   try{await mkdir(lock);}catch{throw new Error("Another parse publication is already in progress for this output directory");}
   let stage:string|null=null;
   try{
     signal?.throwIfAborted();
-    const stem=await allocateStem(literatureRoot,base,paper.zoteroKey);
+    const prior=await priorStem(literatureRoot,paper.zoteroKey);
+    if(prior)await rejectSymbolicDirectory(path.join(literatureRoot,prior),"Paper directory");
+    const stem=prior&&portablePathsFit(literatureRoot,prior)?prior:await allocateStem(literatureRoot,base,maxStemCharacters);
     const paperDirectory=path.join(literatureRoot,stem);
+    const migrationDirectory=prior&&prior!==stem?path.join(literatureRoot,prior):null;
+    if(migrationDirectory&&await exists(paperDirectory))throw new Error("Cannot shorten paper path because the target directory already exists");
     if(await exists(paperDirectory))await rejectSymbolicDirectory(paperDirectory,"Paper directory");
     const mdPath=path.join(paperDirectory,`${stem}.md`);
-    const assetDir=path.join(paperDirectory,`${stem}-assets`);
+    const assetDir=path.join(paperDirectory,"assets");
     stage=path.join(literatureRoot,`.pi-scholar-${randomUUID()}`);
-    const stageAssets=path.join(stage,`${stem}-assets`);
+    const stageAssets=path.join(stage,"assets");
     await mkdir(stageAssets,{recursive:true});
     for(const asset of normalized.assets){signal?.throwIfAborted();await writeFile(path.join(stageAssets,asset.name),asset.bytes);}
     signal?.throwIfAborted();
     await writeFile(path.join(stage,"metadata.json"),JSON.stringify(metadataSidecar(paper,data),null,2)+"\n","utf8");
-    const markdown=composeMarkdown(frontmatter(paper,data,naming.tagSpaceReplacement),normalized.body.replaceAll("__ASSET_PREFIX__",`./${stem}-assets`));
+    const markdown=composeMarkdown(frontmatter(paper,data,naming.tagSpaceReplacement),normalized.body.replaceAll("__ASSET_PREFIX__","./assets"));
     await writeFile(path.join(stage,`${stem}.md`),markdown,"utf8");
     signal?.throwIfAborted();
     const backup=path.join(literatureRoot,`.pi-scholar-backup-${randomUUID()}`);
     let backupNeedsRecovery=false;
     try{
-      if(await exists(paperDirectory)){await rename(paperDirectory,backup);backupNeedsRecovery=true;}
+      const replacedDirectory=migrationDirectory??(await exists(paperDirectory)?paperDirectory:null);
+      if(replacedDirectory){await rename(replacedDirectory,backup);backupNeedsRecovery=true;}
       signal?.throwIfAborted();
       await rename(stage,paperDirectory);
       stage=null;
@@ -222,7 +234,7 @@ export async function publishPaper(outputRoot:string,paper:Paper,normalized:Norm
     }catch(error){
       try{
         await rm(paperDirectory,{recursive:true,force:true});
-        if(backupNeedsRecovery){await rename(backup,paperDirectory);backupNeedsRecovery=false;}
+        if(backupNeedsRecovery){await rename(backup,migrationDirectory??paperDirectory);backupNeedsRecovery=false;}
       }catch(restoreError){
         throw new AggregateError([error,restoreError],`Publication failed and rollback could not restore the prior paper directory; backup preserved at ${backup}`);
       }

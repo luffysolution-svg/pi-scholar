@@ -158,17 +158,23 @@ function normalizeProxyUrl(raw: string): string | undefined {
   }
 }
 
+export function parseWindowsProxySettings(output: string): string | undefined {
+  const enabled = output.match(/ProxyEnable\s+REG_DWORD\s+(0x[0-9a-f]+|\d+)/i);
+  if (!enabled || Number(enabled[1]) === 0) return undefined;
+  const server = output.match(/ProxyServer\s+REG_SZ\s+([^\r\n]+)/i);
+  return server ? normalizeProxyUrl(server[1]) : undefined;
+}
+
 export function detectWindowsProxy(): string | undefined {
   if (process.platform !== "win32") return undefined;
   if (detectedSystemProxy !== undefined) return detectedSystemProxy || undefined;
   try {
     const output = execFileSync(
       "reg.exe",
-      ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", "/v", "ProxyServer"],
+      ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"],
       { encoding: "utf8", windowsHide: true, timeout: 2000 },
     );
-    const match = output.match(/ProxyServer\s+REG_SZ\s+([^\r\n]+)/i);
-    detectedSystemProxy = match ? normalizeProxyUrl(match[1]) ?? null : null;
+    detectedSystemProxy = parseWindowsProxySettings(output) ?? null;
   } catch {
     detectedSystemProxy = null;
   }
@@ -237,8 +243,11 @@ async function fetchAi4ScholarResponse(
     return { response: response as Response, url };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const cause = error && typeof error === "object" ? (error as { cause?: unknown }).cause : undefined;
+    const causeMessage = cause instanceof Error ? cause.message : cause ? String(cause) : "";
+    const detail = causeMessage && causeMessage !== message ? `${message}（${causeMessage}）` : message;
     const proxyHint = proxyUrl ? `（代理 ${proxyUrl}）` : "";
-    throw new Ai4ScholarError(`Ai4Scholar 请求失败${proxyHint}：${message}`, undefined, url.toString());
+    throw new Ai4ScholarError(`Ai4Scholar 请求失败${proxyHint}：${detail}`, undefined, url.toString());
   }
 }
 

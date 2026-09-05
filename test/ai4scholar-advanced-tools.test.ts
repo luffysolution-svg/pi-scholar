@@ -67,7 +67,7 @@ test("Semantic Scholar bulk, match, and autocomplete modes use documented endpoi
   assert.equal(new URL(requests[2]).pathname, "/graph/v1/paper/autocomplete");
 });
 
-test("Google Scholar search forwards cites and cluster", async (t) => {
+test("Google Scholar search forwards result limit, cites, and cluster", async (t) => {
   configure(t);
   let body = "";
   mockFetch(t, async (_input, init) => {
@@ -75,8 +75,8 @@ test("Google Scholar search forwards cites and cluster", async (t) => {
     return new Response('{"results":[]}');
   });
   const tool = capture(registerRestTools).get("ai4scholar_search")!;
-  await tool.execute("1", { source: "google_scholar", query: "LLM", cites: "c1", cluster: "v1" }, undefined, undefined, {});
-  assert.deepEqual(JSON.parse(body), { query: "LLM", page: 1, cites: "c1", cluster: "v1" });
+  await tool.execute("1", { source: "google_scholar", query: "LLM", limit: 7, cites: "c1", cluster: "v1" }, undefined, undefined, {});
+  assert.deepEqual(JSON.parse(body), { query: "LLM", page: 1, limit: 7, cites: "c1", cluster: "v1" });
 });
 
 test("PubMed dates and patent result count use documented parameter names", async (t) => {
@@ -169,6 +169,14 @@ test("auto-cite parses progress and result SSE events", async (t) => {
   assert.equal(result.details.data.annotatedText, "Text [1]");
 });
 
+test("Google Scholar author search warns that an empty profile result is inconclusive", async (t) => {
+  configure(t);
+  mockFetch(t, async () => new Response('{"profiles":[]}'));
+  const tool = capture(registerRestTools).get("ai4scholar_author")!;
+  const result = await tool.execute("1", { source: "google_scholar", action: "search", query: "Yann LeCun" }, undefined, undefined, {});
+  assert.match(result.details.data.warning, /does not prove.*absent/i);
+});
+
 test("figure tool supports GPT Image 2 and all-action endpoint", async (t) => {
   configure(t);
   let request: { url: string; body: string } | undefined;
@@ -192,4 +200,16 @@ test("figure tool supports GPT Image 2 and all-action endpoint", async (t) => {
     () => tool.execute("2", { action: "vectorize" }, undefined, undefined, {}),
     /images URL/,
   );
+});
+
+test("slow figure models explain upstream socket closure without automatic retry", async (t) => {
+  configure(t);
+  let calls = 0;
+  mockFetch(t, async () => { calls += 1;const error = new TypeError("fetch failed");Object.assign(error,{cause:new Error("other side closed")});throw error; });
+  const tool = capture(registerAdvancedTools).get("ai4scholar_figure")!;
+  await assert.rejects(
+    () => tool.execute("1", { action: "generate", prompt: "cell pathway", model: "pro" }, undefined, undefined, {}),
+    /上游连接.*服务端延长网关超时.*不会自动重试/,
+  );
+  assert.equal(calls, 1);
 });

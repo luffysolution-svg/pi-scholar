@@ -2,6 +2,7 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import {
+  Ai4ScholarError,
   encodeId,
   requestAi4Scholar,
   requestAi4ScholarSse,
@@ -229,23 +230,32 @@ export function registerAdvancedTools(pi: ExtensionAPI): void {
         throw new Error(`${params.action} 需要至少一个公网可访问的 images URL。`);
       }
       onUpdate?.({ content: [{ type: "text", text: `Ai4Scholar Nano 正在执行 ${params.action}…` }], details: {} });
-      const response = await requestAi4Scholar(await resolveConfig(ctx), {
-        method: "POST",
-        path: "/api/proxy/nano/generate",
-        body: compactObject({
-          action: params.action,
-          prompt: params.prompt,
-          model: params.model ?? "flash",
-          imageSize: params.imageSize ?? "2K",
-          aspectRatio: params.aspectRatio ?? "1:1",
-          images: params.images,
-          stylePreset: params.stylePreset,
-          lang: params.lang ?? "en",
-          vectorizeMode: params.vectorizeMode ?? "fast",
-        }),
-        signal,
-        timeoutMs: 300_000,
-      });
+      const model = params.model ?? "flash";
+      let response: Ai4ScholarResponse;
+      try {
+        response = await requestAi4Scholar(await resolveConfig(ctx), {
+          method: "POST",
+          path: "/api/proxy/nano/generate",
+          body: compactObject({
+            action: params.action,
+            prompt: params.prompt,
+            model,
+            imageSize: params.imageSize ?? "2K",
+            aspectRatio: params.aspectRatio ?? "1:1",
+            images: params.images,
+            stylePreset: params.stylePreset,
+            lang: params.lang ?? "en",
+            vectorizeMode: params.vectorizeMode ?? "fast",
+          }),
+          signal,
+          timeoutMs: 300_000,
+        });
+      } catch (error) {
+        if (["pro", "flash31"].includes(model) && error instanceof Ai4ScholarError && /other side closed|socket.*closed|UND_ERR_SOCKET/i.test(error.message)) {
+          throw new Ai4ScholarError("科研绘图的上游连接在模型完成前被关闭。客户端已允许 300 秒等待，这通常需要服务端延长网关超时；可先改用 flash，或稍后重试。为避免重复扣费，本次不会自动重试。", error.status, error.url, error.responseBody);
+        }
+        throw error;
+      }
       return toToolResult(response, `figure:${params.action}`);
     },
   });

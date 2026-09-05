@@ -67,7 +67,7 @@ JSON 中的相对 `output.directory` 和 `zotero.dataDir` 相对于配置文件�
     └── <Author-Year-Title>/
         ├── <Author-Year-Title>.md
         ├── metadata.json
-        └── <Author-Year-Title>-assets/
+        └── assets/
             └── <assetFilePrefix>-01.png
 ```
 
@@ -81,7 +81,7 @@ JSON 中的相对 `output.directory` 和 `zotero.dataDir` 相对于配置文件�
 
 - `tagSpaceReplacement`：只能是 `-` 或 `_`；仅用于 Markdown frontmatter 标签，`metadata.json` 保留 Zotero 原始标签。
 
-论文名缺失部分分别使用 `UnknownAuthor`、`UnknownYear`、`Untitled`。非法跨平台字符会替换为空格，保留设备名会加前缀，名称限制为 220 UTF-8 字节。同名不同条目使用 ` (2)`、` (3)` 等后缀。
+论文名缺失部分分别使用 `UnknownAuthor`、`UnknownYear`、`Untitled`。非法跨平台字符会替换为空格，保留设备名会加前缀。名称首先限制为 220 UTF-8 字节，再根据实际 `directory` 路径动态截短，使最终 Markdown 和图片路径不超过 240 个字符；完整标题仍写入 frontmatter 和 `metadata.json`。同名不同条目使用 ` (2)`、` (3)` 等后缀。资源目录固定为 `assets`，已有同条目的过长目录会在重新解析时事务化迁移。
 
 </details>
 
@@ -138,7 +138,7 @@ MinerU 会通过网络接收所选 PDF，并可能消耗配额。只有需要结
 | `AI4SCHOLAR_MCP_URL` | `https://mcp.ai4scholar.net/sse` |
 | `HTTPS_PROXY` / `HTTP_PROXY` | 未设置专用代理时的通用代理兜底 |
 
-`/pi-scholar setup` 把密钥保存到 `~/.pi/agent/pi-scholar.credentials.json`，目录和文件权限会尽可能限制为当前用户。环境变量优先于本机凭据文件。
+`/pi-scholar setup` 把密钥保存到 `~/.pi/agent/pi-scholar.credentials.json`，目录和文件权限会尽可能限制为当前用户。环境变量优先于本机凭据文件。未显式配置代理时，Windows 系统代理检测只有在注册表 `ProxyEnable` 已开启时才会采用 `ProxyServer`，不会使用关闭代理后残留的旧地址。
 
 相关管理命令：
 

@@ -9,6 +9,7 @@ import {
   clearStoredApiKey,
   getConfigPath,
   loadConfig,
+  parseWindowsProxySettings,
   requestAi4Scholar,
   saveStoredApiKey,
 } from "../src/ai4scholar/client.js";
@@ -46,6 +47,14 @@ test("buildUrl encodes query values and skips empty values", () => {
   assert.deepEqual(url.searchParams.getAll("fields"), ["title", "year"]);
 });
 
+test("Windows proxy detection requires ProxyEnable instead of trusting a stale ProxyServer", () => {
+  const disabled = "ProxyEnable    REG_DWORD    0x0\r\nProxyServer    REG_SZ    127.0.0.1:10809\r\n";
+  const enabled = "ProxyEnable    REG_DWORD    0x1\r\nProxyServer    REG_SZ    http=127.0.0.1:7890;https=127.0.0.1:7891\r\n";
+  assert.equal(parseWindowsProxySettings(disabled), undefined);
+  assert.equal(parseWindowsProxySettings(enabled), "http://127.0.0.1:7891");
+  assert.equal(parseWindowsProxySettings("ProxyServer    REG_SZ    127.0.0.1:10809"), undefined);
+});
+
 test("requestAi4Scholar sends Bearer auth and exposes credit headers", async (t) => {
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
@@ -68,6 +77,16 @@ test("requestAi4Scholar sends Bearer auth and exposes credit headers", async (t)
   assert.deepEqual(response.data, { data: [{ pmid: "1" }] });
   assert.equal(response.creditsCharged, 1);
   assert.equal(response.creditsRemaining, 9);
+});
+
+test("requestAi4Scholar retains the underlying network failure detail", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async () => { const error = new TypeError("fetch failed");Object.assign(error,{cause:new Error("other side closed")});throw error; };
+  await assert.rejects(
+    () => requestAi4Scholar({ apiKey: "secret", baseUrl: "https://example.test", timeoutMs: 1000, proxyUrl: "direct" }, { path: "/api/credits" }),
+    /fetch failed.*other side closed/,
+  );
 });
 
 test("requestAi4Scholar rejects missing keys before network access", async () => {

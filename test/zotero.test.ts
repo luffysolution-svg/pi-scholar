@@ -29,6 +29,16 @@ test("collection reads filter children, deleted and indirect membership without 
   await assert.rejects(new ZoteroClient({fetch:async()=>new Response("",{status:302})}).getItem("PARENT01"),/Zotero read failed \(302\)/);
 });
 
+test("search supports queryless and wildcard browsing ordered by recent modification",async()=>{
+  const calls:URL[]=[];const fetcher:typeof fetch=async input=>{calls.push(new URL(String(input)));return json([]);};const client=new ZoteroClient({fetch:fetcher});
+  await client.searchItems("*",{limit:2});await client.searchItems("");await client.searchItems("photocatalysis",{sort:"date",direction:"asc"});
+  assert.equal(calls[0]!.searchParams.has("q"),false);assert.equal(calls[0]!.searchParams.get("sort"),"dateModified");assert.equal(calls[0]!.searchParams.get("direction"),"desc");assert.equal(calls[1]!.searchParams.has("q"),false);assert.equal(calls[2]!.searchParams.get("q"),"photocatalysis");assert.equal(calls[2]!.searchParams.get("qmode"),"everything");assert.equal(calls[2]!.searchParams.get("sort"),"date");assert.equal(calls[2]!.searchParams.get("direction"),"asc");
+});
+
+test("Zotero connection failures include actionable desktop and port guidance",async()=>{
+  const client=new ZoteroClient({fetch:async()=>{throw new TypeError("fetch failed");}});await assert.rejects(client.searchItems("test"),/Start Zotero.*port 23119.*Allow other applications/s);
+});
+
 test("collection limits apply after filtering child rows",async()=>{
   const rows=[...Array.from({length:100},(_,index)=>raw(`C${String(index).padStart(7,"0")}`,"attachment",{parentItem:"PARENT01",collections:["COLL0001"]})),raw("PARENT01","journalArticle",{title:"Match",collections:["COLL0001"]})];
   const fetcher:typeof fetch=async(input)=>{const url=new URL(String(input));const start=Number(url.searchParams.get("start"));const limit=Number(url.searchParams.get("limit"));return json(rows.slice(start,start+limit));};

@@ -67,7 +67,7 @@ Default layout:
     └── <Author-Year-Title>/
         ├── <Author-Year-Title>.md
         ├── metadata.json
-        └── <Author-Year-Title>-assets/
+        └── assets/
             └── <assetFilePrefix>-01.png
 ```
 
@@ -81,7 +81,7 @@ Default layout:
 
 - `tagSpaceReplacement`: `-` or `_`; affects Markdown frontmatter tags only. `metadata.json` preserves original Zotero tags.
 
-Missing name components use `UnknownAuthor`, `UnknownYear`, and `Untitled`. Cross-platform-invalid characters become spaces, reserved device names are prefixed, and names are capped at 220 UTF-8 bytes. Distinct items with the same readable name receive ` (2)`, ` (3)`, and so on.
+Missing name components use `UnknownAuthor`, `UnknownYear`, and `Untitled`. Cross-platform-invalid characters become spaces and reserved device names are prefixed. Names are first capped at 220 UTF-8 bytes, then shortened against the actual `directory` path as needed so final Markdown and image paths stay within 240 characters; the complete title remains in frontmatter and `metadata.json`. Distinct items with the same readable name receive ` (2)`, ` (3)`, and so on. The asset directory is fixed as `assets`; reprocessing transactionally migrates an overlong directory already owned by the same item.
 
 </details>
 
@@ -138,7 +138,7 @@ Online search, citation, journal, figure, and MCP features use:
 | `AI4SCHOLAR_MCP_URL` | `https://mcp.ai4scholar.net/sse` |
 | `HTTPS_PROXY` / `HTTP_PROXY` | Generic fallback when no dedicated proxy is set |
 
-`/pi-scholar setup` saves the key to `~/.pi/agent/pi-scholar.credentials.json`, restricting directory/file permissions to the current user where supported. Environment variables take precedence over that file.
+`/pi-scholar setup` saves the key to `~/.pi/agent/pi-scholar.credentials.json`, restricting directory/file permissions to the current user where supported. Environment variables take precedence over that file. When no proxy is explicitly configured, Windows system-proxy detection uses `ProxyServer` only if the registry's `ProxyEnable` value is enabled, ignoring stale addresses left after the proxy is turned off.
 
 Management commands:
 

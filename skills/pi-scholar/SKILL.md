@@ -41,7 +41,7 @@ Default publication layout:
 <vault>/Literatures/<paper>/
 ├── <paper>.md
 ├── metadata.json
-└── <paper>-assets/
+└── assets/
 ```
 
-`output.literaturesDirectory` renames `Literatures`. YAML stays compact; complete path-safe provenance belongs in `metadata.json`.
+`output.literaturesDirectory` renames `Literatures`. Paper names are shortened as needed to keep final paths portable. YAML stays compact; complete path-safe provenance belongs in `metadata.json`.

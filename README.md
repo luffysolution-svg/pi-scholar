@@ -34,7 +34,7 @@ pi install npm:@luffysolution/pi-scholar
 也可以指定版本或从 GitHub 安装：
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.3.0
+pi install npm:@luffysolution/pi-scholar@0.3.1
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -93,7 +93,7 @@ API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentials.json`，
     └── Yang-2024-Paper Title/
         ├── Yang-2024-Paper Title.md
         ├── metadata.json
-        └── Yang-2024-Paper Title-assets/
+        └── assets/
             ├── figure-01.png
             └── figure-02.png
 ```
@@ -102,6 +102,8 @@ API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentials.json`，
 - `output.literaturesDirectory` 控制 `Literatures` 名称，可以改成 `文献`、`Papers` 等安全的单级目录名。
 - 每篇论文是一个独立事务单元，复制、移动或删除时不会遗漏元数据和图片。
 - 同一 Zotero 条目重新解析时复用原目录；同名不同条目使用 ` (2)`、` (3)` 等后缀。
+- 资源目录固定为短名称 `assets`，图片默认使用 `figure-01.png` 形式，避免标题在图片路径中重复。
+- 论文目录名会结合实际输出根路径自动截短，使最终 Markdown 和图片路径不超过 240 个字符；完整标题仍保存在 frontmatter 和 `metadata.json`。
 - Markdown 图片使用相对路径，因此整篇论文目录移动后仍可正常显示。
 
 ## ⚙️ 配置

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import YAML from "yaml";
@@ -47,14 +47,21 @@ test("frontmatter stays compact while the sidecar retains complete Unicode prove
 test("publication creates self-contained paper directories, handles collisions and reuses prior metadata ownership",async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-output-"));
   const normalized={body:"# Body\n![x](<__ASSET_PREFIX__/figure-01.png>)\n",assets:[{name:"figure-01.png",bytes:Buffer.from("image")}]};
-  const first=await publishPaper(root,paper(),normalized,publication);assert.equal(path.basename(path.dirname(first.markdownPath)),"Lovelace-2024-A Study α β");assert.equal(path.basename(first.markdownPath),"Lovelace-2024-A Study α β.md");assert.equal(path.basename(first.assetsDirectory),"Lovelace-2024-A Study α β-assets");assert.equal(await readFile(path.join(first.assetsDirectory,"figure-01.png"),"utf8"),"image");const firstMarkdown=await readFile(first.markdownPath,"utf8");assert.match(firstMarkdown,/!\[x\]\(<\.\/Lovelace-2024-A Study α β-assets\/figure-01.png>\)/);assert.equal(first.metadataPath,path.join(path.dirname(first.markdownPath),"metadata.json"));const sidecar=JSON.parse(await readFile(first.metadataPath,"utf8"));assert.equal(sidecar.zotero.selected_key,"PAPER001");
+  const first=await publishPaper(root,paper(),normalized,publication);assert.equal(path.basename(path.dirname(first.markdownPath)),"Lovelace-2024-A Study α β");assert.equal(path.basename(first.markdownPath),"Lovelace-2024-A Study α β.md");assert.equal(path.basename(first.assetsDirectory),"assets");assert.equal(await readFile(path.join(first.assetsDirectory,"figure-01.png"),"utf8"),"image");const firstMarkdown=await readFile(first.markdownPath,"utf8");assert.match(firstMarkdown,/!\[x\]\(<\.\/assets\/figure-01.png>\)/);assert.equal(first.metadataPath,path.join(path.dirname(first.markdownPath),"metadata.json"));const sidecar=JSON.parse(await readFile(first.metadataPath,"utf8"));assert.equal(sidecar.zotero.selected_key,"PAPER001");
   const other=paper({zoteroKey:"PAPER002"});const second=await publishPaper(root,other,normalized,publication);assert.match(path.basename(second.markdownPath),/ \(2\)\.md$/);
   const updated=await publishPaper(root,paper({title:"Renamed title"}),{body:"# Updated\n",assets:[]},publication);assert.equal(updated.markdownPath,first.markdownPath);assert.match(await readFile(first.markdownPath,"utf8"),/# Updated/);
   assert.deepEqual((await readdir(path.join(root,"Literatures"))).filter(n=>n.startsWith(".pi-scholar-")),[]);
 });
 
 test("literature directory, image prefix and tag style are configurable",async()=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-naming-"));const normalized=normalizeArchive(archive("![plot](images/a.png)",{"images/a.png":"png"}),"__ASSET_PREFIX__",undefined,"chart");const value=paper({tags:["deep learning"]});const published=await publishPaper(root,value,normalized,publication,undefined,{literaturesDirectory:"Papers",filenameSeparator:"_",tagSpaceReplacement:"_"});assert.equal(path.basename(path.dirname(path.dirname(published.markdownPath))),"Papers");assert.equal(path.basename(published.markdownPath),"Lovelace_2024_A Study α β.md");assert.equal(path.basename(published.assetsDirectory),"Lovelace_2024_A Study α β-assets");await readFile(path.join(published.assetsDirectory,"chart-01.png"));await readFile(published.metadataPath);const markdown=await readFile(published.markdownPath,"utf8");assert.match(markdown,/tags:\n  - deep_learning/);assert.match(markdown,/!\[plot\]\(<\.\/Lovelace_2024_A Study α β-assets\/chart-01.png>\)/);
+  const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-naming-"));const normalized=normalizeArchive(archive("![plot](images/a.png)",{"images/a.png":"png"}),"__ASSET_PREFIX__",undefined,"chart");const value=paper({tags:["deep learning"]});const published=await publishPaper(root,value,normalized,publication,undefined,{literaturesDirectory:"Papers",filenameSeparator:"_",tagSpaceReplacement:"_"});assert.equal(path.basename(path.dirname(path.dirname(published.markdownPath))),"Papers");assert.equal(path.basename(published.markdownPath),"Lovelace_2024_A Study α β.md");assert.equal(path.basename(published.assetsDirectory),"assets");await readFile(path.join(published.assetsDirectory,"chart-01.png"));await readFile(published.metadataPath);const markdown=await readFile(published.markdownPath,"utf8");assert.match(markdown,/tags:\n  - deep_learning/);assert.match(markdown,/!\[plot\]\(<\.\/assets\/chart-01.png>\)/);
+});
+
+test("publication bounds portable paths and migrates an overlong directory for the same Zotero item",async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-long-path-"));
+  const literatureRoot=path.join(root,"Literatures");const legacyStem=`Lovelace-2024-${"x".repeat(150)}`;const legacyDirectory=path.join(literatureRoot,legacyStem);await mkdir(legacyDirectory,{recursive:true});await writeFile(path.join(legacyDirectory,"metadata.json"),JSON.stringify({zotero:{selected_key:"PAPER001"}}));
+  const fullTitle=`Path-safe ${"research ".repeat(80)}`.trim();const normalized={body:"![x](<__ASSET_PREFIX__/figure-01.png>)\n",assets:[{name:"figure-01.png",bytes:Buffer.from("image")} ]};const published=await publishPaper(root,paper({title:fullTitle}),normalized,publication);
+  assert.notEqual(path.dirname(published.markdownPath),legacyDirectory);assert.ok(published.markdownPath.length<=240);assert.ok(path.join(published.assetsDirectory,"figure-01.png").length<=240);assert.equal(path.basename(published.assetsDirectory),"assets");await assert.rejects(readFile(path.join(legacyDirectory,"metadata.json")),/ENOENT/);const sidecar=JSON.parse(await readFile(published.metadataPath,"utf8"));assert.equal(sidecar.bibliographic.title,fullTitle);
 });
 
 test("unowned paper directories are never overwritten during collision allocation",async()=>{

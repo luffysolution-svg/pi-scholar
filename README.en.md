@@ -34,7 +34,7 @@ pi install npm:@luffysolution/pi-scholar
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.3.0
+pi install npm:@luffysolution/pi-scholar@0.3.1
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -93,7 +93,7 @@ Default layout:
     └── Yang-2024-Paper Title/
         ├── Yang-2024-Paper Title.md
         ├── metadata.json
-        └── Yang-2024-Paper Title-assets/
+        └── assets/
             ├── figure-01.png
             └── figure-02.png
 ```
@@ -102,6 +102,8 @@ Default layout:
 - `output.literaturesDirectory` renames `Literatures`, for example to `Papers` or another safe single directory name.
 - Each paper is one transactional unit, making it safe to copy, move, archive, or delete with its metadata and figures.
 - Reprocessing the same Zotero item reuses its directory; different items with the same readable name receive ` (2)`, ` (3)`, and so on.
+- The asset directory is always the short name `assets`, with image names such as `figure-01.png`, so the paper title is not repeated in image paths.
+- Paper directory names are shortened against the actual output root as needed, keeping final Markdown and image paths within 240 characters. The complete title remains in frontmatter and `metadata.json`.
 - Markdown uses relative image paths, so moving the complete paper directory preserves rendering.
 
 ## ⚙️ Configuration

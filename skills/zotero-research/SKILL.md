@@ -10,7 +10,7 @@ Treat Zotero as read-only. Never create, edit, move, tag, or delete library item
 ## Workflow
 
 1. Use `zotero_collections` to list collections, read one collection, or inspect its top-level items.
-2. Use `zotero_search` with DOI first when available, then distinctive title terms. Optionally constrain by collection or item type.
+2. Use `zotero_search` with DOI first when available, then distinctive title terms. Optionally constrain by collection or item type. To browse all or recently modified top-level items, omit `query`; a literal `*` is treated as the same browse mode rather than a wildcard search.
 3. Match normalized DOI first. Otherwise compare normalized title, year, and first author. Report ambiguous candidates instead of guessing.
 4. Use `zotero_item` with `mode=aggregate` for the selected parent item. Inspect complete metadata, notes, PDF annotations, attachment paths, indexed-text status, and selected PDF.
 5. If several PDFs exist, require or explain the selected attachment key. Do not assume similarly named attachments are identical.

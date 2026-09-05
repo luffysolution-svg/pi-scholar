@@ -172,6 +172,7 @@ export function registerRestTools(pi: ExtensionAPI): void {
           body: compactObject({
             query: params.query,
             page: params.page ?? 1,
+            limit: params.limit ?? 10,
             yearFrom: params.yearFrom,
             yearTo: params.yearTo,
             reviewOnly: params.reviewOnly,
@@ -269,6 +270,9 @@ export function registerRestTools(pi: ExtensionAPI): void {
     label: "Ai4Scholar Author",
     description:
       "Search authors or fetch author details/papers from Semantic Scholar and Google Scholar through Ai4Scholar. Calls may consume credits.",
+    promptGuidelines: [
+      "An empty Google Scholar profile result may reflect upstream blocking or rate limiting and does not prove that the author does not exist; fall back to Semantic Scholar or retry later.",
+    ],
     parameters: Type.Object({
       source: StringEnum(["semantic_scholar", "google_scholar"] as const),
       action: StringEnum(["search", "detail", "papers"] as const),
@@ -312,6 +316,12 @@ export function registerRestTools(pi: ExtensionAPI): void {
             : compactObject({ authorId: params.authorId, sort: params.sort }),
           signal,
         });
+        if (params.action === "search" && response.data && typeof response.data === "object") {
+          const data = response.data as Record<string, unknown>;
+          if (Array.isArray(data.profiles) && data.profiles.length === 0) {
+            response = { ...response, data: { ...data, warning: "Google Scholar returned no profiles. Upstream blocking or rate limiting can cause empty results; this does not prove the author is absent. Try Semantic Scholar or retry later." } };
+          }
+        }
       }
       return toToolResult(response, `author:${params.source}:${params.action}`);
     },
