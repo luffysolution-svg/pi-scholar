@@ -1,0 +1,27 @@
+{
+  "zotero": {
+    "baseUrl": "http://127.0.0.1:23119/api",
+    "timeoutMs": 15000,
+    "maxItems": 5000
+  },
+  "output": {
+    "directory": "./pi-scholar-output",
+    "filenameSeparator": "+",
+    "assetsSuffix": ".assets",
+    "assetFilePrefix": "figure",
+    "metadataFileName": "metadata.json",
+    "tagSpaceReplacement": "-"
+  },
+  "mineru": {
+    "tokenEnv": "MINERU_API_TOKEN",
+    "timeoutMs": 600000,
+    "pollInitialMs": 3000,
+    "pollMaxMs": 15000,
+    "maxAttempts": 120,
+    "language": "en",
+    "enableFormula": true,
+    "enableTable": true,
+    "isOcr": false,
+    "modelVersion": "vlm"
+  }
+}

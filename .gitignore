@@ -1,4 +1,5 @@
 .firecrawl/
+.zed/
 node_modules/
 coverage/
 dist/

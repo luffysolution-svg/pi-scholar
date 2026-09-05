@@ -1,0 +1,83 @@
+{
+  "name": "@luffysolution/pi-scholar",
+  "version": "0.1.0",
+  "description": "Pi-native scholarly workflow for read-only Zotero and MinerU, with Ai4Scholar reuse",
+  "type": "module",
+  "license": "MIT",
+  "author": "pi-scholar contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luffysolution-svg/pi-scholar.git"
+  },
+  "homepage": "https://github.com/luffysolution-svg/pi-scholar#readme",
+  "bugs": {
+    "url": "https://github.com/luffysolution-svg/pi-scholar/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "zotero",
+    "mineru",
+    "research",
+    "markdown"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "exports": "./src/index.ts",
+  "bin": {
+    "pi-scholar": "./bin/pi-scholar.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src",
+    "skills",
+    "bin",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    ".env.example",
+    "pi-scholar.config.example.json"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "pack:check": "node scripts/check-pack.mjs",
+    "prepublishOnly": "npm test && npm run check && npm run pack:check"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "pi-ai4scholar": "0.4.2",
+    "yaml": "^2.8.1"
+  },
+  "bundledDependencies": [
+    "pi-ai4scholar"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^0.85.0",
+    "@earendil-works/pi-coding-agent": "^0.85.0",
+    "@earendil-works/pi-server": "^0.85.0",
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.21.0",
+    "typebox": "^1.0.64",
+    "typescript": "^5.9.3"
+  },
+  "bundleDependencies": [
+    "pi-ai4scholar"
+  ]
+}
