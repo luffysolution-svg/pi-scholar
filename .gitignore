@@ -1,2 +1,11 @@
-
 .firecrawl/
+node_modules/
+coverage/
+dist/
+*.tgz
+.env
+.env.*
+!.env.example
+pi-scholar.config.json
+.pi-scholar-locks/
+.pi-scholar-*/
