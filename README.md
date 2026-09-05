@@ -20,6 +20,8 @@ Restart Pi or run `/reload`. Verify `zotero_collections`, `zotero_search`, `zote
 
 Installing the package already supplies its pinned/tested `pi-ai4scholar` dependency. The upstream extension is imported exactly once; no Ai4Scholar client source is copied or reimplemented.
 
+**If `pi-ai4scholar` is already installed as its own top-level Pi extension**, remove it first with `pi remove npm:pi-ai4scholar` (or the `git:`/local source you used). Pi loads every installed extension independently, so a standalone `pi-ai4scholar` install and the copy bundled inside `pi-scholar` would both try to register the same `ai4scholar_*` tool names, and Pi refuses to load `pi-scholar` at all until the duplicate is removed.
+
 ### `/pi-scholar` command
 
 Once installed, type `/pi-scholar` inside Pi's chat. With no arguments it opens a one-line input dialog ("Pi Scholar：你想研究什么？"); with arguments (e.g. `/pi-scholar 查找光热催化论文，并匹配本地 Zotero`) it skips the dialog. Either way it hands your request to the `pi-scholar` skill (`/skill:pi-scholar ...`) through Pi's normal prompt-template expansion, so the model plans and calls `zotero_*`/`ai4scholar_*`/`pi_scholar_parse` under Pi's usual tool-permission flow — the command itself never calls Zotero or MinerU directly. In print/JSON/non-interactive Pi modes (`ctx.hasUI === false`), you must pass the request inline as an argument; there is no dialog to fall back on.
