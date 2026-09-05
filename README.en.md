@@ -7,13 +7,13 @@
 
 🌐 [简体中文](./README.md) ｜ **English**
 
-Pi-native TypeScript research workflow combining the tested `pi-ai4scholar` extension, read-only Zotero Desktop access, and MinerU's official Precision API. It writes ordinary UTF-8 Markdown and a sibling per-document `.assets` directory — **no Obsidian, Vault, plugin, or database required**.
+A fully integrated Pi-native TypeScript research workflow: complete Ai4Scholar online search/citation capabilities, read-only Zotero Desktop access, and MinerU's official Precision API. It writes ordinary UTF-8 Markdown and a sibling asset directory — **no Obsidian, Vault, plugin, database, or other Pi extension required**.
 
 > 📦 Published to npm as **`@luffysolution/pi-scholar`** (scoped) — the unscoped name `pi-scholar` is already taken by an unrelated package. All in-product names — the `/pi-scholar` command, the `pi-scholar` skill, `pi_scholar_parse`, and `pi-scholar.config.json` — are unaffected by the npm scope.
 
 ## ✨ Features
 
-- 🔎 **Online search + local matching**: reuses `pi-ai4scholar` for online literature search/citation evidence, matched against your local Zotero library by DOI/title.
+- 🔎 **Online search + local matching**: directly integrates every REST/advanced tool, dynamic MCP bridge, and `/ai4scholar` command from the former `pi-ai4scholar`, matched against your local Zotero library by DOI/title.
 - 🗂️ **Full metadata aggregation**: `zotero_item` returns structured creators, dates, DOI/ISBN/ISSN, tags, notes, annotations, attachments, and the selected PDF in one call.
 - 🧬 **Deep PDF parsing**: `pi_scholar_parse` calls the official MinerU API to recognize formulas/tables/layout and extract figures, publishing results safely.
 - 📝 **Clean Markdown output**: compact YAML frontmatter plus a full-provenance `metadata.json` sidecar, with image paths that work out of the box (Obsidian-friendly, never Obsidian-dependent).
@@ -25,13 +25,13 @@ Pi-native TypeScript research workflow combining the tested `pi-ai4scholar` exte
 
 ```sh
 pi install npm:@luffysolution/pi-scholar
-pi install npm:@luffysolution/pi-scholar@0.1.2         # pinned version
+pi install npm:@luffysolution/pi-scholar@0.2.0         # pinned version
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 pi install ./path/to/pi-scholar                          # local persistent install
 pi -e ./path/to/pi-scholar                                # temporary dev load
 ```
 
-Restart Pi or run `/reload`, then verify these tools/commands are available: `zotero_collections`, `zotero_search`, `zotero_item`, `pi_scholar_parse`, the imported `ai4scholar_search` / `ai4scholar_paper` / `ai4scholar_cite`, and `/skill:pi-scholar`.
+Restart Pi or run `/reload`, then verify these tools/commands are available: `zotero_collections`, `zotero_search`, `zotero_item`, `pi_scholar_parse`, the built-in `ai4scholar_*` tools, `/ai4scholar`, and `/skill:pi-scholar`.
 
 Update / uninstall:
 
@@ -40,21 +40,7 @@ pi update npm:@luffysolution/pi-scholar
 pi remove npm:@luffysolution/pi-scholar
 ```
 
-Installing the package already supplies its pinned/tested `pi-ai4scholar` dependency — imported exactly once, with no Ai4Scholar client source copied or reimplemented.
-
-<details>
-<summary>⚠️ Already have <code>pi-ai4scholar</code> installed standalone? Read this first</summary>
-
-Pi loads every installed extension independently. If `pi-ai4scholar` is already installed as its own top-level extension, it and the copy bundled inside `pi-scholar` will both try to register the same `ai4scholar_*` tool names, and **Pi will refuse to load `pi-scholar` at all** ("Tool conflicts" errors).
-
-Remove the standalone install first, then install/update `pi-scholar`:
-
-```sh
-pi remove npm:pi-ai4scholar
-pi update npm:@luffysolution/pi-scholar
-```
-
-</details>
+Ai4Scholar source is now maintained directly in this repository; npm installation no longer bundles or executes the `pi-ai4scholar` dependency package. If you previously installed that extension separately, run `pi remove npm:pi-ai4scholar` to avoid duplicate tool registration.
 
 ### 💬 `/pi-scholar` chat command
 
@@ -87,7 +73,7 @@ All configuration lives in **one JSON file** covering the Zotero connection, Min
 
 > 📖 **For the full field reference — every option's default, valid range, and env var name — see [docs/CONFIGURATION.en.md](./docs/CONFIGURATION.en.md)（[中文](./docs/CONFIGURATION.md)）.**
 
-Ai4Scholar configuration remains owned by that extension, independent of this file: `/ai4scholar setup`, `AI4SCHOLAR_API_KEY`, `AI4SCHOLAR_BASE_URL`, etc.
+The built-in Ai4Scholar functionality keeps its separate secret configuration entry points (the key never enters `pi-scholar.config.json`): `/ai4scholar setup`, `AI4SCHOLAR_API_KEY`, `AI4SCHOLAR_BASE_URL`, etc.
 
 Don't forget to enable **Allow other applications on this computer to communicate with Zotero** in Zotero's settings. Zotero requests are unauthenticated loopback GETs only, with redirects disabled. Never expose port 23119 externally.
 
@@ -100,9 +86,9 @@ Don't forget to enable **Allow other applications on this computer to communicat
 
 **`zotero_item`** maps raw records into one typed `Paper`: complete forward-compatible parent metadata, structured creators, original date/year, DOI/ISBN/ISSN, publication fields, tags/collections, child notes/attachments, PDF-child annotations, indexed-text availability, and the selected PDF. When a parent is clearly sparse, missing bibliographic fields are filled only if Zotero contains **exactly one** non-deleted item with the same normalized title and first author; the donor key, fields, and raw metadata are recorded for provenance. When no attachment key is supplied, PDFs are sorted by key and the first is selected and reported. Identifier matching uses normalized DOI first, then normalized title/year; **nothing is written back to Zotero**.
 
-**`pi_scholar_parse`** validates `%PDF-`, hashes SHA-256, requests an official MinerU signed upload, uploads raw bytes with PUT, polls with bounded backoff, downloads and safely inspects the ZIP, repairs local image links, and transactionally publishes. Result names are `FirstAuthor+Year+Title.md`; missing components use `UnknownAuthor`, `UnknownYear`, or `Untitled`. Invalid cross-platform characters and the component separator `+` become spaces, reserved device names are prefixed, and UTF-8 length is bounded. Collisions use ` (2)`, ` (3)`, etc. — **never** a Zotero key. Reprocessing is recognized by the YAML `zotero://select/...` deep link (legacy `zotero_key` remains readable).
+**`pi_scholar_parse`** validates `%PDF-`, hashes SHA-256, requests an official MinerU signed upload, uploads raw bytes with PUT, polls with bounded backoff, downloads and safely inspects the ZIP, repairs local image links, and transactionally publishes. Default result names are `FirstAuthor-Year-Title.md`; missing components use `UnknownAuthor`, `UnknownYear`, or `Untitled`. Invalid cross-platform characters and component-internal `+` signs become spaces, reserved device names are prefixed, and UTF-8 length is bounded. Collisions use ` (2)`, ` (3)`, etc. — **never** a Zotero key. Reprocessing is recognized by the YAML `zotero://select/...` deep link (legacy `zotero_key` remains readable).
 
-The YAML frontmatter is intentionally compact for note-property UIs: it contains only non-empty, commonly queried bibliographic fields plus Zotero/attachment identity and parse time. Null fields, raw objects, notes, annotations, attachment arrays, and verbose parser details are omitted. Complete path-safe provenance — including selected raw Zotero metadata, any exact-match enrichment donor, notes, annotations, attachments, and MinerU options — is written to the sibling `.assets/metadata.json`; indexed full text and local filesystem paths are not duplicated. Zotero and the selected PDF are exposed as clickable `zotero://select/...` and `zotero://open-pdf/...` frontmatter links. Images use explicit relative paths such as `![](<./<document>.assets/figure-01.jpg>)`, so spaces and Unicode render correctly in Obsidian when the Markdown and sibling asset directory are copied together. The directory suffix, image prefix, metadata filename, and document separator are all configurable. Frontmatter tags preserve their original form in the metadata sidecar while the Obsidian-facing values replace whitespace (default `-`) and unsupported punctuation; for example, `frustrated Lewis pairs` becomes `frustrated-Lewis-pairs` and `Ni/NiOx@C` becomes `Ni/NiOx-C`.
+The YAML frontmatter is intentionally compact for note-property UIs: it contains only non-empty, commonly queried bibliographic fields plus Zotero/attachment identity and parse time. Null fields, raw objects, notes, annotations, attachment arrays, and verbose parser details are omitted. Complete path-safe provenance — including selected raw Zotero metadata, any exact-match enrichment donor, notes, annotations, attachments, and MinerU options — is written to the sibling `-scholar-assets/metadata.json`; indexed full text and local filesystem paths are not duplicated. Zotero and the selected PDF are exposed as clickable `zotero://select/...` and `zotero://open-pdf/...` frontmatter links. Images use explicit relative paths such as `![](<./<document>-scholar-assets/figure-01.jpg>)`, so spaces and Unicode render correctly in Obsidian when the Markdown and sibling asset directory are copied together. The directory suffix, image prefix, metadata filename, and document separator are all configurable. Frontmatter tags preserve their original form in the metadata sidecar while the Obsidian-facing values replace whitespace (default `-`) and unsupported punctuation; for example, `frustrated Lewis pairs` becomes `frustrated-Lewis-pairs` and `Ni/NiOx@C` becomes `Ni/NiOx-C`.
 
 MinerU receives the PDF over the network; consult its privacy policy. MinerU and Ai4Scholar have quotas and may charge credits. Tokens, Authorization headers, and signed URLs are never put in output/YAML. Tool output is bounded to 50KB/2000 lines.
 
@@ -113,8 +99,8 @@ MinerU receives the PDF over the network; consult its privacy policy. MinerU and
 - Zotero access is hard-restricted in code to `http://localhost:23119/api` or `http://127.0.0.1:23119/api`, GET-only, with redirects disabled — an extension-level compromise or misconfiguration cannot be used to reach an arbitrary host or mutate your library.
 - MinerU requests must be HTTPS with no embedded credentials; signed upload/download URLs, bearer tokens, and raw error bodies are redacted from every thrown error and from tool output.
 - The downloaded MinerU result archive is validated before extraction (central-directory inspection, entry-count/size caps, symlink/encrypted-entry rejection, path-traversal and absolute-path rejection, duplicate-entry rejection) before any file is written to disk.
-- Publishing a parsed paper is transactional: work happens in a temporary staging directory, existing files are only replaced after the new content is fully written, and a crash or cancellation restores the prior state instead of leaving a partial `.md`/`.assets` pair.
-- No dependency on this project's own registry account is required at runtime: `pi-ai4scholar` is pinned to an exact version and bundled, so a compromised or yanked upstream release cannot silently change behavior after install.
+- Publishing a parsed paper is transactional: work happens in a temporary staging directory, existing files are only replaced after the new content is fully written, and a crash or cancellation restores the prior state instead of leaving a partial Markdown/asset-directory pair.
+- The Ai4Scholar implementation is included directly in this repository and package; no other Pi extension is bundled or required, so an external `pi-ai4scholar` release cannot change installed behavior.
 
 ## 🛠️ Development
 

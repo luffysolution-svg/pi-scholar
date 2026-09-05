@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import ai4ScholarExtension from "pi-ai4scholar";
+import ai4ScholarExtension from "./ai4scholar/index.js";
 import { registerScholarCommand } from "./command.js";
 import { registerScholarTools } from "./tools.js";
 

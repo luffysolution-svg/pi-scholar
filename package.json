@@ -1,7 +1,7 @@
 {
   "name": "@luffysolution/pi-scholar",
-  "version": "0.1.2",
-  "description": "Pi-native scholarly workflow for read-only Zotero and MinerU, with Ai4Scholar reuse",
+  "version": "0.2.0",
+  "description": "Pi-native scholarly workflow: read-only Zotero, MinerU PDF parsing, and Ai4Scholar search/citation, fully integrated in one extension",
   "type": "module",
   "license": "MIT",
   "author": "pi-scholar contributors",
@@ -17,6 +17,7 @@
     "pi-package",
     "zotero",
     "mineru",
+    "ai4scholar",
     "research",
     "markdown"
   ],
@@ -57,13 +58,11 @@
     "prepublishOnly": "npm test && npm run check && npm run pack:check"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "adm-zip": "^0.6.0",
-    "pi-ai4scholar": "0.4.2",
+    "undici": "^8.9.0",
     "yaml": "^2.8.1"
   },
-  "bundledDependencies": [
-    "pi-ai4scholar"
-  ],
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*",
@@ -78,8 +77,5 @@
     "tsx": "^4.21.0",
     "typebox": "^1.0.64",
     "typescript": "^5.9.3"
-  },
-  "bundleDependencies": [
-    "pi-ai4scholar"
-  ]
+  }
 }

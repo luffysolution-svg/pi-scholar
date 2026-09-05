@@ -10,12 +10,12 @@ import { archive, mineruInfo, paper } from "./helpers.js";
 const publication={pdfSha256:"a".repeat(64),mineru:mineruInfo,parsedAt:"2026-01-02T03:04:05.000Z"};
 
 test("paper filenames are readable, cross-platform safe and UTF-8 bounded",()=>{
-  assert.equal(paperStem(paper()),"Lovelace+2024+A Study α β");
-  assert.equal(paperStem(paper({creators:[],year:null,title:"CON."})),"UnknownAuthor+UnknownYear+_CON");
-  assert.equal(paperStem(paper({creators:[{creatorType:"editor",firstName:"Eve",lastName:"Editor",name:null}]})),"UnknownAuthor+2024+A Study α β");
-  assert.equal(paperStem(paper({title:"Ni/NiO<sub>x</sub> photothermal"})),"Lovelace+2024+Ni NiOx photothermal");
+  assert.equal(paperStem(paper()),"Lovelace-2024-A Study α β");
+  assert.equal(paperStem(paper({creators:[],year:null,title:"CON."})),"UnknownAuthor-UnknownYear-_CON");
+  assert.equal(paperStem(paper({creators:[{creatorType:"editor",firstName:"Eve",lastName:"Editor",name:null}]})),"UnknownAuthor-2024-A Study α β");
+  assert.equal(paperStem(paper({title:"Ni/NiO<sub>x</sub> photothermal"})),"Lovelace-2024-Ni NiOx photothermal");
   const stem=paperStem(paper({title:"😀".repeat(200)}));assert.ok(Buffer.byteLength(stem)<=220);assert.doesNotMatch(stem,/�/);
-  assert.equal(paperStem(paper({creators:[{creatorType:"author",firstName:null,lastName:"a+b",name:null}],title:"x+y"})),"a b+2024+x y");
+  assert.equal(paperStem(paper({creators:[{creatorType:"author",firstName:null,lastName:"a+b",name:null}],title:"x+y"})),"a b-2024-x y");
   assert.equal(paperStem(paper(),"_"),"Lovelace_2024_A Study α β");
   assert.deepEqual(obsidianTags(["frustrated Lewis pairs","Ni/NiOx@C","#photothermal","2024","a  b"]),["frustrated-Lewis-pairs","Ni/NiOx-C","photothermal","tag-2024","a-b"]);
 });
@@ -47,7 +47,7 @@ test("frontmatter stays compact while the sidecar retains complete Unicode prove
 test("publication pairs assets, uses numeric collisions and reuses a paper's prior YAML-owned path",async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-output-"));
   const normalized={body:"# Body\n![x](<__ASSET_PREFIX__/figure-01.png>)\n",assets:[{name:"figure-01.png",bytes:Buffer.from("image")}]};
-  const first=await publishPaper(root,paper(),normalized,publication);assert.equal(path.basename(first.markdownPath),"Lovelace+2024+A Study α β.md");assert.equal(await readFile(path.join(first.assetsDirectory,"figure-01.png"),"utf8"),"image");const firstMarkdown=await readFile(first.markdownPath,"utf8");assert.match(firstMarkdown,/!\[x\]\(<\.\/Lovelace\+2024\+A Study α β\.assets\/figure-01.png>\)/);const sidecar=JSON.parse(await readFile(path.join(first.assetsDirectory,"metadata.json"),"utf8"));assert.equal(sidecar.zotero.selected_key,"PAPER001");
+  const first=await publishPaper(root,paper(),normalized,publication);assert.equal(path.basename(first.markdownPath),"Lovelace-2024-A Study α β.md");assert.equal(await readFile(path.join(first.assetsDirectory,"figure-01.png"),"utf8"),"image");const firstMarkdown=await readFile(first.markdownPath,"utf8");assert.match(firstMarkdown,/!\[x\]\(<\.\/Lovelace-2024-A Study α β-scholar-assets\/figure-01.png>\)/);const sidecar=JSON.parse(await readFile(path.join(first.assetsDirectory,"metadata.json"),"utf8"));assert.equal(sidecar.zotero.selected_key,"PAPER001");
   const other=paper({zoteroKey:"PAPER002"});const second=await publishPaper(root,other,normalized,publication);assert.match(path.basename(second.markdownPath),/ \(2\)\.md$/);
   const updated=await publishPaper(root,paper({title:"Renamed title"}),{body:"# Updated\n",assets:[]},publication);assert.equal(updated.markdownPath,first.markdownPath);assert.match(await readFile(first.markdownPath,"utf8"),/# Updated/);
   await writeFile(path.join(root,"Unrelated.md"),"do not overwrite");await publishPaper(root,paper({zoteroKey:"PAPER003",title:"Unrelated",creators:[],year:null}),{body:"ok\n",assets:[]},publication);assert.equal(await readFile(path.join(root,"Unrelated.md"),"utf8"),"do not overwrite");
@@ -60,9 +60,9 @@ test("asset directory, image prefix, metadata filename and tag style are configu
 
 test("orphan asset directories are never overwritten during collision allocation",async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-orphan-"));
-  const orphan=path.join(root,"Lovelace+2024+A Study α β.assets");await import("node:fs/promises").then(fs=>fs.mkdir(orphan));await writeFile(path.join(orphan,"keep.txt"),"unrelated");
+  const orphan=path.join(root,"Lovelace-2024-A Study α β-scholar-assets");await import("node:fs/promises").then(fs=>fs.mkdir(orphan));await writeFile(path.join(orphan,"keep.txt"),"unrelated");
   const published=await publishPaper(root,paper(),{body:"body\n",assets:[]},publication);
-  assert.equal(path.basename(published.markdownPath),"Lovelace+2024+A Study α β (2).md");
+  assert.equal(path.basename(published.markdownPath),"Lovelace-2024-A Study α β (2).md");
   assert.equal(await readFile(path.join(orphan,"keep.txt"),"utf8"),"unrelated");
 });
 

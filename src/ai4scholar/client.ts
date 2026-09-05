@@ -1,0 +1,337 @@
+import { chmod, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { fetch as undiciFetch, ProxyAgent } from "undici";
+
+export type QueryValue = string | number | boolean | null | undefined | readonly (string | number | boolean)[];
+export type Query = Record<string, QueryValue>;
+
+export interface Ai4ScholarConfig {
+  apiKey: string;
+  baseUrl: string;
+  timeoutMs: number;
+  proxyUrl?: string;
+}
+
+export interface Ai4ScholarResponse<T = unknown> {
+  data: T;
+  status: number;
+  url: string;
+  creditsCharged?: number;
+  creditsRemaining?: number;
+  requestId?: string;
+}
+
+export interface Ai4ScholarSseEvent {
+  event?: string;
+  data: unknown;
+}
+
+export class Ai4ScholarError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+    public readonly url?: string,
+    public readonly responseBody?: unknown,
+  ) {
+    super(message);
+    this.name = "Ai4ScholarError";
+  }
+}
+
+export function getConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+  const agentDir = env.PI_CODING_AGENT_DIR?.trim() || join(homedir(), ".pi", "agent");
+  return join(agentDir, "ai4scholar.json");
+}
+
+function readStoredApiKey(path: string): string {
+  if (!existsSync(path)) return "";
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as { apiKey?: unknown };
+    return typeof parsed.apiKey === "string" ? parsed.apiKey.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+export function loadConfig(
+  env: NodeJS.ProcessEnv = process.env,
+  options: { configPath?: string | null } = {},
+): Ai4ScholarConfig {
+  const configPath = options.configPath === undefined ? getConfigPath(env) : options.configPath;
+  const storedApiKey = configPath ? readStoredApiKey(configPath) : "";
+  const apiKey = env.AI4SCHOLAR_API_KEY?.trim() || env.AI4S_API_KEY?.trim() || storedApiKey;
+  const baseUrl = (env.AI4SCHOLAR_BASE_URL?.trim() || "https://ai4scholar.net").replace(/\/+$/, "");
+  const parsedTimeout = Number(env.AI4SCHOLAR_TIMEOUT_MS || 30_000);
+  const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30_000;
+  const proxyUrl = env.AI4SCHOLAR_PROXY?.trim() || env.HTTPS_PROXY?.trim() || env.HTTP_PROXY?.trim() || undefined;
+
+  return { apiKey, baseUrl, timeoutMs, proxyUrl };
+}
+
+export async function saveStoredApiKey(apiKey: string, env: NodeJS.ProcessEnv = process.env): Promise<string> {
+  const normalized = apiKey.trim();
+  if (!/^sk-[A-Za-z0-9_-]{8,}$/.test(normalized)) {
+    throw new Ai4ScholarError("API Key 格式不正确，应为 sk- 开头的 Ai4Scholar 密钥。");
+  }
+  const path = getConfigPath(env);
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await writeFile(path, `${JSON.stringify({ apiKey: normalized }, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  await chmod(path, 0o600).catch(() => undefined);
+  return path;
+}
+
+export async function clearStoredApiKey(env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
+  const path = getConfigPath(env);
+  try {
+    await readFile(path, "utf8");
+    await unlink(path);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+export function requireApiKey(config: Ai4ScholarConfig): string {
+  if (!config.apiKey) {
+    throw new Ai4ScholarError(
+      "缺少 Ai4Scholar API Key。请设置环境变量 AI4SCHOLAR_API_KEY，然后重启 Pi。密钥可在 https://ai4scholar.net/open-platform 创建。",
+    );
+  }
+  return config.apiKey;
+}
+
+export function buildUrl(baseUrl: string, path: string, query?: Query): URL {
+  if (!path.startsWith("/")) {
+    throw new Ai4ScholarError(`API 路径必须以 / 开头：${path}`);
+  }
+
+  const url = new URL(path, `${baseUrl.replace(/\/+$/, "")}/`);
+  for (const [key, rawValue] of Object.entries(query ?? {})) {
+    if (rawValue === undefined || rawValue === null || rawValue === "") continue;
+    const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+    for (const value of values) url.searchParams.append(key, String(value));
+  }
+  return url;
+}
+
+function parseNumericHeader(headers: { get(name: string): string | null }, name: string): number | undefined {
+  const raw = headers.get(name);
+  if (raw === null || raw.trim() === "") return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function parseBody(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function combineSignals(signal: AbortSignal | undefined, timeoutMs: number): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
+let detectedSystemProxy: string | null | undefined;
+const proxyAgents = new Map<string, ProxyAgent>();
+
+function normalizeProxyUrl(raw: string): string | undefined {
+  let value = raw.trim();
+  if (!value) return undefined;
+  if (value.includes(";")) {
+    const entries = Object.fromEntries(value.split(";").map((part) => part.split("=", 2)));
+    value = entries.https || entries.http || value;
+  }
+  if (!/^https?:\/\//i.test(value)) value = `http://${value}`;
+  try {
+    new URL(value);
+    return value;
+  } catch {
+    return undefined;
+  }
+}
+
+export function detectWindowsProxy(): string | undefined {
+  if (process.platform !== "win32") return undefined;
+  if (detectedSystemProxy !== undefined) return detectedSystemProxy || undefined;
+  try {
+    const output = execFileSync(
+      "reg.exe",
+      ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", "/v", "ProxyServer"],
+      { encoding: "utf8", windowsHide: true, timeout: 2000 },
+    );
+    const match = output.match(/ProxyServer\s+REG_SZ\s+([^\r\n]+)/i);
+    detectedSystemProxy = match ? normalizeProxyUrl(match[1]) ?? null : null;
+  } catch {
+    detectedSystemProxy = null;
+  }
+  return detectedSystemProxy || undefined;
+}
+
+export function resolveProxyUrl(config: Ai4ScholarConfig): string | undefined {
+  if (config.proxyUrl?.toLowerCase() === "direct") return undefined;
+  return config.proxyUrl ? normalizeProxyUrl(config.proxyUrl) : detectWindowsProxy();
+}
+
+export function getProxyAgent(proxyUrl: string): ProxyAgent {
+  let agent = proxyAgents.get(proxyUrl);
+  if (!agent) {
+    agent = new ProxyAgent(proxyUrl);
+    proxyAgents.set(proxyUrl, agent);
+  }
+  return agent;
+}
+
+interface RequestOptions {
+  method?: "GET" | "POST";
+  path: string;
+  query?: Query;
+  body?: unknown;
+  signal?: AbortSignal;
+  accept?: string;
+  timeoutMs?: number;
+}
+
+async function fetchAi4ScholarResponse(
+  config: Ai4ScholarConfig,
+  options: RequestOptions,
+): Promise<{ response: Response; url: URL }> {
+  const apiKey = requireApiKey(config);
+  const url = buildUrl(config.baseUrl, options.path, options.query);
+  const method = options.method ?? (options.body === undefined ? "GET" : "POST");
+  const headers: Record<string, string> = {
+    Accept: options.accept ?? "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  };
+
+  let body: string | undefined;
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify(options.body);
+  }
+
+  const proxyUrl = resolveProxyUrl(config);
+  try {
+    const timeoutMs = options.timeoutMs ?? config.timeoutMs;
+    const response = proxyUrl
+      ? await undiciFetch(url, {
+          method,
+          headers,
+          body,
+          signal: combineSignals(options.signal, timeoutMs),
+          dispatcher: getProxyAgent(proxyUrl),
+        })
+      : await fetch(url, {
+          method,
+          headers,
+          body,
+          signal: combineSignals(options.signal, timeoutMs),
+        });
+    return { response: response as Response, url };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const proxyHint = proxyUrl ? `（代理 ${proxyUrl}）` : "";
+    throw new Ai4ScholarError(`Ai4Scholar 请求失败${proxyHint}：${message}`, undefined, url.toString());
+  }
+}
+
+function responseMeta<T>(response: Response, url: URL, data: T): Ai4ScholarResponse<T> {
+  return {
+    data,
+    status: response.status,
+    url: url.toString(),
+    creditsCharged: parseNumericHeader(response.headers, "x-credits-charged"),
+    creditsRemaining: parseNumericHeader(response.headers, "x-credits-remaining"),
+    requestId: response.headers.get("x-request-id") ?? undefined,
+  };
+}
+
+async function throwResponseError(response: Response, url: URL): Promise<never> {
+  const parsed = parseBody(await response.text());
+  const detail = typeof parsed === "string" ? parsed.slice(0, 1000) : JSON.stringify(parsed).slice(0, 1000);
+  throw new Ai4ScholarError(
+    `Ai4Scholar API 返回 HTTP ${response.status}${detail ? `：${detail}` : ""}`,
+    response.status,
+    url.toString(),
+    parsed,
+  );
+}
+
+export async function requestAi4Scholar<T = unknown>(
+  config: Ai4ScholarConfig,
+  options: RequestOptions,
+): Promise<Ai4ScholarResponse<T>> {
+  const { response, url } = await fetchAi4ScholarResponse(config, options);
+  if (!response.ok) return throwResponseError(response, url);
+  return responseMeta(response, url, parseBody(await response.text()) as T);
+}
+
+function parseSseBlock(block: string): Ai4ScholarSseEvent | undefined {
+  let event: string | undefined;
+  const dataLines: string[] = [];
+  for (const line of block.split(/\r?\n/)) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+  }
+  if (dataLines.length === 0) return undefined;
+  const raw = dataLines.join("\n");
+  if (raw === "[DONE]") return undefined;
+  return { event, data: parseBody(raw) };
+}
+
+export async function requestAi4ScholarSse(
+  config: Ai4ScholarConfig,
+  options: RequestOptions & { onEvent?: (event: Ai4ScholarSseEvent) => void },
+): Promise<Ai4ScholarResponse<Ai4ScholarSseEvent[]>> {
+  const { response, url } = await fetchAi4ScholarResponse(config, {
+    ...options,
+    accept: "text/event-stream",
+  });
+  if (!response.ok) return throwResponseError(response, url);
+  if (!response.body) throw new Ai4ScholarError("Ai4Scholar SSE 响应没有内容。", response.status, url.toString());
+
+  const events: Ai4ScholarSseEvent[] = [];
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const consume = (block: string) => {
+    const event = parseSseBlock(block);
+    if (!event) return;
+    events.push(event);
+    options.onEvent?.(event);
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    let separator = buffer.match(/\r?\n\r?\n/);
+    while (separator?.index !== undefined) {
+      consume(buffer.slice(0, separator.index));
+      buffer = buffer.slice(separator.index + separator[0].length);
+      separator = buffer.match(/\r?\n\r?\n/);
+    }
+    if (done) break;
+  }
+  if (buffer.trim()) consume(buffer);
+
+  const failure = events.find((event) => event.event === "error");
+  if (failure) {
+    throw new Ai4ScholarError(`Ai4Scholar SSE 返回错误：${JSON.stringify(failure.data)}`, response.status, url.toString(), failure.data);
+  }
+  return responseMeta(response, url, events);
+}
+
+export function encodeId(id: string): string {
+  // Keep Semantic Scholar's identifier separator readable while encoding DOI slashes.
+  return id.split(":", 2).length === 2
+    ? `${encodeURIComponent(id.slice(0, id.indexOf(":")))}:${encodeURIComponent(id.slice(id.indexOf(":") + 1))}`
+    : encodeURIComponent(id);
+}

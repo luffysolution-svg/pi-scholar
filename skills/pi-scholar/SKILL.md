@@ -32,7 +32,7 @@ Use progressive disclosure: inspect summaries and paths first, then read only th
 3. Call `zotero_item` in `aggregate` mode for the selected local parent. Inspect complete metadata, notes, PDF-child annotations, attachment paths, indexed-text status, and any exact local duplicate used to enrich a sparse record.
 4. If several PDFs exist, ask/select the intended attachment key; absent an explicit choice, the adapter reports its deterministic lowest-key selection.
 5. Skip parsing for metadata-only work. Reuse generated output only when its compact YAML `zotero` deep link and metadata sidecar `pdf.sha256`, terminal `mineru.state`, and options match the current PDF/configuration. Parse when layout, formulas, tables, or figures are required and no current result exists. Reparse after hash/config changes.
-6. Read only relevant sections of the saved Markdown and referenced relative assets. Use the configured asset suffix and metadata filename (defaults: `.assets/metadata.json`) for verbose provenance rather than expecting it in frontmatter. Analyze headings, formulas, tables, images, and captions in their original order.
+6. Read only relevant sections of the saved Markdown and referenced relative assets. Use the configured asset suffix and metadata filename (defaults: `scholar-assets/metadata.json`) for verbose provenance rather than expecting it in frontmatter. Analyze headings, formulas, tables, images, and captions in their original order.
 7. Support online claims with `ai4scholar_cite`/detail tools. Never fabricate unavailable references.
 
 ## Failures and retries

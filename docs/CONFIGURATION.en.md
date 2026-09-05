@@ -32,8 +32,8 @@ Checked in order, first match wins:
 {
   "output": {
     "directory": "F:/my-vault",
-    "filenameSeparator": "+",
-    "assetsSuffix": ".assets",
+    "filenameSeparator": "-",
+    "assetsSuffix": "scholar-assets",
     "assetFilePrefix": "figure",
     "metadataFileName": "metadata.json",
     "tagSpaceReplacement": "-"
@@ -65,8 +65,8 @@ Checked in order, first match wins:
 | Field | Env override | Default |
 |---|---|---|
 | `directory` | `PI_SCHOLAR_OUTPUT_DIR` | `~/pi-scholar` |
-| `filenameSeparator` | `PI_SCHOLAR_FILENAME_SEPARATOR` | `+` |
-| `assetsSuffix` | `PI_SCHOLAR_ASSETS_SUFFIX` | `.assets` |
+| `filenameSeparator` | `PI_SCHOLAR_FILENAME_SEPARATOR` | `-` |
+| `assetsSuffix` | `PI_SCHOLAR_ASSETS_SUFFIX` | `scholar-assets` |
 | `assetFilePrefix` | `PI_SCHOLAR_ASSET_FILE_PREFIX` | `figure` |
 | `metadataFileName` | `PI_SCHOLAR_METADATA_FILE` | `metadata.json` |
 | `tagSpaceReplacement` | `PI_SCHOLAR_TAG_SPACE_REPLACEMENT` | `-` |
@@ -74,9 +74,9 @@ Checked in order, first match wins:
 <details>
 <summary>Field details</summary>
 
-- **`directory`**: Where generated `.md` files and `.assets` folders are published. May be an Obsidian vault folder, but Obsidian is never required. Relative paths in JSON resolve relative to the config file's directory; relative paths via env var resolve relative to `cwd`.
+- **`directory`**: Where generated `.md` files and sibling asset folders are published. May be an Obsidian vault folder, but Obsidian is never required. Relative paths in JSON resolve relative to the config file's directory; relative paths via env var resolve relative to `cwd`.
 - **`filenameSeparator`**: 1–3 characters from `[+._ -]` used to join `Author`, `Year`, `Title` in generated filenames.
-- **`assetsSuffix`**: Sibling directory suffix, e.g. `Paper.assets/`. Must be a safe filename component (no path separators, max 64 UTF-8 bytes).
+- **`assetsSuffix`**: Sibling asset-directory suffix. The default produces `Author-Year-Title-scholar-assets/`; values beginning with a letter/number are joined using `filenameSeparator`, while values carrying their own punctuation prefix (such as `.assets` or `_media`) are appended directly. Must be a safe filename component (no path separators, max 64 UTF-8 bytes).
 - **`assetFilePrefix`**: Extracted image basename prefix, e.g. `figure-01.png`.
 - **`metadataFileName`**: Sidecar filename inside the assets directory; must end in `.json`.
 - **`tagSpaceReplacement`**: `-` or `_`; character substituted for whitespace/unsupported punctuation in Obsidian-facing tags only (the metadata sidecar keeps the original Zotero tag text).
@@ -141,7 +141,7 @@ See [`.env.example`](../.env.example) at the repo root for a documentation-only 
 
 ## 🔗 Ai4Scholar configuration
 
-Ai4Scholar configuration remains owned by the directly reused `pi-ai4scholar` extension, independent of this file:
+Ai4Scholar is now built directly into `pi-scholar`, but keeps its established separate configuration entry points for secret isolation and backward compatibility:
 
 - `/ai4scholar setup`
 - `AI4SCHOLAR_API_KEY` (legacy `AI4S_API_KEY`)

@@ -6,8 +6,8 @@
   },
   "output": {
     "directory": "./pi-scholar-output",
-    "filenameSeparator": "+",
-    "assetsSuffix": ".assets",
+    "filenameSeparator": "-",
+    "assetsSuffix": "scholar-assets",
     "assetFilePrefix": "figure",
     "metadataFileName": "metadata.json",
     "tagSpaceReplacement": "-"

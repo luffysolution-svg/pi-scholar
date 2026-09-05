@@ -15,7 +15,7 @@ test("Zotero base URL only accepts the two exact loopback API origins",()=>{
 
 test("configuration parses defaults, bounds and booleans",()=>{
   const c=loadConfig({HOME:"/tmp",MINERU_ENABLE_FORMULA:"no",MINERU_MAX_ATTEMPTS:"7",ZOTERO_BASE_URL:"http://localhost:23119/api"});
-  assert.equal(c.mineruEnableFormula,false);assert.equal(c.mineruEnableTable,true);assert.equal(c.mineruMaxAttempts,7);
+  assert.equal(c.filenameSeparator,"-");assert.equal(c.assetsSuffix,"scholar-assets");assert.equal(c.mineruEnableFormula,false);assert.equal(c.mineruEnableTable,true);assert.equal(c.mineruMaxAttempts,7);
   assert.throws(()=>loadConfig({MINERU_MAX_ATTEMPTS:"0"}),/Invalid numeric configuration/);
   assert.throws(()=>loadConfig({MINERU_ENABLE_TABLE:"ture"}),/Invalid boolean configuration/);
 });

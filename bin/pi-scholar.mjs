@@ -28,7 +28,7 @@ function printHelp() {
   console.log(`pi-scholar ${readPackageVersion()} -- setup/diagnostic helper (not the Pi extension itself)
 
 Usage:
-  npx pi-scholar doctor      Check Node version, discover config, probe Zotero (default)
+  npx pi-scholar doctor      Check Node, config, Zotero, MinerU, and Ai4Scholar (default)
   npx pi-scholar --version   Print the package version
   npx pi-scholar --help      Show this message
 
@@ -94,11 +94,15 @@ async function doctor() {
 
   const home = process.env.HOME ?? process.env.USERPROFILE ?? os.homedir();
   const { path: configPath, source } = discoverConfigPath(process.env, process.cwd(), home);
+  let scholarConfig = {};
   if (configPath) {
     console.log(`Config file: ${configPath} (source: ${source})`);
     const parsed = readJsonSafely(configPath);
     if (parsed.error) console.log(`  Could not read config: ${parsed.error}`);
-    else console.log(`  Sections present: ${Object.keys(parsed.value ?? {}).join(", ") || "(none)"}`);
+    else {
+      scholarConfig = parsed.value ?? {};
+      console.log(`  Sections present: ${Object.keys(scholarConfig).join(", ") || "(none)"}`);
+    }
   } else {
     console.log("Config file: none found (using built-in defaults; see pi-scholar.config.example.json)");
   }
@@ -108,9 +112,15 @@ async function doctor() {
   const zotero = await probeZotero(baseUrl);
   console.log(`  ${zotero.ok ? "OK" : "FAILED"}: ${zotero.detail}`);
 
-  const tokenEnv = process.env.PI_SCHOLAR_MINERU_TOKEN_ENV ?? "MINERU_API_TOKEN";
+  const tokenEnv = scholarConfig?.mineru?.tokenEnv ?? "MINERU_API_TOKEN";
   const hasToken = Boolean(process.env.MINERU_API_TOKEN ?? process.env[tokenEnv]);
   console.log(`MinerU token (${tokenEnv}): ${hasToken ? "set" : "not set (MinerU parsing will be unavailable)"}`);
+
+  const ai4AgentDir = process.env.PI_CODING_AGENT_DIR?.trim() || path.join(home, ".pi", "agent");
+  const ai4ConfigPath = path.join(ai4AgentDir, "ai4scholar.json");
+  const ai4Stored = existsSync(ai4ConfigPath) ? readJsonSafely(ai4ConfigPath).value?.apiKey : undefined;
+  const hasAi4Token = Boolean(process.env.AI4SCHOLAR_API_KEY || process.env.AI4S_API_KEY || ai4Stored);
+  console.log(`Ai4Scholar token: ${hasAi4Token ? "set" : "not set (run /ai4scholar setup or set AI4SCHOLAR_API_KEY)"}`);
 
   console.log(`\nNext steps:`);
   console.log(`  1. In Zotero: Settings > Advanced > enable "Allow other applications to communicate with Zotero".`);

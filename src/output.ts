@@ -22,7 +22,7 @@ function utf8Limit(value:string,max:number):string {
   while(Buffer.byteLength(points.join(""),"utf8")>max)points.pop();
   return points.join("").replace(/[. ]+$/g,"")||"Untitled";
 }
-export function paperStem(paper: Pick<Paper,"creators"|"year"|"title">,separator="+"):string {
+export function paperStem(paper: Pick<Paper,"creators"|"year"|"title">,separator="-"):string {
   const first=paper.creators.find(c=>c.creatorType==="author");
   const author=component(first?.lastName ?? first?.name ?? "UnknownAuthor","UnknownAuthor");
   const year=component(paper.year ?? "UnknownYear","UnknownYear");
@@ -186,7 +186,8 @@ export async function publishPaper(outputRoot:string,paper:Paper,normalized:Norm
   const resolved=path.resolve(outputRoot);
   const locks=path.join(resolved,".pi-scholar-locks");
   await mkdir(locks,{recursive:true});
-  const filenameSeparator=naming.filenameSeparator??"+",assetsSuffix=naming.assetsSuffix??".assets",metadataFileName=naming.metadataFileName??"metadata.json";
+  const filenameSeparator=naming.filenameSeparator??"-",configuredAssetsSuffix=naming.assetsSuffix??"scholar-assets",metadataFileName=naming.metadataFileName??"metadata.json";
+  const assetsSuffix=/^[\p{L}\p{N}]/u.test(configuredAssetsSuffix)?`${filenameSeparator}${configuredAssetsSuffix}`:configuredAssetsSuffix;
   const base=paperStem(paper,filenameSeparator);
   // Serialize name allocation and publication for the output root so two distinct
   // papers with the same sanitized basename cannot race into the same paths.

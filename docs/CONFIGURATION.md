@@ -32,8 +32,8 @@
 {
   "output": {
     "directory": "F:/个人知识库",
-    "filenameSeparator": "+",
-    "assetsSuffix": ".assets",
+    "filenameSeparator": "-",
+    "assetsSuffix": "scholar-assets",
     "assetFilePrefix": "figure",
     "metadataFileName": "metadata.json",
     "tagSpaceReplacement": "-"
@@ -65,8 +65,8 @@
 | 字段 | 环境变量 | 默认值 |
 |---|---|---|
 | `directory` | `PI_SCHOLAR_OUTPUT_DIR` | `~/pi-scholar` |
-| `filenameSeparator` | `PI_SCHOLAR_FILENAME_SEPARATOR` | `+` |
-| `assetsSuffix` | `PI_SCHOLAR_ASSETS_SUFFIX` | `.assets` |
+| `filenameSeparator` | `PI_SCHOLAR_FILENAME_SEPARATOR` | `-` |
+| `assetsSuffix` | `PI_SCHOLAR_ASSETS_SUFFIX` | `scholar-assets` |
 | `assetFilePrefix` | `PI_SCHOLAR_ASSET_FILE_PREFIX` | `figure` |
 | `metadataFileName` | `PI_SCHOLAR_METADATA_FILE` | `metadata.json` |
 | `tagSpaceReplacement` | `PI_SCHOLAR_TAG_SPACE_REPLACEMENT` | `-` |
@@ -74,9 +74,9 @@
 <details>
 <summary>字段详细说明</summary>
 
-- **`directory`**：生成的 `.md` 文件与 `.assets` 目录的发布位置。可以指向一个 Obsidian Vault 文件夹，但从不依赖 Obsidian 本身。JSON 中的相对路径相对配置文件目录解析；环境变量中的相对路径相对 `cwd` 解析。
+- **`directory`**：生成的 `.md` 文件与同级资源目录的发布位置。可以指向一个 Obsidian Vault 文件夹，但从不依赖 Obsidian 本身。JSON 中的相对路径相对配置文件目录解析；环境变量中的相对路径相对 `cwd` 解析。
 - **`filenameSeparator`**：拼接 `Author`、`Year`、`Title` 生成文件名时使用的分隔符，仅允许 1–3 个字符，取自 `[+._ -]`。
-- **`assetsSuffix`**：与 Markdown 同级的资源目录后缀，例如 `Paper.assets/`。必须是安全的文件名片段（不含路径分隔符，UTF-8 字节数不超过 64）。
+- **`assetsSuffix`**：与 Markdown 同级的资源目录后缀。默认生成 `Author-Year-Title-scholar-assets/`；字母/数字开头的值会自动用 `filenameSeparator` 与文档名连接，自带标点前缀的值（如 `.assets`、`_media`）则直接拼接。必须是安全的文件名片段（不含路径分隔符，UTF-8 字节数不超过 64）。
 - **`assetFilePrefix`**：提取出的图片文件名前缀，例如 `figure-01.png`。
 - **`metadataFileName`**：资源目录内的元数据旁车文件名，必须以 `.json` 结尾。
 - **`tagSpaceReplacement`**：`-` 或 `_`，仅用于替换 Obsidian 侧标签中的空白/不受支持标点；元数据旁车文件始终保留 Zotero 原始标签文本。
@@ -141,7 +141,7 @@
 
 ## 🔗 Ai4Scholar 配置
 
-Ai4Scholar 部分的配置由直接复用的 `pi-ai4scholar` 扩展自行管理，与本文件无关：
+Ai4Scholar 功能已直接集成到 `pi-scholar`，但出于密钥隔离与向后兼容考虑，仍使用原有的独立配置入口：
 
 - `/ai4scholar setup`
 - `AI4SCHOLAR_API_KEY`（旧版兼容 `AI4S_API_KEY`）

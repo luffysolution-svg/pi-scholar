@@ -1,5 +1,5 @@
 # Third-party notices
 
-`pi-scholar` depends on and invokes `pi-ai4scholar` 0.4.2 through its public default extension export. pi-ai4scholar is Copyright its contributors and licensed under the MIT License; its LICENSE is bundled by npm with that dependency.
+The Ai4Scholar integration was consolidated from the author's MIT-licensed `pi-ai4scholar` project and is now maintained directly in this repository; it is no longer a runtime or bundled package dependency.
 
-Zotero adapter and MinerU normalization behavior was informed by official Zotero Web API v3 and MinerU API documentation and by MIT-licensed reference implementations identified during design review. No Ai4Scholar request implementation is copied. See package dependency license files for runtime library notices.
+Zotero adapter and MinerU normalization behavior was informed by official Zotero Web API v3 and MinerU API documentation and by MIT-licensed reference implementations identified during design review. See package dependency license files for runtime library notices.
