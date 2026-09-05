@@ -44,23 +44,22 @@ test("frontmatter stays compact while the sidecar retains complete Unicode prove
   const sparse=frontmatter(paper({year:null,date:null,doi:null,isbn:null,issn:null,publicationTitle:null,volume:null,issue:null,pages:null,url:null,tags:[]}),publication);assert.equal("year" in sparse,false);assert.equal("doi" in sparse,false);assert.equal("tags" in sparse,false);
 });
 
-test("publication pairs assets, uses numeric collisions and reuses a paper's prior YAML-owned path",async()=>{
+test("publication creates self-contained paper directories, handles collisions and reuses prior metadata ownership",async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-output-"));
   const normalized={body:"# Body\n![x](<__ASSET_PREFIX__/figure-01.png>)\n",assets:[{name:"figure-01.png",bytes:Buffer.from("image")}]};
-  const first=await publishPaper(root,paper(),normalized,publication);assert.equal(path.basename(first.markdownPath),"Lovelace-2024-A Study α β.md");assert.equal(await readFile(path.join(first.assetsDirectory,"figure-01.png"),"utf8"),"image");const firstMarkdown=await readFile(first.markdownPath,"utf8");assert.match(firstMarkdown,/!\[x\]\(<\.\/Lovelace-2024-A Study α β-scholar-assets\/figure-01.png>\)/);const sidecar=JSON.parse(await readFile(path.join(first.assetsDirectory,"metadata.json"),"utf8"));assert.equal(sidecar.zotero.selected_key,"PAPER001");
+  const first=await publishPaper(root,paper(),normalized,publication);assert.equal(path.basename(path.dirname(first.markdownPath)),"Lovelace-2024-A Study α β");assert.equal(path.basename(first.markdownPath),"Lovelace-2024-A Study α β.md");assert.equal(path.basename(first.assetsDirectory),"Lovelace-2024-A Study α β-assets");assert.equal(await readFile(path.join(first.assetsDirectory,"figure-01.png"),"utf8"),"image");const firstMarkdown=await readFile(first.markdownPath,"utf8");assert.match(firstMarkdown,/!\[x\]\(<\.\/Lovelace-2024-A Study α β-assets\/figure-01.png>\)/);assert.equal(first.metadataPath,path.join(path.dirname(first.markdownPath),"metadata.json"));const sidecar=JSON.parse(await readFile(first.metadataPath,"utf8"));assert.equal(sidecar.zotero.selected_key,"PAPER001");
   const other=paper({zoteroKey:"PAPER002"});const second=await publishPaper(root,other,normalized,publication);assert.match(path.basename(second.markdownPath),/ \(2\)\.md$/);
   const updated=await publishPaper(root,paper({title:"Renamed title"}),{body:"# Updated\n",assets:[]},publication);assert.equal(updated.markdownPath,first.markdownPath);assert.match(await readFile(first.markdownPath,"utf8"),/# Updated/);
-  await writeFile(path.join(root,"Unrelated.md"),"do not overwrite");await publishPaper(root,paper({zoteroKey:"PAPER003",title:"Unrelated",creators:[],year:null}),{body:"ok\n",assets:[]},publication);assert.equal(await readFile(path.join(root,"Unrelated.md"),"utf8"),"do not overwrite");
-  assert.deepEqual((await readdir(root)).filter(n=>n.startsWith(".pi-scholar-")&&!n.includes("locks")),[]);
+  assert.deepEqual((await readdir(path.join(root,"Literatures"))).filter(n=>n.startsWith(".pi-scholar-")),[]);
 });
 
-test("asset directory, image prefix, metadata filename and tag style are configurable",async()=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-naming-"));const normalized=normalizeArchive(archive("![plot](images/a.png)",{"images/a.png":"png"}),"__ASSET_PREFIX__",undefined,"chart");const value=paper({tags:["deep learning"]});const published=await publishPaper(root,value,normalized,publication,undefined,{filenameSeparator:"_",assetsSuffix:"_media",metadataFileName:"source.json",tagSpaceReplacement:"_"});assert.equal(path.basename(published.markdownPath),"Lovelace_2024_A Study α β.md");assert.equal(path.basename(published.assetsDirectory),"Lovelace_2024_A Study α β_media");await readFile(path.join(published.assetsDirectory,"chart-01.png"));await readFile(path.join(published.assetsDirectory,"source.json"));const markdown=await readFile(published.markdownPath,"utf8");assert.match(markdown,/tags:\n  - deep_learning/);assert.match(markdown,/!\[plot\]\(<\.\/Lovelace_2024_A Study α β_media\/chart-01.png>\)/);
+test("literature directory, image prefix and tag style are configurable",async()=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-naming-"));const normalized=normalizeArchive(archive("![plot](images/a.png)",{"images/a.png":"png"}),"__ASSET_PREFIX__",undefined,"chart");const value=paper({tags:["deep learning"]});const published=await publishPaper(root,value,normalized,publication,undefined,{literaturesDirectory:"Papers",filenameSeparator:"_",tagSpaceReplacement:"_"});assert.equal(path.basename(path.dirname(path.dirname(published.markdownPath))),"Papers");assert.equal(path.basename(published.markdownPath),"Lovelace_2024_A Study α β.md");assert.equal(path.basename(published.assetsDirectory),"Lovelace_2024_A Study α β-assets");await readFile(path.join(published.assetsDirectory,"chart-01.png"));await readFile(published.metadataPath);const markdown=await readFile(published.markdownPath,"utf8");assert.match(markdown,/tags:\n  - deep_learning/);assert.match(markdown,/!\[plot\]\(<\.\/Lovelace_2024_A Study α β-assets\/chart-01.png>\)/);
 });
 
-test("orphan asset directories are never overwritten during collision allocation",async()=>{
+test("unowned paper directories are never overwritten during collision allocation",async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-orphan-"));
-  const orphan=path.join(root,"Lovelace-2024-A Study α β-scholar-assets");await import("node:fs/promises").then(fs=>fs.mkdir(orphan));await writeFile(path.join(orphan,"keep.txt"),"unrelated");
+  const orphan=path.join(root,"Literatures","Lovelace-2024-A Study α β");await import("node:fs/promises").then(fs=>fs.mkdir(orphan,{recursive:true}));await writeFile(path.join(orphan,"keep.txt"),"unrelated");
   const published=await publishPaper(root,paper(),{body:"body\n",assets:[]},publication);
   assert.equal(path.basename(published.markdownPath),"Lovelace-2024-A Study α β (2).md");
   assert.equal(await readFile(path.join(orphan,"keep.txt"),"utf8"),"unrelated");

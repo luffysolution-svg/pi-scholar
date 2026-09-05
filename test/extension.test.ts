@@ -6,7 +6,7 @@ function harness(){const tools:any[]=[];const commands:string[]=[];const hooks:s
 
 test("Pi entry point registers integrated Ai4Scholar and local tools exactly once",()=>{
   const h=harness();const names=h.tools.map(t=>t.name);for(const name of ["ai4scholar_search","ai4scholar_paper","ai4scholar_cite","ai4scholar_mcp","zotero_collections","zotero_search","zotero_item","pi_scholar_parse"])assert.equal(names.filter(n=>n===name).length,1,`${name} registration`);
-  assert.deepEqual(names.filter(n=>n.startsWith("zotero_")||n==="pi_scholar_parse"),["zotero_collections","zotero_search","zotero_item","pi_scholar_parse"]);assert.deepEqual(h.commands,["ai4scholar","pi-scholar"]);const count=h.tools.length;piScholarExtension(h.pi as any);assert.equal(h.tools.length,count);assert.deepEqual(h.commands,["ai4scholar","pi-scholar"]);
+  assert.deepEqual(names.filter(n=>n.startsWith("zotero_")||n==="pi_scholar_parse"),["zotero_collections","zotero_search","zotero_item","pi_scholar_parse"]);assert.deepEqual(h.commands,["pi-scholar"]);const count=h.tools.length;piScholarExtension(h.pi as any);assert.equal(h.tools.length,count);assert.deepEqual(h.commands,["pi-scholar"]);
 });
 
 test("integrated Ai4Scholar search is callable through pi-scholar",async t=>{

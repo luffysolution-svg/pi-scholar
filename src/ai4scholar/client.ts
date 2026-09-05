@@ -43,7 +43,7 @@ export class Ai4ScholarError extends Error {
 
 export function getConfigPath(env: NodeJS.ProcessEnv = process.env): string {
   const agentDir = env.PI_CODING_AGENT_DIR?.trim() || join(homedir(), ".pi", "agent");
-  return join(agentDir, "ai4scholar.json");
+  return join(agentDir, "pi-scholar.credentials.json");
 }
 
 function readStoredApiKey(path: string): string {
@@ -62,7 +62,7 @@ export function loadConfig(
 ): Ai4ScholarConfig {
   const configPath = options.configPath === undefined ? getConfigPath(env) : options.configPath;
   const storedApiKey = configPath ? readStoredApiKey(configPath) : "";
-  const apiKey = env.AI4SCHOLAR_API_KEY?.trim() || env.AI4S_API_KEY?.trim() || storedApiKey;
+  const apiKey = env.AI4SCHOLAR_API_KEY?.trim() || storedApiKey;
   const baseUrl = (env.AI4SCHOLAR_BASE_URL?.trim() || "https://ai4scholar.net").replace(/\/+$/, "");
   const parsedTimeout = Number(env.AI4SCHOLAR_TIMEOUT_MS || 30_000);
   const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30_000;

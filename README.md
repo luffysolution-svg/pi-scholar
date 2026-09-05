@@ -1,4 +1,4 @@
-# 📚 pi-scholar
+# 📚 Pi Scholar
 
 [![npm version](https://img.shields.io/npm/v/@luffysolution/pi-scholar.svg)](https://www.npmjs.com/package/@luffysolution/pi-scholar)
 [![GitHub release](https://img.shields.io/github/v/release/luffysolution-svg/pi-scholar)](https://github.com/luffysolution-svg/pi-scholar/releases)
@@ -7,125 +7,159 @@
 
 🌐 **简体中文** ｜ [English](./README.en.md)
 
-Pi 原生的 TypeScript 一体化科研工作流：内置完整 Ai4Scholar 在线检索/引用功能、只读的本地 Zotero 访问，以及 MinerU 官方 Precision API。产出是普通的 UTF-8 Markdown 文件 + 同级资源目录——**不依赖 Obsidian、Vault、插件、数据库或其他 Pi 扩展**。
+Pi Scholar 是面向 Pi 的一体化科研扩展，在一个安装包中提供在线学术检索、本地 Zotero 只读访问、MinerU PDF 解析、引用与期刊分析、科研绘图和动态 MCP 能力。
 
-> 📦 npm 包名为 **`@luffysolution/pi-scholar`**（带作用域）——不带作用域的 `pi-scholar` 已被一个无关的第三方包占用。命令 `/pi-scholar`、技能 `pi-scholar`、工具 `pi_scholar_parse`、配置文件名 `pi-scholar.config.json` 均不受此影响，只有 npm 包标识变了。
+输出是普通 UTF-8 Markdown、JSON 元数据和图片文件，不依赖 Obsidian 插件或数据库；将输出目录设置为 Obsidian Vault 后即可直接使用。
 
-## ✨ 功能一览
+## ✨ 主要功能
 
-- 🔎 **在线检索 + 本地匹配**：已直接集成原 `pi-ai4scholar` 的全部 REST、增强工具、动态 MCP 与 `/ai4scholar` 命令，并与本地 Zotero 条目做 DOI/标题精确匹配。
-- 🗂️ **完整元数据聚合**：`zotero_item` 一次性给出结构化作者、日期、DOI/ISBN/ISSN、标签、笔记、批注、附件与已选 PDF。
-- 🧬 **PDF 深度解析**：`pi_scholar_parse` 调用 MinerU 官方 API，识别公式/表格/版面，提取插图，安全落盘。
-- 📝 **干净的 Markdown 输出**：精简 YAML frontmatter + 完整溯源信息旁车文件 `metadata.json`，图片路径开箱即用（对 Obsidian 友好但不依赖它）。
-- 🔒 **安全默认值**：Zotero 请求锁死本地回环地址、MinerU 密钥全程脱敏、ZIP 解压前做路径穿越/符号链接校验、发布过程事务化。
+- 🔎 检索 Semantic Scholar、PubMed、Google Scholar 和 Google Patents
+- 🧭 查询论文、作者、引用网络、相关推荐、全文片段和数据集
+- 📊 查询 JCR / 中科院分区并进行投稿期刊推荐
+- 🗂️ 只读搜索 Zotero 收藏夹、条目、笔记、批注和附件
+- 🧬 使用 MinerU 解析 PDF 中的正文、公式、表格和图片
+- 📝 生成引用、参考文献并为学术文本自动补充引用
+- 🎨 生成、编辑、评审和矢量化科研图片
+- 🔌 按需发现并加载在线 MCP 工具
+- 🔒 本地回环限制、安全压缩包检查、密钥脱敏和事务化发布
 
 ## 📦 安装
 
-**环境要求**：Node.js `>=22.19`、Pi `>=0.84.4`、Zotero `7+`（已开启 Local API）、Windows / macOS / Linux 均可。
+要求 Node.js `>=22.19`、Pi `>=0.84.4`、Zotero `7+`，支持 Windows、macOS 和 Linux。
 
 ```sh
 pi install npm:@luffysolution/pi-scholar
-pi install npm:@luffysolution/pi-scholar@0.2.0        # 指定版本
-pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
-pi install ./path/to/pi-scholar                        # 本地持久安装
-pi -e ./path/to/pi-scholar                              # 临时开发加载
 ```
 
-安装后重启 Pi 或执行 `/reload`，然后确认以下工具/命令均可用：`zotero_collections`、`zotero_search`、`zotero_item`、`pi_scholar_parse`、内置的 `ai4scholar_*` 工具、`/ai4scholar`，以及 `/skill:pi-scholar`。
+也可以指定版本或从 GitHub 安装：
 
-更新 / 卸载：
+```sh
+pi install npm:@luffysolution/pi-scholar@0.3.0
+pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
+```
+
+安装后重启 Pi 或运行 `/reload`。更新与卸载：
 
 ```sh
 pi update npm:@luffysolution/pi-scholar
 pi remove npm:@luffysolution/pi-scholar
 ```
 
-Ai4Scholar 源码现已直接维护在本仓库中，npm 安装不会再捆绑或运行依赖包 `pi-ai4scholar`。若以前单独安装过该扩展，建议执行 `pi remove npm:pi-ai4scholar`，避免重复注册同名工具。
+## 💬 唯一入口：`/pi-scholar`
 
-### 💬 `/pi-scholar` 对话命令
+```text
+/pi-scholar
+/pi-scholar 查找光热催化制氢论文，并匹配本地 Zotero
+/pi-scholar 解析 Zotero 条目 BIRUSQD5 并分析图 3
+/pi-scholar 为这段相关工作补充 GB/T 7714 引用
+```
 
-安装完成后，在 Pi 聊天框输入 `/pi-scholar` 即可调用。
+不带参数时会打开输入框；带自然语言参数时直接调用总编排技能，由模型选择必要的在线、本地、解析、引用或绘图工具。
 
-- **不带参数**：弹出单行输入对话框（"Pi Scholar：你想研究什么？"）。
-- **带参数**（如 `/pi-scholar 查找光热催化论文，并匹配本地 Zotero`）：跳过对话框，直接执行。
+配置和状态管理也统一在同一命令下：
 
-无论哪种方式，命令都会通过 Pi 的提示词模板展开机制，把请求转发给 `pi-scholar` 技能（等价于 `/skill:pi-scholar ...`），由模型在 Pi 正常的工具权限流程下规划并调用 `zotero_*` / `ai4scholar_*` / `pi_scholar_parse`——**命令本身从不直接访问 Zotero 或 MinerU**。
+```text
+/pi-scholar setup       配置在线服务密钥
+/pi-scholar status      查看配置来源和连接方式
+/pi-scholar credits     查询在线服务积分
+/pi-scholar docs        打开配置文档地址
+/pi-scholar clear-key   删除本机保存的密钥
+```
 
-> 在 print/JSON/非交互式 Pi 模式下（`ctx.hasUI === false`）没有对话框可用，必须把请求作为参数直接传入。
+API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentials.json`，不会写入项目配置、模型消息或解析结果。
 
-### 🩺 环境自检（`npx` / `npm`，无需 Pi）
+## 🧠 内置技能
 
-包内附带一个零依赖的诊断 CLI，用于在安装到 Pi **之前或之后**检查你的环境。它只做一次有边界的只读可达性探测，不会读取 Zotero 数据，也不能代替 `pi install ...` 完成扩展安装/配置。
+安装包同时提供一个编排技能和五个专用技能：
+
+| 技能 | 用途 |
+|---|---|
+| `pi-scholar` | 总入口；组合多阶段科研任务 |
+| `scholar-search` | 在线文献、专利、作者、引用网络、期刊和数据集 |
+| `zotero-research` | 本地 Zotero 检索、匹配、笔记、批注和附件 |
+| `paper-reading` | MinerU PDF 解析与正文、公式、表格、图片精读 |
+| `academic-citation` | 引用核验、格式化、参考文献和自动引用 |
+| `scientific-figure` | 科研图片生成、编辑、评审和矢量化 |
+
+日常使用只需记住 `/pi-scholar`；专用技能也可通过 `/skill:<技能名>` 显式调用。
+
+## 📁 输出结构
+
+默认结构：
+
+```text
+<vault>/
+└── Literatures/
+    └── Yang-2024-Paper Title/
+        ├── Yang-2024-Paper Title.md
+        ├── metadata.json
+        └── Yang-2024-Paper Title-assets/
+            ├── figure-01.png
+            └── figure-02.png
+```
+
+- `output.directory` 指向 Vault 或普通输出根目录。
+- `output.literaturesDirectory` 控制 `Literatures` 名称，可以改成 `文献`、`Papers` 等安全的单级目录名。
+- 每篇论文是一个独立事务单元，复制、移动或删除时不会遗漏元数据和图片。
+- 同一 Zotero 条目重新解析时复用原目录；同名不同条目使用 ` (2)`、` (3)` 等后缀。
+- Markdown 图片使用相对路径，因此整篇论文目录移动后仍可正常显示。
+
+## ⚙️ 配置
+
+复制 [`pi-scholar.config.example.json`](./pi-scholar.config.example.json) 为 `pi-scholar.config.json`，或放到用户级位置。
+
+配置查找顺序：
+
+1. `PI_SCHOLAR_CONFIG` 指定的文件
+2. 可信项目中向上查找的 `pi-scholar.config.json`
+3. `~/.config/pi-scholar/config.json`
+4. `~/.pi-scholar.json`
+5. 内置默认值
+
+环境变量始终优先于 JSON。相对路径按配置文件所在目录解析。
+
+> 📖 所有字段、默认值、范围和环境变量见 [中文配置说明](./docs/CONFIGURATION.md) / [English](./docs/CONFIGURATION.en.md)。
+
+Zotero 中需要开启“允许其他应用程序与 Zotero 通信”。不要将端口 `23119` 暴露到外网。
+
+## 🩺 环境自检
+
+无需先启动 Pi：
 
 ```sh
-npx @luffysolution/pi-scholar doctor     # 检查 Node 版本、配置发现、Zotero 可达性、MinerU 令牌是否存在
+npx @luffysolution/pi-scholar doctor
 npx @luffysolution/pi-scholar --version
 npx @luffysolution/pi-scholar --help
 ```
 
-> 💡 若在 `pi-scholar` 项目自身目录内运行 `npx`，Node 的本地解析优先级可能导致命令行为异常；在其他任意目录运行则完全正常。
-
-## ⚙️ 配置
-
-所有配置项集中在**一个 JSON 文件**里，涵盖 Zotero 连接、MinerU 解析行为、输出位置、资源命名与标签格式。复制 [`pi-scholar.config.example.json`](./pi-scholar.config.example.json) 为 `pi-scholar.config.json` 并按需修改。
-
-**查找顺序**：`PI_SCHOLAR_CONFIG` 环境变量 → 就近的 `pi-scholar.config.json`（仅可信项目）→ `~/.config/pi-scholar/config.json` → `~/.pi-scholar.json` → 内置默认值。环境变量随时可覆盖 JSON 文件中的对应字段。
-
-> 📖 **完整字段参考、每个选项的默认值/取值范围/环境变量名，请查阅 [docs/CONFIGURATION.md](./docs/CONFIGURATION.md)（[English](./docs/CONFIGURATION.en.md)）。**
-
-内置 Ai4Scholar 功能沿用独立的密钥配置入口（密钥不会进入 `pi-scholar.config.json`）：`/ai4scholar setup`、`AI4SCHOLAR_API_KEY`、`AI4SCHOLAR_BASE_URL` 等。
-
-别忘了在 Zotero 设置里开启 **允许其他应用程序与 Zotero 通信**。所有 Zotero 请求都是无认证的本地回环 GET，且禁用重定向；切勿把 23119 端口暴露到公网。
-
-## 🔍 工作原理
+`doctor` 检查 Node 版本、配置发现、Zotero 可达性以及 MinerU/在线服务密钥是否存在，但不会显示密钥内容或读取文献数据。
 
 <details>
-<summary>点此展开详细行为说明</summary>
+<summary>🔒 安全与隐私</summary>
 
-**`zotero_collections`** 可以列出收藏夹、读取收藏夹元数据，或列出收藏夹下的顶层条目。
-
-**`zotero_item`** 把原始记录映射为一个类型化的 `Paper`：完整的向前兼容父级元数据、结构化作者、原始日期/年份、DOI/ISBN/ISSN、出版信息字段、标签/收藏夹、子笔记/附件、PDF 子项批注、全文索引可用性，以及已选 PDF。当父条目明显信息稀疏时，只有在 Zotero 中存在**恰好一条**标准化标题与第一作者都相同的未删除条目时，才会补全缺失的文献字段，并记录来源条目键、字段与原始元数据以供溯源。未显式指定附件键时，按键排序选取第一个 PDF 并在结果中说明。标识符匹配优先使用标准化 DOI，其次是标准化标题/年份；**不会**向 Zotero 写回任何内容。
-
-**`pi_scholar_parse`** 校验 `%PDF-` 文件头、计算 SHA-256、向 MinerU 请求签名上传地址、用 PUT 上传原始字节、带退避策略轮询状态、下载并安全检查返回的 ZIP、修复本地图片链接，并以事务方式发布结果。生成的默认文件名格式为 `FirstAuthor-Year-Title.md`；缺失的部分用 `UnknownAuthor`、`UnknownYear` 或 `Untitled` 填充。跨平台非法字符与组件内的 `+` 会被替换为空格，保留设备名会加前缀，UTF-8 长度有上限。文件名冲突用 ` (2)`、` (3)` 等后缀区分——**从不**使用 Zotero 键。是否已经解析过，通过 YAML 中的 `zotero://select/...` 深链识别（旧版 `zotero_key` 字段仍可读取）。
-
-YAML frontmatter 刻意保持精简，只包含非空、常用于查询的文献字段，加上 Zotero/附件身份信息与解析时间；空字段、原始对象、笔记、批注、附件数组、详细解析参数均不出现在其中。完整的、路径安全的溯源信息——包括选中的原始 Zotero 元数据、任何精确匹配的补全来源、笔记、批注、附件、MinerU 参数——写入同级的 `-scholar-assets/metadata.json`；全文索引内容和本地文件系统路径不会重复存储。Zotero 条目与已选 PDF 分别以可点击的 `zotero://select/...` 和 `zotero://open-pdf/...` 链接出现在 frontmatter 中。图片使用显式相对路径，如 `![](<./<document>-scholar-assets/figure-01.jpg>)`，因此当 Markdown 文件与同级资源目录一起复制时，空格与 Unicode 文件名也能在 Obsidian 中正确渲染。资源目录后缀、图片前缀、元数据文件名与文件名分隔符均可配置。frontmatter 标签在元数据旁车文件中保留原始形式，而面向 Obsidian 的值会把空白和不受支持的标点替换掉（默认用 `-`）；例如 `frustrated Lewis pairs` 会变成 `frustrated-Lewis-pairs`，`Ni/NiOx@C` 会变成 `Ni/NiOx-C`。
-
-MinerU 会通过网络接收 PDF 内容，请自行了解其隐私政策；MinerU 与 Ai4Scholar 均有用量配额，可能产生费用。令牌、Authorization 头与签名 URL 从不写入输出或 YAML。工具输出统一限制在 50KB / 2000 行以内。
+- Zotero 请求硬性限制为 `localhost:23119/api` 或 `127.0.0.1:23119/api`，仅允许 GET 并禁用重定向。
+- MinerU 会通过网络接收所选 PDF，只有需要结构化全文、公式、表格或图片时才应调用。
+- API Key、Authorization 请求头和签名 URL 不会写入 Markdown、YAML、元数据或工具输出。
+- MinerU ZIP 在写盘前检查条目数量、展开大小、加密、符号链接、绝对路径、路径穿越和重复条目。
+- 每篇论文先写入临时目录，再原子替换最终目录；失败或取消时恢复原内容。
+- 在线检索、自动引用、MinerU 和科研绘图可能消耗配额或积分。
 
 </details>
 
-## 🔒 安全说明
-
-- Zotero 访问在代码层面被硬性限制为 `http://localhost:23119/api` 或 `http://127.0.0.1:23119/api`，仅允许 GET，且禁用重定向——即便扩展本身被攻破或配置错误，也无法访问任意主机或修改你的文献库。
-- MinerU 请求必须使用 HTTPS 且不含内嵌凭据；签名上传/下载 URL、Bearer 令牌与原始错误响应体，会从所有抛出的错误与工具输出中脱敏。
-- 下载的 MinerU 结果压缩包在解压前会先做校验（中央目录检查、条目数/大小上限、拒绝符号链接/加密条目、拒绝路径穿越/绝对路径、拒绝重复条目），确保写盘前的安全性。
-- 发布解析结果是事务化的：先在临时暂存目录完成全部工作，只有新内容完全写入后才替换已有文件；中途崩溃或取消会恢复到发布前的状态，不会留下半成品的 `.md` / 资源目录。
-- Ai4Scholar 实现直接包含在本仓库与发布包中，不再依赖或捆绑另一个 Pi 扩展；安装时不会因外部 `pi-ai4scholar` 版本变化而改变行为。
-
-## 🛠️ 开发
+## 🛠️ 开发与验证
 
 ```sh
 npm install
 npm test
 npm run check
 npm run pack:check
-npm pack --dry-run
+npm audit --omit=dev
 ```
 
-测试全部基于 mock 与临时文件，**不会**联网访问真实的 Zotero 或 MinerU。
-
-<details>
-<summary>🚀 发布流程（维护者参考）</summary>
-
-1. 在 `package.json` 中升级 `version`，如有需要同步更新 README 中带版本号的安装示例，本地运行 `npm run prepublishOnly`（`npm publish` 前也会自动执行）。
-2. 打标签并推送：`git tag vX.Y.Z && git push origin main --tags`，随后从该标签创建 GitHub Release：`gh release create vX.Y.Z --generate-notes`。
-3. 发布到 npm：`npm publish`（包已设置作用域并标记 `"publishConfig": {"access": "public"}`，无需额外的 `--access` 参数）。
-4. 发布公告前，先在一个临时 Pi 会话中用 `pi install npm:@luffysolution/pi-scholar@X.Y.Z` 验证安装无误。
-
-</details>
+测试使用 mock 和临时目录，不会访问真实 Zotero、MinerU 或在线服务。
 
 ## 📄 许可证
 
-[MIT](./LICENSE) © pi-scholar contributors
+[MIT](./LICENSE) © Pi Scholar contributors
 
-第三方依赖与致谢见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
+第三方依赖说明见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。

@@ -9,7 +9,7 @@ import {
 export async function promptAndSaveApiKey(ctx: ExtensionContext): Promise<Ai4ScholarConfig> {
   if (!ctx.hasUI) {
     throw new Ai4ScholarError(
-      "尚未配置 Ai4Scholar。请在交互模式运行 /ai4scholar setup，或设置 AI4SCHOLAR_API_KEY。",
+      "尚未配置 Ai4Scholar。请在交互模式运行 /pi-scholar setup，或设置 AI4SCHOLAR_API_KEY。",
     );
   }
 

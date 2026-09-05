@@ -98,7 +98,7 @@ export function registerMcpBridge(pi: ExtensionAPI): void {
               dispatcher: getProxyAgent(proxyUrl),
             } as any) as unknown as Promise<Response>)
         : undefined;
-      client = new Client({ name: "pi-scholar", version: "0.2.0" }, { capabilities: {} });
+      client = new Client({ name: "pi-scholar", version: "0.3.0" }, { capabilities: {} });
       transport = new SSEClientTransport(new URL(mcpUrl), {
         requestInit: { headers: { Authorization: `Bearer ${apiKey}` } },
         fetch: proxyFetch,

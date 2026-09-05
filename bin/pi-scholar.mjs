@@ -117,10 +117,10 @@ async function doctor() {
   console.log(`MinerU token (${tokenEnv}): ${hasToken ? "set" : "not set (MinerU parsing will be unavailable)"}`);
 
   const ai4AgentDir = process.env.PI_CODING_AGENT_DIR?.trim() || path.join(home, ".pi", "agent");
-  const ai4ConfigPath = path.join(ai4AgentDir, "ai4scholar.json");
+  const ai4ConfigPath = path.join(ai4AgentDir, "pi-scholar.credentials.json");
   const ai4Stored = existsSync(ai4ConfigPath) ? readJsonSafely(ai4ConfigPath).value?.apiKey : undefined;
-  const hasAi4Token = Boolean(process.env.AI4SCHOLAR_API_KEY || process.env.AI4S_API_KEY || ai4Stored);
-  console.log(`Ai4Scholar token: ${hasAi4Token ? "set" : "not set (run /ai4scholar setup or set AI4SCHOLAR_API_KEY)"}`);
+  const hasAi4Token = Boolean(process.env.AI4SCHOLAR_API_KEY || ai4Stored);
+  console.log(`Ai4Scholar token: ${hasAi4Token ? "set" : "not set (run /pi-scholar setup or set AI4SCHOLAR_API_KEY)"}`);
 
   console.log(`\nNext steps:`);
   console.log(`  1. In Zotero: Settings > Advanced > enable "Allow other applications to communicate with Zotero".`);

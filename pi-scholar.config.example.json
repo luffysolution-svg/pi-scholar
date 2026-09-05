@@ -6,10 +6,9 @@
   },
   "output": {
     "directory": "./pi-scholar-output",
+    "literaturesDirectory": "Literatures",
     "filenameSeparator": "-",
-    "assetsSuffix": "scholar-assets",
     "assetFilePrefix": "figure",
-    "metadataFileName": "metadata.json",
     "tagSpaceReplacement": "-"
   },
   "mineru": {

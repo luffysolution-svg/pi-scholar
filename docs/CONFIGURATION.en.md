@@ -1,41 +1,32 @@
-# ⚙️ Configuration Reference
+# ⚙️ Pi Scholar Configuration
 
 [中文版](./CONFIGURATION.md)
 
-`pi-scholar` uses **one JSON file** to configure the Zotero connection, MinerU parsing behavior, output location, asset naming, and tag formatting. Every field is validated at load time (type, range, and safety checks); an invalid config throws a clear error instead of silently falling back.
+Project configuration stores only non-sensitive settings. Configure the online-service key with `/pi-scholar setup` or an environment variable; never place it in `pi-scholar.config.json`.
 
-## 📁 Where the config file lives
+## Configuration discovery
 
-Copy the repo-root [`pi-scholar.config.example.json`](../pi-scholar.config.example.json) to `pi-scholar.config.json` (or one of the user-level locations below) and edit it as needed.
+First match wins:
 
-> ⚠️ **Never commit `pi-scholar.config.json`** — it's already covered by `.gitignore` since it typically contains your personal output path and other local details.
+1. File named by `PI_SCHOLAR_CONFIG`; a missing explicit path is an error.
+2. Nearest `pi-scholar.config.json` searched upward from the working directory; trusted Pi projects only.
+3. `~/.config/pi-scholar/config.json`; on Windows, `%USERPROFILE%\.config\pi-scholar\config.json`.
+4. `~/.pi-scholar.json`.
+5. Built-in defaults.
 
-### 🔍 Discovery order
+Relative `output.directory` and `zotero.dataDir` values in JSON resolve from the configuration file's directory. Relative environment paths resolve from the runtime working directory. Environment variables are read for every call and always override JSON.
 
-Checked in order, first match wins:
+> `pi-scholar.config.json` is ignored by Git. Do not commit personal filesystem paths to a public repository.
 
-1. **`PI_SCHOLAR_CONFIG` env var** — an explicit path; it must exist, or the tool refuses to start.
-2. **The nearest `pi-scholar.config.json`**, searched from the current working directory upward. Only used when the project directory is trusted by Pi (`ctx.isProjectTrusted()`), so an untrusted project can't silently redirect output or the Zotero endpoint.
-3. **`~/.config/pi-scholar/config.json`** — all platforms, including Windows (`%USERPROFILE%\.config\pi-scholar\config.json`).
-4. **`~/.pi-scholar.json`** — last resort.
-5. Built-in defaults if none of the above exist.
-
-### 📌 Path resolution
-
-- Relative `output.directory` / `zotero.dataDir` values in the **JSON file** resolve relative to the **config file's own directory**.
-- The same values set via **environment variables** resolve relative to the **runtime `cwd`**.
-- Environment variables are read fresh on every tool call and **always win over the JSON file** — convenient for one-off overrides (CI, a temporary output dir) without editing the file.
-
-## 📝 Full example
+## Full example
 
 ```json
 {
   "output": {
     "directory": "F:/my-vault",
+    "literaturesDirectory": "Literatures",
     "filenameSeparator": "-",
-    "assetsSuffix": "scholar-assets",
     "assetFilePrefix": "figure",
-    "metadataFileName": "metadata.json",
     "tagSpaceReplacement": "-"
   },
   "zotero": {
@@ -58,93 +49,106 @@ Checked in order, first match wins:
 }
 ```
 
----
+## `output`: layout and naming
 
-## 📤 `output` — location & naming
-
-| Field | Env override | Default |
+| JSON field | Environment variable | Default |
 |---|---|---|
 | `directory` | `PI_SCHOLAR_OUTPUT_DIR` | `~/pi-scholar` |
+| `literaturesDirectory` | `PI_SCHOLAR_LITERATURES_DIR` | `Literatures` |
 | `filenameSeparator` | `PI_SCHOLAR_FILENAME_SEPARATOR` | `-` |
-| `assetsSuffix` | `PI_SCHOLAR_ASSETS_SUFFIX` | `scholar-assets` |
 | `assetFilePrefix` | `PI_SCHOLAR_ASSET_FILE_PREFIX` | `figure` |
-| `metadataFileName` | `PI_SCHOLAR_METADATA_FILE` | `metadata.json` |
 | `tagSpaceReplacement` | `PI_SCHOLAR_TAG_SPACE_REPLACEMENT` | `-` |
 
-<details>
-<summary>Field details</summary>
+Default layout:
 
-- **`directory`**: Where generated `.md` files and sibling asset folders are published. May be an Obsidian vault folder, but Obsidian is never required. Relative paths in JSON resolve relative to the config file's directory; relative paths via env var resolve relative to `cwd`.
-- **`filenameSeparator`**: 1–3 characters from `[+._ -]` used to join `Author`, `Year`, `Title` in generated filenames.
-- **`assetsSuffix`**: Sibling asset-directory suffix. The default produces `Author-Year-Title-scholar-assets/`; values beginning with a letter/number are joined using `filenameSeparator`, while values carrying their own punctuation prefix (such as `.assets` or `_media`) are appended directly. Must be a safe filename component (no path separators, max 64 UTF-8 bytes).
-- **`assetFilePrefix`**: Extracted image basename prefix, e.g. `figure-01.png`.
-- **`metadataFileName`**: Sidecar filename inside the assets directory; must end in `.json`.
-- **`tagSpaceReplacement`**: `-` or `_`; character substituted for whitespace/unsupported punctuation in Obsidian-facing tags only (the metadata sidecar keeps the original Zotero tag text).
+```text
+<directory>/
+└── <literaturesDirectory>/
+    └── <Author-Year-Title>/
+        ├── <Author-Year-Title>.md
+        ├── metadata.json
+        └── <Author-Year-Title>-assets/
+            └── <assetFilePrefix>-01.png
+```
+
+<details>
+<summary>Field constraints</summary>
+
+- `directory`: vault or ordinary output root; created when absent.
+- `literaturesDirectory`: one directory component below the root. It cannot contain separators, Windows reserved device names, or trailing dots/spaces; maximum 64 UTF-8 bytes.
+- `filenameSeparator`: 1–3 characters from `[+._ -]`, joining author, year, and title.
+- `assetFilePrefix`: safe image basename prefix such as `figure-01.png`.
+
+- `tagSpaceReplacement`: `-` or `_`; affects Markdown frontmatter tags only. `metadata.json` preserves original Zotero tags.
+
+Missing name components use `UnknownAuthor`, `UnknownYear`, and `Untitled`. Cross-platform-invalid characters become spaces, reserved device names are prefixed, and names are capped at 220 UTF-8 bytes. Distinct items with the same readable name receive ` (2)`, ` (3)`, and so on.
 
 </details>
 
-## 🗂️ `zotero` — local Zotero connection
+## `zotero`: local Zotero
 
-| Field | Env override | Default |
+| JSON field | Environment variable | Default |
 |---|---|---|
 | `baseUrl` | `ZOTERO_BASE_URL` | `http://127.0.0.1:23119/api` |
 | `dataDir` | `ZOTERO_DATA_DIR` | none |
 | `timeoutMs` | `ZOTERO_TIMEOUT_MS` | `15000` |
 | `maxItems` | `ZOTERO_MAX_ITEMS` | `5000` |
 
-<details>
-<summary>Field details</summary>
+- `baseUrl` must be exactly `http://localhost:23119/api` or `http://127.0.0.1:23119/api`. Other hosts, ports, credentials, queries, and redirects are rejected.
+- `dataDir` is Zotero's directory containing `storage/`, used only when the Local API cannot resolve a managed attachment path.
+- `timeoutMs` range: 1,000–120,000 ms.
+- `maxItems` range: 1–50,000.
 
-- **`baseUrl`**: Must be exactly `http://localhost:23119/api` or `http://127.0.0.1:23119/api` — no other host, port, path, credentials, query, or fragment is accepted. Enforced in code, not just documented.
-- **`dataDir`**: Zotero's data directory (contains `storage/`), only needed as a fallback when Zotero's own `file/view/url` endpoint cannot resolve a managed attachment's path.
-- **`timeoutMs`**: Per-request timeout, 1,000–120,000 ms.
-- **`maxItems`**: Upper bound on paged results per call, 1–50,000.
+Enable “Allow other applications on this computer to communicate with Zotero” and never expose port 23119 externally.
 
-</details>
+## `mineru`: PDF parsing
 
-> Enable **Allow other applications on this computer to communicate with Zotero** in Zotero's settings. Zotero requests are unauthenticated loopback GETs only, with redirects disabled. Never expose port 23119 externally.
-
-## 🧬 `mineru` — PDF parsing behavior
-
-| Field | Env override | Default |
+| JSON field | Environment variable | Default |
 |---|---|---|
 | `tokenEnv` | — | `MINERU_API_TOKEN` |
-| (actual token) | `MINERU_API_TOKEN` or the var named by `tokenEnv` | none |
+| Actual key | `MINERU_API_TOKEN` or the name selected by `tokenEnv` | none |
 | `timeoutMs` | `MINERU_TIMEOUT_MS` | `600000` |
-| `pollInitialMs` / `pollMaxMs` | `MINERU_POLL_INITIAL_MS` / `MINERU_POLL_MAX_MS` | `3000` / `15000` |
+| `pollInitialMs` | `MINERU_POLL_INITIAL_MS` | `3000` |
+| `pollMaxMs` | `MINERU_POLL_MAX_MS` | `15000` |
 | `maxAttempts` | `MINERU_MAX_ATTEMPTS` | `120` |
 | `language` | `MINERU_LANGUAGE` | `en` |
-| `enableFormula` / `enableTable` | `MINERU_ENABLE_FORMULA` / `MINERU_ENABLE_TABLE` | `true` / `true` |
+| `enableFormula` | `MINERU_ENABLE_FORMULA` | `true` |
+| `enableTable` | `MINERU_ENABLE_TABLE` | `true` |
 | `isOcr` | `MINERU_IS_OCR` | `false` |
 | `modelVersion` | `MINERU_MODEL_VERSION` | `vlm` |
 
-<details>
-<summary>Field details</summary>
+- `tokenEnv` stores only an environment-variable name, never a token; it must match `[A-Z_][A-Z0-9_]*`.
+- `timeoutMs` is the overall deadline, 10,000–3,600,000 ms. Individual HTTP attempts are separately capped at 60 seconds.
+- Poll intervals are limited to 100–60,000 and 100–120,000 ms; `maxAttempts` is 1–1000.
+- Boolean environment variables accept `1/0`, `true/false`, and `yes/no`, case-insensitively.
+- `isOcr=true` forces OCR even when a PDF has a text layer.
 
-- **`tokenEnv`**: Names *which* environment variable holds the MinerU secret. The config file never stores the secret itself — only the variable name (must be uppercase, `[A-Z_][A-Z0-9_]*`).
-- **The actual MinerU API token**: Required only for `pi_scholar_parse`; every other tool works without it.
-- **`timeoutMs`**: Overall extraction deadline. Individual HTTP attempts are separately capped at 60 s.
-- **`pollInitialMs` / `pollMaxMs`**: Polling backoff bounds while MinerU extracts the PDF.
-- **`maxAttempts`**: Max poll attempts, 1–1000.
-- **`language`**: MinerU OCR/layout language hint.
-- **`enableFormula` / `enableTable`**: Accepts `1/0`, `true/false`, `yes/no` (case-insensitive) via env.
-- **`isOcr`**: Force OCR even for text-layer PDFs.
-- **`modelVersion`**: MinerU model version identifier.
+MinerU receives the selected PDF over the network and may consume quota. Parse only when structured text, formulas, tables, or figures are needed.
 
-</details>
+## Online scholarly service
 
----
+Online search, citation, journal, figure, and MCP features use:
 
-## 🌱 Environment variable quick reference
+| Environment variable | Default / purpose |
+|---|---|
+| `AI4SCHOLAR_API_KEY` | Service API key; alternatively run `/pi-scholar setup` |
+| `AI4SCHOLAR_BASE_URL` | `https://ai4scholar.net` |
+| `AI4SCHOLAR_TIMEOUT_MS` | `30000` ms |
+| `AI4SCHOLAR_PROXY` | HTTP(S) proxy; set `direct` to force a direct connection |
+| `AI4SCHOLAR_MCP_URL` | `https://mcp.ai4scholar.net/sse` |
+| `HTTPS_PROXY` / `HTTP_PROXY` | Generic fallback when no dedicated proxy is set |
 
-See [`.env.example`](../.env.example) at the repo root for a documentation-only list of all variables above. **This package does not read `.env` files itself** — export the variables through your shell, OS, or Pi's own environment configuration.
+`/pi-scholar setup` saves the key to `~/.pi/agent/pi-scholar.credentials.json`, restricting directory/file permissions to the current user where supported. Environment variables take precedence over that file.
 
-## 🔗 Ai4Scholar configuration
+Management commands:
 
-Ai4Scholar is now built directly into `pi-scholar`, but keeps its established separate configuration entry points for secret isolation and backward compatibility:
+```text
+/pi-scholar setup
+/pi-scholar status
+/pi-scholar credits
+/pi-scholar clear-key
+```
 
-- `/ai4scholar setup`
-- `AI4SCHOLAR_API_KEY` (legacy `AI4S_API_KEY`)
-- `AI4SCHOLAR_BASE_URL`
-- `AI4SCHOLAR_TIMEOUT_MS`
-- and its proxy settings
+## Validation
+
+Every field is validated for type, range, and path safety. Unknown fields, wrong types, unsafe filenames, out-of-range numbers, and invalid URLs produce explicit errors instead of being ignored or silently replaced with defaults.

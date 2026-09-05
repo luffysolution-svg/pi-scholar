@@ -1,5 +1,5 @@
 import path from "node:path";
-import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import AdmZip from "adm-zip";
 import YAML from "yaml";
@@ -123,7 +123,7 @@ export function obsidianTags(tags:string[],spaceReplacement:"-"|"_"="-"):string[
 function safeAttachments(paper:Paper):unknown[]{return paper.attachments.map(({localPath:_localPath,path:_path,...attachment})=>({...attachment,indexedText:attachment.indexedText.status==="available"?{...attachment.indexedText,content:undefined}:attachment.indexedText}));}
 
 /** Compact, human-facing properties. Verbose provenance lives in metadata.json. */
-export function frontmatter(paper:Paper,published:Omit<PublishedPaper,"markdownPath"|"assetsDirectory">,tagSpaceReplacement:"-"|"_"="-"):Record<string,unknown>{
+export function frontmatter(paper:Paper,published:Omit<PublishedPaper,"markdownPath"|"metadataPath"|"assetsDirectory">,tagSpaceReplacement:"-"|"_"="-"):Record<string,unknown>{
   const authors=authorNames(paper);
   return {
     schema_version:1,
@@ -147,7 +147,7 @@ export function frontmatter(paper:Paper,published:Omit<PublishedPaper,"markdownP
 }
 
 /** Complete, path-safe provenance kept out of note-property UIs. */
-export function metadataSidecar(paper:Paper,published:Omit<PublishedPaper,"markdownPath"|"assetsDirectory">):Record<string,unknown>{
+export function metadataSidecar(paper:Paper,published:Omit<PublishedPaper,"markdownPath"|"metadataPath"|"assetsDirectory">):Record<string,unknown>{
   return {
     schema_version:1,
     bibliographic:{title:plainText(paper.title),authors:paper.creators,date:paper.date,year:paper.year,doi:paper.doi,isbn:paper.isbn,issn:paper.issn,publication_title:paper.publicationTitle,volume:paper.volume,issue:paper.issue,pages:paper.pages,url:paper.url,abstract:paper.abstract,tags:paper.tags,collections:paper.collections},
@@ -162,73 +162,72 @@ export function metadataSidecar(paper:Paper,published:Omit<PublishedPaper,"markd
   };
 }
 export function composeMarkdown(meta:Record<string,unknown>,body:string):string{return `---\n${YAML.stringify(meta,{lineWidth:0}).trimEnd()}\n---\n\n${body.replace(/^---\n[\s\S]*?\n---\n/,"")}`;}
-async function existingOwner(file:string):Promise<string|null>{try{const text=await readFile(file,"utf8");if(!text.startsWith("---\n"))return null;const end=text.indexOf("\n---\n",4);if(end<0)return null;const value=YAML.parse(text.slice(4,end));if(typeof value?.zotero_key==="string")return value.zotero_key;if(typeof value?.zotero==="string")return value.zotero.match(/\/items\/([A-Z0-9]{8})$/)?.[1]??null;return null;}catch{return null;}}
+async function existingOwner(directory:string):Promise<string|null>{try{const value=JSON.parse(await readFile(path.join(directory,"metadata.json"),"utf8"));return typeof value?.zotero?.selected_key==="string"?value.zotero.selected_key:null;}catch{return null;}}
 async function exists(p:string):Promise<boolean>{try{await readFile(p);return true;}catch{try{return (await readdir(p)).length>=0;}catch{return false;}}}
-async function priorStem(root:string,zoteroKey:string):Promise<string|null>{for(const name of (await readdir(root)).filter(n=>n.toLowerCase().endsWith(".md")).sort()){if(await existingOwner(path.join(root,name))===zoteroKey)return name.slice(0,-3);}return null;}
+async function rejectSymbolicDirectory(p:string,label:string):Promise<void>{const stat=await lstat(p);if(stat.isSymbolicLink())throw new Error(`${label} must not be a symbolic link or directory junction`);}
+async function priorStem(root:string,zoteroKey:string):Promise<string|null>{for(const entry of (await readdir(root,{withFileTypes:true})).filter(entry=>entry.isDirectory()&&!entry.name.startsWith(".pi-scholar-")).sort((a,b)=>a.name.localeCompare(b.name))){if(await existingOwner(path.join(root,entry.name))===zoteroKey)return entry.name;}return null;}
 
-async function allocateStem(root:string,base:string,zoteroKey:string,assetsSuffix:string):Promise<string>{
+async function allocateStem(root:string,base:string,zoteroKey:string):Promise<string>{
   const prior=await priorStem(root,zoteroKey);
   if(prior)return prior;
   for(let index=1;;index+=1){
     const stem=index===1?base:`${base} (${index})`;
-    const markdownPath=path.join(root,`${stem}.md`);
-    const assetsPath=path.join(root,`${stem}${assetsSuffix}`);
-    const owner=await existingOwner(markdownPath);
-    if(owner===zoteroKey)return stem;
-    if(!await exists(markdownPath)&&!await exists(assetsPath))return stem;
+    const directory=path.join(root,stem);
+    if(await existingOwner(directory)===zoteroKey)return stem;
+    if(!await exists(directory))return stem;
   }
 }
 
-export interface OutputNamingOptions { filenameSeparator?:string; assetsSuffix?:string; metadataFileName?:string; tagSpaceReplacement?:"-"|"_" }
-export async function publishPaper(outputRoot:string,paper:Paper,normalized:NormalizedArchive,data:Omit<PublishedPaper,"markdownPath"|"assetsDirectory">,signal?:AbortSignal,naming:OutputNamingOptions={}):Promise<PublishedPaper>{
+export interface OutputNamingOptions { filenameSeparator?:string; literaturesDirectory?:string; tagSpaceReplacement?:"-"|"_" }
+export async function publishPaper(outputRoot:string,paper:Paper,normalized:NormalizedArchive,data:Omit<PublishedPaper,"markdownPath"|"metadataPath"|"assetsDirectory">,signal?:AbortSignal,naming:OutputNamingOptions={}):Promise<PublishedPaper>{
   signal?.throwIfAborted();
-  await mkdir(outputRoot,{recursive:true});
   const resolved=path.resolve(outputRoot);
+  const literaturesDirectory=naming.literaturesDirectory??"Literatures";
+  const literatureRoot=path.join(resolved,literaturesDirectory);
+  if(path.dirname(literatureRoot)!==resolved)throw new Error("Unsafe literature directory");
+  await mkdir(literatureRoot,{recursive:true});
+  await rejectSymbolicDirectory(literatureRoot,"Literature directory");
   const locks=path.join(resolved,".pi-scholar-locks");
   await mkdir(locks,{recursive:true});
-  const filenameSeparator=naming.filenameSeparator??"-",configuredAssetsSuffix=naming.assetsSuffix??"scholar-assets",metadataFileName=naming.metadataFileName??"metadata.json";
-  const assetsSuffix=/^[\p{L}\p{N}]/u.test(configuredAssetsSuffix)?`${filenameSeparator}${configuredAssetsSuffix}`:configuredAssetsSuffix;
+  const filenameSeparator=naming.filenameSeparator??"-";
   const base=paperStem(paper,filenameSeparator);
-  // Serialize name allocation and publication for the output root so two distinct
-  // papers with the same sanitized basename cannot race into the same paths.
   const lock=path.join(locks,"publish.lock");
   try{await mkdir(lock);}catch{throw new Error("Another parse publication is already in progress for this output directory");}
   let stage:string|null=null;
   try{
     signal?.throwIfAborted();
-    const stem=await allocateStem(resolved,base,paper.zoteroKey,assetsSuffix);
-    const mdPath=path.join(resolved,`${stem}.md`),assetDir=path.join(resolved,`${stem}${assetsSuffix}`);
-    if(path.dirname(mdPath)!==resolved||path.dirname(assetDir)!==resolved)throw new Error("Unsafe output path");
-    stage=path.join(resolved,`.pi-scholar-${randomUUID()}`);
-    const stageAssets=path.join(stage,`${stem}${assetsSuffix}`);
+    const stem=await allocateStem(literatureRoot,base,paper.zoteroKey);
+    const paperDirectory=path.join(literatureRoot,stem);
+    if(await exists(paperDirectory))await rejectSymbolicDirectory(paperDirectory,"Paper directory");
+    const mdPath=path.join(paperDirectory,`${stem}.md`);
+    const assetDir=path.join(paperDirectory,`${stem}-assets`);
+    stage=path.join(literatureRoot,`.pi-scholar-${randomUUID()}`);
+    const stageAssets=path.join(stage,`${stem}-assets`);
     await mkdir(stageAssets,{recursive:true});
     for(const asset of normalized.assets){signal?.throwIfAborted();await writeFile(path.join(stageAssets,asset.name),asset.bytes);}
     signal?.throwIfAborted();
-    // Keep a true relative path. Angle-bracket Markdown destinations are emitted
-    // during normalization so spaces remain readable and work in Obsidian.
-    const assetUrl=`./${stem}${assetsSuffix}`;
-    await writeFile(path.join(stageAssets,metadataFileName),JSON.stringify(metadataSidecar(paper,data),null,2)+"\n","utf8");
-    const markdown=composeMarkdown(frontmatter(paper,data,naming.tagSpaceReplacement),normalized.body.replaceAll("__ASSET_PREFIX__",assetUrl));
+    await writeFile(path.join(stage,"metadata.json"),JSON.stringify(metadataSidecar(paper,data),null,2)+"\n","utf8");
+    const markdown=composeMarkdown(frontmatter(paper,data,naming.tagSpaceReplacement),normalized.body.replaceAll("__ASSET_PREFIX__",`./${stem}-assets`));
     await writeFile(path.join(stage,`${stem}.md`),markdown,"utf8");
     signal?.throwIfAborted();
-    const backup=path.join(resolved,`.pi-scholar-backup-${randomUUID()}`);
-    await mkdir(backup);
+    const backup=path.join(literatureRoot,`.pi-scholar-backup-${randomUUID()}`);
+    let backupNeedsRecovery=false;
     try{
-      if(await exists(mdPath))await rename(mdPath,path.join(backup,`${stem}.md`));
+      if(await exists(paperDirectory)){await rename(paperDirectory,backup);backupNeedsRecovery=true;}
       signal?.throwIfAborted();
-      if(await exists(assetDir))await rename(assetDir,path.join(backup,`${stem}${assetsSuffix}`));
+      await rename(stage,paperDirectory);
+      stage=null;
       signal?.throwIfAborted();
-      await rename(stageAssets,assetDir);
-      signal?.throwIfAborted();
-      await rename(path.join(stage,`${stem}.md`),mdPath);
-      signal?.throwIfAborted();
-      await rm(backup,{recursive:true,force:true});
+      if(backupNeedsRecovery){await rm(backup,{recursive:true,force:true});backupNeedsRecovery=false;}
     }catch(error){
-      await rm(mdPath,{force:true});await rm(assetDir,{recursive:true,force:true});
-      if(await exists(path.join(backup,`${stem}.md`)))await rename(path.join(backup,`${stem}.md`),mdPath);
-      if(await exists(path.join(backup,`${stem}${assetsSuffix}`)))await rename(path.join(backup,`${stem}${assetsSuffix}`),assetDir);
+      try{
+        await rm(paperDirectory,{recursive:true,force:true});
+        if(backupNeedsRecovery){await rename(backup,paperDirectory);backupNeedsRecovery=false;}
+      }catch(restoreError){
+        throw new AggregateError([error,restoreError],`Publication failed and rollback could not restore the prior paper directory; backup preserved at ${backup}`);
+      }
       throw error;
-    }finally{await rm(backup,{recursive:true,force:true});}
-    return{markdownPath:mdPath,assetsDirectory:assetDir,...data};
+    }finally{if(!backupNeedsRecovery)await rm(backup,{recursive:true,force:true});}
+    return{markdownPath:mdPath,metadataPath:path.join(paperDirectory,"metadata.json"),assetsDirectory:assetDir,...data};
   }finally{if(stage)await rm(stage,{recursive:true,force:true});await rm(lock,{recursive:true,force:true});}
 }

@@ -1,41 +1,32 @@
-# ⚙️ 配置说明（中文）
+# ⚙️ Pi Scholar 配置说明
 
-[English version](./CONFIGURATION.en.md)
+[English](./CONFIGURATION.en.md)
 
-`pi-scholar` 使用**一个 JSON 文件**统一配置 Zotero 连接、MinerU 解析行为、输出位置、资源命名与标签格式。所有字段在加载时都会做类型/范围/安全校验，配置错误会直接抛出清晰的错误，而不是静默使用默认值。
+项目配置只保存非敏感设置。在线服务密钥通过 `/pi-scholar setup` 保存到本机凭据文件，或通过环境变量提供，不应写进 `pi-scholar.config.json`。
 
-## 📁 配置文件在哪里
+## 配置文件位置
 
-复制项目根目录下的 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json) 为 `pi-scholar.config.json`（或放到下面的用户级路径），然后按需修改。
+按以下顺序查找，首个命中项生效：
 
-> ⚠️ **不要提交 `pi-scholar.config.json` 到仓库**——它已经被 `.gitignore` 忽略，因为其中通常包含你本地的输出路径等私有信息。
+1. `PI_SCHOLAR_CONFIG` 指定的文件；路径不存在时直接报错。
+2. 从当前工作目录向上查找 `pi-scholar.config.json`；仅可信 Pi 项目可用。
+3. `~/.config/pi-scholar/config.json`；Windows 对应 `%USERPROFILE%\.config\pi-scholar\config.json`。
+4. `~/.pi-scholar.json`。
+5. 内置默认值。
 
-### 🔍 查找顺序
+JSON 中的相对 `output.directory` 和 `zotero.dataDir` 相对于配置文件目录解析。环境变量中的相对路径相对于运行时工作目录解析。环境变量每次调用时重新读取，并始终覆盖 JSON。
 
-按以下顺序依次查找，命中即停止：
+> `pi-scholar.config.json` 已被 `.gitignore` 忽略。不要把包含本地路径的个人配置提交到公开仓库。
 
-1. **`PI_SCHOLAR_CONFIG` 环境变量** —— 显式指定一个文件路径；该路径必须存在，否则工具会拒绝启动。
-2. **就近的 `pi-scholar.config.json`** —— 从当前工作目录开始向上查找。仅当项目目录被 Pi 判定为可信（`ctx.isProjectTrusted()`）时才会生效，防止一个不可信项目悄悄劫持你的输出目录或 Zotero 地址。
-3. **`~/.config/pi-scholar/config.json`** —— 所有平台通用，包括 Windows（对应 `%USERPROFILE%\.config\pi-scholar\config.json`）。
-4. **`~/.pi-scholar.json`** —— 最后的兜底位置。
-5. 以上都不存在时，使用内置默认值。
-
-### 📌 路径解析规则
-
-- JSON 文件里的 `output.directory`、`zotero.dataDir` 若写成**相对路径**，会相对于**配置文件所在目录**解析（而不是当前工作目录）。
-- 通过**环境变量**覆盖的路径，则相对于**运行时的 `cwd`** 解析。
-- 环境变量在每次工具调用时都会重新读取，并且**始终优先于 JSON 文件**，适合做一次性覆盖（例如 CI、临时输出目录）而不用改配置文件。
-
-## 📝 完整示例
+## 完整示例
 
 ```json
 {
   "output": {
     "directory": "F:/个人知识库",
+    "literaturesDirectory": "Literatures",
     "filenameSeparator": "-",
-    "assetsSuffix": "scholar-assets",
     "assetFilePrefix": "figure",
-    "metadataFileName": "metadata.json",
     "tagSpaceReplacement": "-"
   },
   "zotero": {
@@ -58,93 +49,106 @@
 }
 ```
 
----
+## `output`：输出结构与命名
 
-## 📤 `output` — 输出位置与命名
-
-| 字段 | 环境变量 | 默认值 |
+| JSON 字段 | 环境变量 | 默认值 |
 |---|---|---|
 | `directory` | `PI_SCHOLAR_OUTPUT_DIR` | `~/pi-scholar` |
+| `literaturesDirectory` | `PI_SCHOLAR_LITERATURES_DIR` | `Literatures` |
 | `filenameSeparator` | `PI_SCHOLAR_FILENAME_SEPARATOR` | `-` |
-| `assetsSuffix` | `PI_SCHOLAR_ASSETS_SUFFIX` | `scholar-assets` |
 | `assetFilePrefix` | `PI_SCHOLAR_ASSET_FILE_PREFIX` | `figure` |
-| `metadataFileName` | `PI_SCHOLAR_METADATA_FILE` | `metadata.json` |
 | `tagSpaceReplacement` | `PI_SCHOLAR_TAG_SPACE_REPLACEMENT` | `-` |
 
-<details>
-<summary>字段详细说明</summary>
+默认结构：
 
-- **`directory`**：生成的 `.md` 文件与同级资源目录的发布位置。可以指向一个 Obsidian Vault 文件夹，但从不依赖 Obsidian 本身。JSON 中的相对路径相对配置文件目录解析；环境变量中的相对路径相对 `cwd` 解析。
-- **`filenameSeparator`**：拼接 `Author`、`Year`、`Title` 生成文件名时使用的分隔符，仅允许 1–3 个字符，取自 `[+._ -]`。
-- **`assetsSuffix`**：与 Markdown 同级的资源目录后缀。默认生成 `Author-Year-Title-scholar-assets/`；字母/数字开头的值会自动用 `filenameSeparator` 与文档名连接，自带标点前缀的值（如 `.assets`、`_media`）则直接拼接。必须是安全的文件名片段（不含路径分隔符，UTF-8 字节数不超过 64）。
-- **`assetFilePrefix`**：提取出的图片文件名前缀，例如 `figure-01.png`。
-- **`metadataFileName`**：资源目录内的元数据旁车文件名，必须以 `.json` 结尾。
-- **`tagSpaceReplacement`**：`-` 或 `_`，仅用于替换 Obsidian 侧标签中的空白/不受支持标点；元数据旁车文件始终保留 Zotero 原始标签文本。
+```text
+<directory>/
+└── <literaturesDirectory>/
+    └── <Author-Year-Title>/
+        ├── <Author-Year-Title>.md
+        ├── metadata.json
+        └── <Author-Year-Title>-assets/
+            └── <assetFilePrefix>-01.png
+```
+
+<details>
+<summary>字段约束</summary>
+
+- `directory`：Vault 或普通输出根目录；不存在时自动创建。
+- `literaturesDirectory`：根目录下的单级文献目录名。不能包含路径分隔符、Windows 保留设备名、结尾点或空格；最长 64 UTF-8 字节。
+- `filenameSeparator`：连接作者、年份和标题，允许 1–3 个字符，字符范围为 `[+._ -]`。
+- `assetFilePrefix`：图片文件名前缀，如 `figure-01.png`；必须是安全单级文件名。
+
+- `tagSpaceReplacement`：只能是 `-` 或 `_`；仅用于 Markdown frontmatter 标签，`metadata.json` 保留 Zotero 原始标签。
+
+论文名缺失部分分别使用 `UnknownAuthor`、`UnknownYear`、`Untitled`。非法跨平台字符会替换为空格，保留设备名会加前缀，名称限制为 220 UTF-8 字节。同名不同条目使用 ` (2)`、` (3)` 等后缀。
 
 </details>
 
-## 🗂️ `zotero` — 本地 Zotero 连接
+## `zotero`：本地 Zotero
 
-| 字段 | 环境变量 | 默认值 |
+| JSON 字段 | 环境变量 | 默认值 |
 |---|---|---|
 | `baseUrl` | `ZOTERO_BASE_URL` | `http://127.0.0.1:23119/api` |
 | `dataDir` | `ZOTERO_DATA_DIR` | 无 |
 | `timeoutMs` | `ZOTERO_TIMEOUT_MS` | `15000` |
 | `maxItems` | `ZOTERO_MAX_ITEMS` | `5000` |
 
-<details>
-<summary>字段详细说明</summary>
+- `baseUrl` 只允许 `http://localhost:23119/api` 或 `http://127.0.0.1:23119/api`，不接受其他主机、端口、凭据、查询或重定向。
+- `dataDir` 是包含 `storage/` 的 Zotero 数据目录，仅在 Local API 无法解析受管附件路径时作为兜底。
+- `timeoutMs` 范围为 1,000–120,000 毫秒。
+- `maxItems` 范围为 1–50,000。
 
-- **`baseUrl`**：只允许精确等于 `http://localhost:23119/api` 或 `http://127.0.0.1:23119/api`——不接受其他主机、端口、路径、凭据、查询串或片段。这是代码层面强制校验的，而不仅仅是文档约定。
-- **`dataDir`**：Zotero 数据目录（内含 `storage/`），仅在 Zotero 自身的 `file/view/url` 接口无法解析某个受管附件路径时作为兜底使用。
-- **`timeoutMs`**：单次请求超时时间，允许范围 1,000–120,000 毫秒。
-- **`maxItems`**：单次调用分页结果数量上限，允许范围 1–50,000。
+请在 Zotero 设置中开启“允许其他应用程序与 Zotero 通信”，不要把端口 23119 暴露到外网。
 
-</details>
+## `mineru`：PDF 解析
 
-> 需要在 Zotero 设置中开启 **允许其他应用程序与 Zotero 通信**。所有 Zotero 请求都是无认证的本地回环 GET 请求，且禁用重定向；切勿将 23119 端口暴露到外网。
-
-## 🧬 `mineru` — PDF 解析行为
-
-| 字段 | 环境变量 | 默认值 |
+| JSON 字段 | 环境变量 | 默认值 |
 |---|---|---|
 | `tokenEnv` | — | `MINERU_API_TOKEN` |
-| （实际密钥） | `MINERU_API_TOKEN` 或 `tokenEnv` 指定的变量名 | 无 |
+| 实际密钥 | `MINERU_API_TOKEN` 或 `tokenEnv` 指定名称 | 无 |
 | `timeoutMs` | `MINERU_TIMEOUT_MS` | `600000` |
-| `pollInitialMs` / `pollMaxMs` | `MINERU_POLL_INITIAL_MS` / `MINERU_POLL_MAX_MS` | `3000` / `15000` |
+| `pollInitialMs` | `MINERU_POLL_INITIAL_MS` | `3000` |
+| `pollMaxMs` | `MINERU_POLL_MAX_MS` | `15000` |
 | `maxAttempts` | `MINERU_MAX_ATTEMPTS` | `120` |
 | `language` | `MINERU_LANGUAGE` | `en` |
-| `enableFormula` / `enableTable` | `MINERU_ENABLE_FORMULA` / `MINERU_ENABLE_TABLE` | `true` / `true` |
+| `enableFormula` | `MINERU_ENABLE_FORMULA` | `true` |
+| `enableTable` | `MINERU_ENABLE_TABLE` | `true` |
 | `isOcr` | `MINERU_IS_OCR` | `false` |
 | `modelVersion` | `MINERU_MODEL_VERSION` | `vlm` |
 
-<details>
-<summary>字段详细说明</summary>
+- `tokenEnv` 只保存环境变量名称，不保存令牌；名称必须匹配 `[A-Z_][A-Z0-9_]*`。
+- `timeoutMs` 是整体解析期限，范围 10,000–3,600,000 毫秒；单次 HTTP 尝试另有 60 秒上限。
+- 轮询间隔分别限制在 100–60,000 和 100–120,000 毫秒；`maxAttempts` 范围 1–1000。
+- 布尔环境变量接受 `1/0`、`true/false`、`yes/no`，不区分大小写。
+- `isOcr=true` 会对已有文本层的 PDF 仍然强制 OCR。
 
-- **`tokenEnv`**：指定*哪个*环境变量存放 MinerU 密钥。配置文件本身从不存储密钥内容，只存变量名（必须是大写、匹配 `[A-Z_][A-Z0-9_]*`）。
-- **实际的 MinerU API 令牌**：只有调用 `pi_scholar_parse` 时才需要，其他工具均无需此令牌。
-- **`timeoutMs`**：整体解析截止时间；单次 HTTP 请求另有独立的 60 秒上限。
-- **`pollInitialMs` / `pollMaxMs`**：等待 MinerU 完成解析时的退避轮询区间。
-- **`maxAttempts`**：最大轮询次数，允许范围 1–1000。
-- **`language`**：MinerU OCR / 版面识别的语言提示。
-- **`enableFormula` / `enableTable`**：环境变量支持 `1/0`、`true/false`、`yes/no`（大小写不敏感）。
-- **`isOcr`**：即使 PDF 已有文本层，也强制走 OCR。
-- **`modelVersion`**：MinerU 模型版本标识。
+MinerU 会通过网络接收所选 PDF，并可能消耗配额。只有需要结构化正文、公式、表格或图片时才应解析。
 
-</details>
+## 在线学术服务
 
----
+在线检索、引用、期刊、绘图和 MCP 功能使用以下环境变量：
 
-## 🌱 环境变量速查
+| 环境变量 | 默认值 / 说明 |
+|---|---|
+| `AI4SCHOLAR_API_KEY` | 在线服务 API Key；也可运行 `/pi-scholar setup` |
+| `AI4SCHOLAR_BASE_URL` | `https://ai4scholar.net` |
+| `AI4SCHOLAR_TIMEOUT_MS` | `30000` 毫秒 |
+| `AI4SCHOLAR_PROXY` | HTTP(S) 代理；设为 `direct` 强制直连 |
+| `AI4SCHOLAR_MCP_URL` | `https://mcp.ai4scholar.net/sse` |
+| `HTTPS_PROXY` / `HTTP_PROXY` | 未设置专用代理时的通用代理兜底 |
 
-完整的环境变量清单见仓库根目录的 [`.env.example`](../.env.example)（仅作文档用途）。**本项目不会自行读取 `.env` 文件**，请通过 Shell、操作系统或 Pi 自身的环境变量机制导出这些变量。
+`/pi-scholar setup` 把密钥保存到 `~/.pi/agent/pi-scholar.credentials.json`，目录和文件权限会尽可能限制为当前用户。环境变量优先于本机凭据文件。
 
-## 🔗 Ai4Scholar 配置
+相关管理命令：
 
-Ai4Scholar 功能已直接集成到 `pi-scholar`，但出于密钥隔离与向后兼容考虑，仍使用原有的独立配置入口：
+```text
+/pi-scholar setup
+/pi-scholar status
+/pi-scholar credits
+/pi-scholar clear-key
+```
 
-- `/ai4scholar setup`
-- `AI4SCHOLAR_API_KEY`（旧版兼容 `AI4S_API_KEY`）
-- `AI4SCHOLAR_BASE_URL`
-- `AI4SCHOLAR_TIMEOUT_MS`
-- 及其代理相关设置
+## 配置校验
+
+所有字段在加载时检查类型、范围和路径安全。未知字段、错误类型、危险文件名、越界数字或非法 URL 都会明确报错，不会静默忽略或自动退回默认值。

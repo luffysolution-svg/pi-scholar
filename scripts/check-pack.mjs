@@ -1,6 +1,43 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-const dir=mkdtempSync(path.join(tmpdir(),"pi-scholar-pack-"));
-try{const npmCli=process.env.npm_execpath;if(!npmCli)throw new Error("check-pack must be run through npm run pack:check");const name=execFileSync(process.execPath,[npmCli,"pack","--json","--pack-destination",dir],{encoding:"utf8"});const info=JSON.parse(name)[0];const files=new Set(info.files.map(x=>x.path));for(const required of ["package.json","src/index.ts","skills/pi-scholar/SKILL.md","bin/pi-scholar.mjs","README.md","README.en.md","docs/CONFIGURATION.md","docs/CONFIGURATION.en.md","LICENSE","THIRD_PARTY_NOTICES.md",".env.example","pi-scholar.config.example.json","src/ai4scholar/index.ts","src/ai4scholar/client.ts","src/ai4scholar/rest-tools.ts","src/ai4scholar/advanced-tools.ts","src/ai4scholar/mcp.ts"])if(!files.has(required))throw new Error(`packed artifact missing ${required}`);const pkg=JSON.parse(readFileSync("package.json","utf8"));if(pkg.dependencies["pi-ai4scholar"]||pkg.bundledDependencies?.includes("pi-ai4scholar")||pkg.bundleDependencies?.includes("pi-ai4scholar"))throw new Error("pi-ai4scholar must be integrated, not bundled");console.log(`verified ${info.filename}: ${files.size} files`);}finally{rmSync(dir,{recursive:true,force:true});}
+
+const directory = mkdtempSync(path.join(tmpdir(), "pi-scholar-pack-"));
+const requiredFiles = [
+  "package.json",
+  "src/index.ts",
+  "src/ai4scholar/index.ts",
+  "src/ai4scholar/client.ts",
+  "src/ai4scholar/rest-tools.ts",
+  "src/ai4scholar/advanced-tools.ts",
+  "src/ai4scholar/mcp.ts",
+  "skills/pi-scholar/SKILL.md",
+  "skills/scholar-search/SKILL.md",
+  "skills/zotero-research/SKILL.md",
+  "skills/paper-reading/SKILL.md",
+  "skills/academic-citation/SKILL.md",
+  "skills/scientific-figure/SKILL.md",
+  "bin/pi-scholar.mjs",
+  "README.md",
+  "README.en.md",
+  "docs/CONFIGURATION.md",
+  "docs/CONFIGURATION.en.md",
+  "LICENSE",
+  "THIRD_PARTY_NOTICES.md",
+  "pi-scholar.config.example.json",
+];
+
+try {
+  const npmCli = process.env.npm_execpath;
+  if (!npmCli) throw new Error("check-pack must be run through npm run pack:check");
+  const output = execFileSync(process.execPath, [npmCli, "pack", "--json", "--pack-destination", directory], { encoding: "utf8" });
+  const info = JSON.parse(output)[0];
+  const files = new Set(info.files.map((entry) => entry.path));
+  for (const required of requiredFiles) {
+    if (!files.has(required)) throw new Error(`packed artifact missing ${required}`);
+  }
+  console.log(`verified ${info.filename}: ${files.size} files`);
+} finally {
+  rmSync(directory, { recursive: true, force: true });
+}
