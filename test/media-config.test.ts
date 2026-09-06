@@ -29,6 +29,17 @@ test('media uses scholar config, config keys win, and Vertex credentials stay la
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test('media accepts direct API keys for built-in providers', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'scholar-media-direct-key-'));
+  try {
+    const ids = ['gemini', 'openai', 'xai', 'fal', 'dashscope', 'qwencloud', 'atlas'];
+    const file = path.join(dir, 'pi-scholar.config.json');
+    await writeFile(file, JSON.stringify({ media: { providerOptions: Object.fromEntries(ids.map(id => [id, { apiKey: `${id}-direct-key` }])) } }));
+    const config = await loadMediaConfig(dir, false, { PI_SCHOLAR_CONFIG: file });
+    for (const id of ids) assert.equal(config.providerOptions?.[id]?.apiKey, `${id}-direct-key`);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('media is optional and strict validation does not weaken scholar validation', () => {
   assert.equal(loadConfig({}).media, undefined);
   for (const media of [{ typo: true }, { artifactTimeoutMs: '1000' }, { maxArtifactBytes: -1 }, { providerOptions: { openai: { typo: 'x' } } }, { providerOptions: { openai: { apiKey: '' } } }, { providerOptions: { openai: { baseUrl: 'https://user:password@example.com' } } }, { providerOptions: { vertex: { apiKey: 'ignored' } } }, { providerOptions: { vertex: { location: 'evil.example/path' } } }, { providerOptions: { fal: { baseUrl: 'https://ignored.example' } } }, { providerOptions: { gemini: { workspace: 'ignored' } } }, { defaultModels: { openai: { 'video.text_to_video': 'x' } } }, { customProviders: [{ id: 'openai' }] }]) assert.throws(() => validateMediaConfig(media));

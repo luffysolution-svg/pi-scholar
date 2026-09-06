@@ -2,7 +2,7 @@
 
 [中文版](./CONFIGURATION.md)
 
-Prefer keeping only non-sensitive settings in project configuration. Configure the Ai4Scholar key with `/pi-scholar setup` or an environment variable. Image providers support either `media.providerOptions.apiKey` in the unified config or the safer `apiKeyEnv`; never commit a credential-bearing config.
+Configure the Ai4Scholar key with `/pi-scholar setup` or an environment variable. Image providers accept a direct `media.providerOptions.apiKey` value or an `apiKeyEnv` environment-variable name; never commit a credential-bearing config.
 
 ## Configuration discovery
 
@@ -37,14 +37,14 @@ Relative JSON values for `output.directory`, `zotero.dataDir`, `media.outputDir`
   "media": {
     "outputDir": "./pi-scholar-output/images",
     "providerOptions": {
-      "gemini": { "apiKeyEnv": "GEMINI_API_KEY" },
+      "gemini": { "apiKey": "YOUR_GEMINI_API_KEY" },
       "vertex": { "credentialsFile": "./vertex-service-account.json", "location": "global" },
-      "openai": { "apiKeyEnv": "OPENAI_API_KEY" },
-      "xai": { "apiKeyEnv": "XAI_API_KEY" },
-      "fal": { "apiKeyEnv": "FAL_KEY" },
-      "dashscope": { "apiKeyEnv": "DASHSCOPE_API_KEY" },
-      "qwencloud": { "apiKeyEnv": "QWENCLOUD_API_KEY" },
-      "atlas": { "apiKeyEnv": "ATLAS_API_KEY" }
+      "openai": { "apiKey": "YOUR_OPENAI_API_KEY" },
+      "xai": { "apiKey": "YOUR_XAI_API_KEY" },
+      "fal": { "apiKey": "YOUR_FAL_API_KEY" },
+      "dashscope": { "apiKey": "YOUR_DASHSCOPE_API_KEY" },
+      "qwencloud": { "apiKey": "YOUR_QWENCLOUD_API_KEY" },
+      "atlas": { "apiKey": "YOUR_ATLAS_API_KEY" }
     }
   },
   "mineru": {
@@ -158,7 +158,7 @@ Default fallbacks are `GEMINI_API_KEY` (then `GOOGLE_API_KEY`), `OPENAI_API_KEY`
 
 Current Qwen 3 services commonly use workspace-scoped regional origins; set `baseUrl` to the origin assigned to the account. Fields are provider-specific: Vertex uses `credentialsFile/project/location`, Qwen may also use `workspace`, fal accepts credential settings only, and a custom service URL belongs in `customProviders[].baseUrl`. Call-level `providerOptions` is only for advanced model-native fields and cannot override credentials, endpoints, or normalized controls.
 
-Size controls are intentionally provider-specific: OpenAI accepts explicit pixels; Gemini/fal expose 1K/2K/4K tiers; xAI exposes 1K/2K; Qwen accepts 1K/2K or valid explicit dimensions; the Atlas GPT Image 2 proxy guarantees aspect ratio only. Transparency and quality are exposed only where official documentation confirms support. See [`IMAGE_PROVIDERS.en.md`](./IMAGE_PROVIDERS.en.md) for verified limits and official links.
+Size formats are provider-specific: OpenAI accepts explicit pixels; Gemini/fal expose 1K/2K/4K tiers; xAI exposes 1K/2K; Qwen accepts 1K/2K or explicit dimensions; Atlas GPT Image 2 uses explicit pixels and defaults to `1024x1024`. Transparency and quality follow model capabilities. See [`IMAGE_PROVIDERS.en.md`](./IMAGE_PROVIDERS.en.md) for the complete parameter reference.
 
 `pi_scholar_image_models` reads supported provider catalogs without submitting generation. `pi_scholar_image_service` can run read-only checks for OpenAI, Gemini, xAI, Vertex, and custom OpenAI-compatible services that expose `/models`. fal, Qwen, and Atlas report `unsupported` when no stable non-generating probe is verified. No stable common balance endpoint was verified, so `balance` explicitly returns `unsupported`; use each provider's billing console.
 

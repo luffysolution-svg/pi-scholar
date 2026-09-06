@@ -2,7 +2,7 @@
 
 [English](./CONFIGURATION.en.md)
 
-建议项目配置只保存非敏感设置。Ai4Scholar 密钥通过 `/pi-scholar setup` 或环境变量提供；绘图服务既支持在统一的 `media.providerOptions` 中填写 `apiKey`，也支持更安全的 `apiKeyEnv` 环境变量名。不要提交包含密钥的配置文件。
+Ai4Scholar 密钥通过 `/pi-scholar setup` 或环境变量提供。绘图服务支持在统一配置的 `media.providerOptions` 中直接填写 `apiKey`，也支持填写 `apiKeyEnv` 指定环境变量。不要提交包含密钥的配置文件。
 
 ## 配置文件位置
 
@@ -37,14 +37,14 @@ JSON 中的相对 `output.directory`、`zotero.dataDir`、`media.outputDir` 和 
   "media": {
     "outputDir": "./pi-scholar-output/images",
     "providerOptions": {
-      "gemini": { "apiKeyEnv": "GEMINI_API_KEY" },
+      "gemini": { "apiKey": "YOUR_GEMINI_API_KEY" },
       "vertex": { "credentialsFile": "./vertex-service-account.json", "location": "global" },
-      "openai": { "apiKeyEnv": "OPENAI_API_KEY" },
-      "xai": { "apiKeyEnv": "XAI_API_KEY" },
-      "fal": { "apiKeyEnv": "FAL_KEY" },
-      "dashscope": { "apiKeyEnv": "DASHSCOPE_API_KEY" },
-      "qwencloud": { "apiKeyEnv": "QWENCLOUD_API_KEY" },
-      "atlas": { "apiKeyEnv": "ATLAS_API_KEY" }
+      "openai": { "apiKey": "YOUR_OPENAI_API_KEY" },
+      "xai": { "apiKey": "YOUR_XAI_API_KEY" },
+      "fal": { "apiKey": "YOUR_FAL_API_KEY" },
+      "dashscope": { "apiKey": "YOUR_DASHSCOPE_API_KEY" },
+      "qwencloud": { "apiKey": "YOUR_QWENCLOUD_API_KEY" },
+      "atlas": { "apiKey": "YOUR_ATLAS_API_KEY" }
     }
   },
   "mineru": {
@@ -158,7 +158,7 @@ MinerU 会通过网络接收所选 PDF，并可能消耗配额。只有需要结
 
 Qwen 3 官方服务常使用带 Workspace ID 的地区域名，应把实际账号对应的 origin 配为 `baseUrl`。配置字段按供应商严格限制：Vertex 使用 `credentialsFile/project/location`，Qwen 可额外使用 `workspace`，fal 仅接受密钥设置，自定义供应商的服务地址写在 `customProviders[].baseUrl`。调用级 `providerOptions` 只能放模型原生高级字段，不能覆盖密钥、端点或统一参数。
 
-尺寸能力不是完全统一的：OpenAI 使用明确像素尺寸；Gemini/fal 使用 1K/2K/4K 档位；xAI 使用 1K/2K；Qwen 支持 1K/2K 或合法的明确尺寸；Atlas 的 GPT Image 2 代理只保证宽高比。透明背景与质量等参数也只在官方明确支持的平台开放。完整核对结果及官方链接见 [`IMAGE_PROVIDERS.md`](./IMAGE_PROVIDERS.md)。
+尺寸格式按供应商使用：OpenAI 使用明确像素尺寸；Gemini/fal 使用 1K/2K/4K 档位；xAI 使用 1K/2K；Qwen 使用 1K/2K 或明确像素尺寸；Atlas GPT Image 2 使用明确像素尺寸，默认 `1024x1024`。透明背景与质量等参数按模型能力提供。完整参数见 [`IMAGE_PROVIDERS.md`](./IMAGE_PROVIDERS.md)。
 
 `pi_scholar_image_models` 可读取支持的平台模型目录（不提交生图）；`pi_scholar_image_service` 可对 OpenAI、Gemini、xAI、Vertex 和声明了 `/models` 的自定义 OpenAI 兼容服务执行只读连接测试。fal、Qwen 与 Atlas 未核实到稳定的无生成探测接口时会返回 `unsupported`。当前也没有核实到这些平台可通用且稳定的余额 API，因此 `balance` 会明确返回 `unsupported`，请在平台账单控制台查询。
 

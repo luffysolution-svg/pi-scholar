@@ -28,10 +28,10 @@ Atlas refers to the Aixoras API configured by `ATLAS_API_KEY`. It is a third-par
 | xAI | `grok-imagine-image-2.0` | Yes | Yes, up to 5 sources | 1K / 2K | 1–10 | No | `auto`, `low`, `medium` |
 | fal.ai | `fal-ai/nano-banana-2` | Yes | Separate `/edit` model, 1–14 sources | 0.5K / 1K / 2K / 4K | Positive integer; service limit applies | No generic control | No generic control |
 | Qwen | `qwen-image-3.0-pro` | Yes | Qwen 3 supports 1–3 sources | 1K / 2K or bounded pixels | 1–6 | No | No |
-| Atlas | `gpt-image-2-1k` | Yes | One source image | Aspect ratio only | Positive integer; service limit applies | Model-dependent | Model-dependent |
+| Atlas | `gpt-image-2-1k` | Yes | One source image | Explicit pixels, default `1024x1024` | Positive integer; service limit applies | Model-dependent | Model-dependent |
 | Custom OpenAI-compatible | Configuration order | Declared capability | Declared capability | Endpoint-dependent | Endpoint-dependent | Endpoint-dependent | Endpoint-dependent |
 
-Unsupported normalized controls fail with an explicit error instead of being silently discarded.
+Normalized controls are submitted in the format accepted by the selected model.
 
 ## Provider details
 
@@ -80,7 +80,7 @@ Unsupported normalized controls fail with an explicit error instead of being sil
 ### Atlas / Aixoras
 
 - Documented GPT Image 2 examples include `gpt-image-2-1k` for generation and `gpt-image-2-2k` for editing. Use the exact model available to the account.
-- GPT Image 2 requests require an explicit pixel `size` for upstream billing; omitted sizes default to `1024x1024`. `1K`, `2K`, and `4K` aliases are rejected. Accepted pixel dimensions are forwarded, but the service response remains authoritative for the actual output.
+- GPT Image 2 requests use explicit pixel dimensions and default to `1024x1024`. Enter larger supported dimensions directly, such as `2048x2048`; the service response remains authoritative for the actual output.
 - Supported ratios are 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, and 21:9.
 - Editing accepts one source image. Multiple references and masks are not enabled.
 

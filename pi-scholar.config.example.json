@@ -16,14 +16,14 @@
     "maxArtifactBytes": 52428800,
     "artifactTimeoutMs": 120000,
     "providerOptions": {
-      "gemini": { "apiKeyEnv": "GEMINI_API_KEY", "baseUrl": "https://generativelanguage.googleapis.com/v1beta" },
+      "gemini": { "apiKey": "YOUR_GEMINI_API_KEY", "baseUrl": "https://generativelanguage.googleapis.com/v1beta" },
       "vertex": { "credentialsFile": "./credentials/vertex-service-account.json", "location": "global" },
-      "openai": { "apiKeyEnv": "OPENAI_API_KEY", "baseUrl": "https://api.openai.com/v1" },
-      "xai": { "apiKeyEnv": "XAI_API_KEY", "baseUrl": "https://api.x.ai/v1" },
-      "fal": { "apiKeyEnv": "FAL_KEY" },
-      "dashscope": { "apiKeyEnv": "DASHSCOPE_API_KEY", "baseUrl": "https://dashscope.aliyuncs.com" },
-      "qwencloud": { "apiKeyEnv": "QWENCLOUD_API_KEY", "baseUrl": "https://dashscope-intl.aliyuncs.com" },
-      "atlas": { "apiKeyEnv": "ATLAS_API_KEY" }
+      "openai": { "apiKey": "YOUR_OPENAI_API_KEY", "baseUrl": "https://api.openai.com/v1" },
+      "xai": { "apiKey": "YOUR_XAI_API_KEY", "baseUrl": "https://api.x.ai/v1" },
+      "fal": { "apiKey": "YOUR_FAL_API_KEY" },
+      "dashscope": { "apiKey": "YOUR_DASHSCOPE_API_KEY", "baseUrl": "https://dashscope.aliyuncs.com" },
+      "qwencloud": { "apiKey": "YOUR_QWENCLOUD_API_KEY", "baseUrl": "https://dashscope-intl.aliyuncs.com" },
+      "atlas": { "apiKey": "YOUR_ATLAS_API_KEY" }
     },
     "defaultModels": {
       "openai": { "image.text_to_image": "gpt-image-2", "image.edit": "gpt-image-2" },
@@ -33,7 +33,7 @@
       "id": "custom-images",
       "name": "Your OpenAI-compatible image service",
       "baseUrl": "https://images.example.com/v1",
-      "apiKeyEnv": "CUSTOM_IMAGE_API_KEY",
+      "apiKey": "YOUR_CUSTOM_IMAGE_API_KEY",
       "auth": "bearer",
       "models": [{
         "id": "your-image-model",

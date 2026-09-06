@@ -66,7 +66,7 @@ pi remove npm:@luffysolution/pi-scholar
 /pi-scholar clear-key   删除本机保存的密钥
 ```
 
-Ai4Scholar API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentials.json`。绘图平台密钥统一由 `pi-scholar.config.json` 的 `media` 段或其指定的环境变量读取；推荐使用 `apiKeyEnv`，不要提交含密钥的配置。
+Ai4Scholar API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentials.json`。绘图平台密钥统一由 `pi-scholar.config.json` 的 `media` 段读取，可直接填写 `apiKey`，也可填写 `apiKeyEnv` 指定环境变量；不要提交含密钥的配置。
 
 ## 🧠 内置技能
 
@@ -120,7 +120,7 @@ Ai4Scholar API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentia
 
 Zotero/MinerU 环境变量优先于 JSON；绘图平台显式配置优先，环境变量作为回退。相对路径按配置文件所在目录解析。
 
-科研绘图原生支持 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 与自定义 OpenAI 兼容服务。支持文生图、图生图/编辑、多参考图、尺寸/分辨率、张数、质量、透明背景及 1K/2K/4K（以具体模型能力为准），并提供非生成式连接测试和模型目录读取。没有官方稳定余额接口的平台会明确返回不支持。
+科研绘图原生支持 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 与自定义 OpenAI 兼容服务。支持文生图、图生图/编辑、多参考图、尺寸/分辨率、张数、质量、透明背景及模型支持的 1K/2K/4K 档位，并提供连接测试和模型目录读取。
 
 > 🎨 模型、参数与平台限制见 [科研绘图供应商兼容性](./docs/IMAGE_PROVIDERS.md)。
 >

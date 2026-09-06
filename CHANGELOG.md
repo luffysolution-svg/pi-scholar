@@ -2,6 +2,13 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 0.4.2 - 2026-09-06
+
+### Changed
+
+- Direct API keys can be entered with `media.providerOptions.<id>.apiKey` in the unified configuration and are used by all built-in image providers.
+- Atlas GPT Image 2 uses explicit pixel dimensions with a `1024x1024` default; provider documentation and validation now use the same format.
+
 ## 0.4.1 - 2026-09-06
 
 ### Fixed

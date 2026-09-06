@@ -66,7 +66,7 @@ Setup and status are handled by the same command:
 /pi-scholar clear-key   Delete the locally stored key
 ```
 
-The Ai4Scholar key lives only in an environment variable or `~/.pi/agent/pi-scholar.credentials.json`. Image-provider keys come from the unified `media` configuration or its named environment variables; prefer `apiKeyEnv` and never commit a credential-bearing config.
+The Ai4Scholar key lives only in an environment variable or `~/.pi/agent/pi-scholar.credentials.json`. Image-provider keys are read from the unified `media` configuration: enter `apiKey` directly or set `apiKeyEnv` to an environment-variable name. Never commit a credential-bearing config.
 
 ## 🧠 Included skills
 
@@ -120,7 +120,7 @@ Discovery order:
 
 Zotero/MinerU environment variables override JSON; explicit image-provider config wins, with environment variables as fallback. Relative JSON paths resolve from the configuration file's directory.
 
-Scientific image tools natively support Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text generation, image generation/editing, multiple references, dimensions/resolution, count, quality, transparency, and 1K/2K/4K where the selected model supports them. Read-only connection checks and live model catalogs are available; providers without a verified stable balance API explicitly report unsupported.
+Scientific image tools natively support Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text generation, image generation/editing, multiple references, dimensions/resolution, count, quality, transparency, and model-supported 1K/2K/4K tiers. Connection checks and live model catalogs are available.
 
 > 🎨 See [Image Provider Compatibility](./docs/IMAGE_PROVIDERS.en.md) for models, controls, and platform limits.
 >
