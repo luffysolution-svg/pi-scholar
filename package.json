@@ -1,7 +1,7 @@
 {
   "name": "@luffysolution/pi-scholar",
-  "version": "0.3.1",
-  "description": "Pi-native scholarly workflow: read-only Zotero, MinerU PDF parsing, and Ai4Scholar search/citation, fully integrated in one extension",
+  "version": "0.4.0",
+  "description": "All-in-one Pi research extension for literature discovery, Zotero, PDF parsing, citations, and multi-provider scientific image generation",
   "type": "module",
   "license": "MIT",
   "author": "pi-scholar contributors",
@@ -19,6 +19,10 @@
     "mineru",
     "ai4scholar",
     "research",
+    "scientific-figures",
+    "image-generation",
+    "gemini",
+    "openai",
     "markdown"
   ],
   "engines": {
@@ -38,6 +42,7 @@
     "docs",
     "README.md",
     "README.en.md",
+    "CHANGELOG.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "pi-scholar.config.example.json"
@@ -59,6 +64,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "adm-zip": "^0.6.0",
+    "google-auth-library": "^10.9.1",
     "undici": "^8.9.0",
     "yaml": "^2.8.1"
   },

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { registerScholarCommand } from "../src/command.js";
 
 function harness() {
@@ -20,6 +23,25 @@ test("/pi-scholar routes natural language only through the orchestrator skill", 
   const value = harness();
   await value.command.handler("检索并分析光热催化论文", context);
   assert.deepEqual(value.sent, [{ content: "/skill:pi-scholar 检索并分析光热催化论文", options: { expandPromptTemplates: true, deliverAs: "followUp" } }]);
+});
+
+test("/pi-scholar status reports configured image providers without secrets", async t => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scholar-command-"));
+  t.after(async () => rm(dir, { recursive: true, force: true }));
+  const file = path.join(dir, "config.json");
+  await writeFile(file, JSON.stringify({ media: { providerOptions: { openai: { apiKeyEnv: "STATUS_OPENAI_KEY" } } } }));
+  const previous = { config: process.env.PI_SCHOLAR_CONFIG, openai: process.env.STATUS_OPENAI_KEY, ai4: process.env.AI4SCHOLAR_API_KEY };
+  process.env.PI_SCHOLAR_CONFIG = file;
+  process.env.STATUS_OPENAI_KEY = "never-show-this-key";
+  process.env.AI4SCHOLAR_API_KEY = "ai4scholar-secret";
+  t.after(() => {
+    for (const [name, value] of [["PI_SCHOLAR_CONFIG", previous.config], ["STATUS_OPENAI_KEY", previous.openai], ["AI4SCHOLAR_API_KEY", previous.ai4]] as const) value === undefined ? delete process.env[name] : process.env[name] = value;
+  });
+  let notification = "";
+  const value = harness();
+  await value.command.handler("status", { hasUI: true, cwd: dir, isProjectTrusted: () => false, ui: { notify(message: string) { notification = message; } } });
+  assert.match(notification, /绘图供应商 openai/);
+  assert.doesNotMatch(notification, /never-show-this-key|ai4scholar-secret/);
 });
 
 test("/pi-scholar exposes unified management actions", () => {

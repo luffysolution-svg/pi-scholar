@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import registerOnlineResearchTools from "./ai4scholar/index.js";
 import { registerScholarCommand } from "./command.js";
 import { registerScholarTools } from "./tools.js";
+import { registerMediaTools } from "./media/tools.js";
 
 const loaded=new WeakSet<object>();
 export default function piScholarExtension(pi:ExtensionAPI):void {
@@ -9,6 +10,7 @@ export default function piScholarExtension(pi:ExtensionAPI):void {
   loaded.add(pi as object);
   registerOnlineResearchTools(pi);
   registerScholarTools(pi);
+  registerMediaTools(pi);
   registerScholarCommand(pi);
 }
 export * from "./model.js";

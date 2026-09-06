@@ -23,15 +23,17 @@ For multi-stage requests, use this default sequence:
 4. Upload to MinerU only when full text or visual structure is needed and no current hash-matching output exists.
 5. Read generated content progressively and retain provenance.
 6. Support external claims with verified identifiers/citation evidence.
+7. For figure work, establish the figure contract before choosing a provider; use model discovery only when provider/model selection is unresolved, and validate scientific content after generation.
 
 ## Safety and cost
 
 - Never mutate Zotero.
 - Zotero is local-only; never expose or redirect its API endpoint.
-- Online search, citation, MinerU, MCP, and figure calls may consume quota or credits.
+- Online search, citation, MinerU, MCP, and figure calls may consume quota or credits. Model catalogs and connection checks do not prove generation quota.
 - MinerU sends the selected PDF to an external service. Avoid unnecessary uploads.
 - Never place API keys, Authorization headers, signed URLs, or local PDF paths in answers or generated notes.
-- Respect tool cancellation and bounded retries. Do not blindly retry authentication, malformed input, unsafe archives, or terminal service failures.
+- Respect tool cancellation and bounded retries. Do not blindly retry authentication, malformed input, unsafe archives, terminal service failures, or ambiguous billable image submissions.
+- Treat generated scientific images as illustrations. Never present synthetic plots, microscopy, spectra, or measurement traces as experimental observations.
 
 ## Output contract
 

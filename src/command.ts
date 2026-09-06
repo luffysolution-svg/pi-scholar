@@ -7,6 +7,8 @@ import {
   resolveProxyUrl,
 } from "./ai4scholar/client.js";
 import { promptAndSaveApiKey, resolveConfig as resolveOnlineConfig } from "./ai4scholar/config.js";
+import { loadMediaConfig } from "./media/config.js";
+import { CapabilityRouter } from "./media/router.js";
 
 const ADMIN_ACTIONS = ["setup", "status", "credits", "docs", "clear-key"] as const;
 
@@ -60,7 +62,13 @@ export function registerScholarCommand(pi: ExtensionAPI): void {
       if (action === "status") {
         const current = loadOnlineConfig();
         const source = process.env.AI4SCHOLAR_API_KEY ? "环境变量" : current.apiKey ? `本机配置 ${getConfigPath()}` : "未配置";
-        ctx.ui.notify(`Pi Scholar：密钥 ${source}；在线服务 ${current.baseUrl}；网络 ${resolveProxyUrl(current) ? "已配置代理" : "直连"}`, current.apiKey ? "info" : "warning");
+        let imageProviders = "未配置";
+        try {
+          const media = await loadMediaConfig(ctx.cwd, ctx.isProjectTrusted());
+          const configured = new CapabilityRouter({ cwd: ctx.cwd, config: media }).providers().filter(provider => provider.configured).map(provider => provider.id);
+          if (configured.length) imageProviders = configured.join(", ");
+        } catch { imageProviders = "配置错误"; }
+        ctx.ui.notify(`Pi Scholar：密钥 ${source}；在线服务 ${current.baseUrl}；网络 ${resolveProxyUrl(current) ? "已配置代理" : "直连"}；绘图供应商 ${imageProviders}`, current.apiKey || imageProviders !== "未配置" ? "info" : "warning");
         return;
       }
 

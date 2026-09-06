@@ -2,7 +2,7 @@
 
 [中文版](./CONFIGURATION.md)
 
-Project configuration stores only non-sensitive settings. Configure the online-service key with `/pi-scholar setup` or an environment variable; never place it in `pi-scholar.config.json`.
+Prefer keeping only non-sensitive settings in project configuration. Configure the Ai4Scholar key with `/pi-scholar setup` or an environment variable. Image providers support either `media.providerOptions.apiKey` in the unified config or the safer `apiKeyEnv`; never commit a credential-bearing config.
 
 ## Configuration discovery
 
@@ -14,7 +14,7 @@ First match wins:
 4. `~/.pi-scholar.json`.
 5. Built-in defaults.
 
-Relative `output.directory` and `zotero.dataDir` values in JSON resolve from the configuration file's directory. Relative environment paths resolve from the runtime working directory. Environment variables are read for every call and always override JSON.
+Relative JSON values for `output.directory`, `zotero.dataDir`, `media.outputDir`, and Vertex `credentialsFile` resolve from the configuration file's directory. Relative environment paths resolve from the runtime working directory. Existing Zotero/MinerU environment variables override JSON. Explicit image-provider credentials and endpoints in the unified config take precedence, with environment variables used only as fallback.
 
 > `pi-scholar.config.json` is ignored by Git. Do not commit personal filesystem paths to a public repository.
 
@@ -33,6 +33,19 @@ Relative `output.directory` and `zotero.dataDir` values in JSON resolve from the
     "baseUrl": "http://127.0.0.1:23119/api",
     "timeoutMs": 15000,
     "maxItems": 5000
+  },
+  "media": {
+    "outputDir": "./pi-scholar-output/images",
+    "providerOptions": {
+      "gemini": { "apiKeyEnv": "GEMINI_API_KEY" },
+      "vertex": { "credentialsFile": "./vertex-service-account.json", "location": "global" },
+      "openai": { "apiKeyEnv": "OPENAI_API_KEY" },
+      "xai": { "apiKeyEnv": "XAI_API_KEY" },
+      "fal": { "apiKeyEnv": "FAL_KEY" },
+      "dashscope": { "apiKeyEnv": "DASHSCOPE_API_KEY" },
+      "qwencloud": { "apiKeyEnv": "QWENCLOUD_API_KEY" },
+      "atlas": { "apiKeyEnv": "ATLAS_API_KEY" }
+    }
   },
   "mineru": {
     "tokenEnv": "MINERU_API_TOKEN",
@@ -124,6 +137,32 @@ Enable “Allow other applications on this computer to communicate with Zotero�
 - `isOcr=true` forces OCR even when a PDF has a text layer.
 
 MinerU receives the selected PDF over the network and may consume quota. Parse only when structured text, formulas, tables, or figures are needed.
+
+## `media`: multi-provider scientific images
+
+Built-in provider IDs are `gemini`, `vertex`, `openai`, `xai`, `fal`, `dashscope`, `qwencloud`, and `atlas`. The unified tools accept text-to-image, image generation/editing, multiple references, aspect ratio, size/resolution, count, quality, transparent background, and output format. Each adapter strictly validates actual model support; unsupported controls fail instead of being ignored.
+
+| Field | Purpose |
+|---|---|
+| `outputDir` | Download directory; defaults to `<output.directory>/images` |
+| `maxArtifactBytes` | Per-artifact limit; default 52,428,800 (50 MiB), range 1–1,073,741,824 bytes |
+| `artifactTimeoutMs` | Download timeout; default 120,000, range 1,000–3,600,000 ms |
+| `providerOptions.<id>.apiKey` | Direct key; explicit config wins over environment fallback; do not commit it |
+| `providerOptions.<id>.apiKeyEnv` | Environment-variable name containing the key |
+| `providerOptions.vertex.credentialsFile` | Vertex service-account JSON relative to the config; standard ADC also works |
+| `providerOptions.vertex.location` / `project` | Vertex region and optional project; region must be `global` or a valid GCP region such as `us-central1`; project may be inferred from JSON/ADC |
+| `defaultModels.<id>.<capability>` | Optional model pin; omission selects the newest candidate from an official catalog or curated fallback |
+| `customProviders` | Custom OpenAI-compatible models, capabilities, and generation/edit endpoints |
+
+Default fallbacks are `GEMINI_API_KEY` (then `GOOGLE_API_KEY`), `OPENAI_API_KEY`, `XAI_API_KEY`, `FAL_KEY`/`FAL_API_KEY`, `DASHSCOPE_API_KEY`, `QWENCLOUD_API_KEY`, and `ATLAS_API_KEY`. Vertex supports `GOOGLE_APPLICATION_CREDENTIALS`, `VERTEX_CREDENTIALS_FILE`, `GOOGLE_CLOUD_PROJECT`, and `GOOGLE_CLOUD_LOCATION`.
+
+Current Qwen 3 services commonly use workspace-scoped regional origins; set `baseUrl` to the origin assigned to the account. Fields are provider-specific: Vertex uses `credentialsFile/project/location`, Qwen may also use `workspace`, fal accepts credential settings only, and a custom service URL belongs in `customProviders[].baseUrl`. Call-level `providerOptions` is only for advanced model-native fields and cannot override credentials, endpoints, or normalized controls.
+
+Size controls are intentionally provider-specific: OpenAI accepts explicit pixels; Gemini/fal expose 1K/2K/4K tiers; xAI exposes 1K/2K; Qwen accepts 1K/2K or valid explicit dimensions; the Atlas GPT Image 2 proxy guarantees aspect ratio only. Transparency and quality are exposed only where official documentation confirms support. See [`IMAGE_PROVIDERS.en.md`](./IMAGE_PROVIDERS.en.md) for verified limits and official links.
+
+`pi_scholar_image_models` reads supported provider catalogs without submitting generation. `pi_scholar_image_service` can run read-only checks for OpenAI, Gemini, xAI, Vertex, and custom OpenAI-compatible services that expose `/models`. fal, Qwen, and Atlas report `unsupported` when no stable non-generating probe is verified. No stable common balance endpoint was verified, so `balance` explicitly returns `unsupported`; use each provider's billing console.
+
+See [`pi-scholar.config.example.json`](../pi-scholar.config.example.json) for a custom OpenAI-compatible example. Every model must explicitly declare the supported `image.text_to_image`, `image.image_to_image`, `image.edit`, or `image.multi_reference` capability and endpoint.
 
 ## Online scholarly service
 

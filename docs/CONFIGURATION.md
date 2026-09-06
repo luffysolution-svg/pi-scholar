@@ -2,7 +2,7 @@
 
 [English](./CONFIGURATION.en.md)
 
-项目配置只保存非敏感设置。在线服务密钥通过 `/pi-scholar setup` 保存到本机凭据文件，或通过环境变量提供，不应写进 `pi-scholar.config.json`。
+建议项目配置只保存非敏感设置。Ai4Scholar 密钥通过 `/pi-scholar setup` 或环境变量提供；绘图服务既支持在统一的 `media.providerOptions` 中填写 `apiKey`，也支持更安全的 `apiKeyEnv` 环境变量名。不要提交包含密钥的配置文件。
 
 ## 配置文件位置
 
@@ -14,7 +14,7 @@
 4. `~/.pi-scholar.json`。
 5. 内置默认值。
 
-JSON 中的相对 `output.directory` 和 `zotero.dataDir` 相对于配置文件目录解析。环境变量中的相对路径相对于运行时工作目录解析。环境变量每次调用时重新读取，并始终覆盖 JSON。
+JSON 中的相对 `output.directory`、`zotero.dataDir`、`media.outputDir` 和 Vertex `credentialsFile` 相对于配置文件目录解析。环境变量中的相对路径相对于运行时工作目录解析。原有 Zotero/MinerU 环境变量覆盖 JSON；绘图服务则以统一配置中显式填写的凭据和端点为准，仅在未填写时回退到环境变量。
 
 > `pi-scholar.config.json` 已被 `.gitignore` 忽略。不要把包含本地路径的个人配置提交到公开仓库。
 
@@ -33,6 +33,19 @@ JSON 中的相对 `output.directory` 和 `zotero.dataDir` 相对于配置文件�
     "baseUrl": "http://127.0.0.1:23119/api",
     "timeoutMs": 15000,
     "maxItems": 5000
+  },
+  "media": {
+    "outputDir": "./pi-scholar-output/images",
+    "providerOptions": {
+      "gemini": { "apiKeyEnv": "GEMINI_API_KEY" },
+      "vertex": { "credentialsFile": "./vertex-service-account.json", "location": "global" },
+      "openai": { "apiKeyEnv": "OPENAI_API_KEY" },
+      "xai": { "apiKeyEnv": "XAI_API_KEY" },
+      "fal": { "apiKeyEnv": "FAL_KEY" },
+      "dashscope": { "apiKeyEnv": "DASHSCOPE_API_KEY" },
+      "qwencloud": { "apiKeyEnv": "QWENCLOUD_API_KEY" },
+      "atlas": { "apiKeyEnv": "ATLAS_API_KEY" }
+    }
   },
   "mineru": {
     "tokenEnv": "MINERU_API_TOKEN",
@@ -124,6 +137,32 @@ JSON 中的相对 `output.directory` 和 `zotero.dataDir` 相对于配置文件�
 - `isOcr=true` 会对已有文本层的 PDF 仍然强制 OCR。
 
 MinerU 会通过网络接收所选 PDF，并可能消耗配额。只有需要结构化正文、公式、表格或图片时才应解析。
+
+## `media`：多平台科研绘图
+
+内置供应商 ID：`gemini`、`vertex`、`openai`、`xai`、`fal`、`dashscope`、`qwencloud`、`atlas`。统一工具支持文生图、图生图/编辑、多参考图、宽高比、尺寸/分辨率、张数、质量、透明背景和输出格式；但参数会按模型能力严格校验，不支持的字段会报错，不会静默忽略。
+
+| 字段 | 说明 |
+|---|---|
+| `outputDir` | 图片下载目录；默认 `<output.directory>/images` |
+| `maxArtifactBytes` | 单个下载文件上限；默认 52,428,800（50 MiB），范围 1–1,073,741,824 字节 |
+| `artifactTimeoutMs` | 下载超时；默认 120,000，范围 1,000–3,600,000 毫秒 |
+| `providerOptions.<id>.apiKey` | 直接配置密钥；显式配置优先于环境变量，不建议提交到仓库 |
+| `providerOptions.<id>.apiKeyEnv` | 指定承载密钥的环境变量名 |
+| `providerOptions.vertex.credentialsFile` | Vertex 服务账号 JSON；相对配置文件目录解析，也支持标准 ADC |
+| `providerOptions.vertex.location` / `project` | Vertex 地区与可选项目 ID；地区须为 `global` 或合法 GCP region（如 `us-central1`），项目可从 JSON/ADC 推断 |
+| `defaultModels.<id>.<capability>` | 可选固定模型；省略时选择官方目录或内置候选中的最新可用模型 |
+| `customProviders` | 声明自定义 OpenAI 兼容服务的模型、能力及 generation/edit 端点 |
+
+默认环境变量为 `GEMINI_API_KEY`（亦回退 `GOOGLE_API_KEY`）、`OPENAI_API_KEY`、`XAI_API_KEY`、`FAL_KEY`/`FAL_API_KEY`、`DASHSCOPE_API_KEY`、`QWENCLOUD_API_KEY` 和 `ATLAS_API_KEY`。Vertex 支持 `GOOGLE_APPLICATION_CREDENTIALS`、`VERTEX_CREDENTIALS_FILE`、`GOOGLE_CLOUD_PROJECT` 和 `GOOGLE_CLOUD_LOCATION`。
+
+Qwen 3 官方服务常使用带 Workspace ID 的地区域名，应把实际账号对应的 origin 配为 `baseUrl`。配置字段按供应商严格限制：Vertex 使用 `credentialsFile/project/location`，Qwen 可额外使用 `workspace`，fal 仅接受密钥设置，自定义供应商的服务地址写在 `customProviders[].baseUrl`。调用级 `providerOptions` 只能放模型原生高级字段，不能覆盖密钥、端点或统一参数。
+
+尺寸能力不是完全统一的：OpenAI 使用明确像素尺寸；Gemini/fal 使用 1K/2K/4K 档位；xAI 使用 1K/2K；Qwen 支持 1K/2K 或合法的明确尺寸；Atlas 的 GPT Image 2 代理只保证宽高比。透明背景与质量等参数也只在官方明确支持的平台开放。完整核对结果及官方链接见 [`IMAGE_PROVIDERS.md`](./IMAGE_PROVIDERS.md)。
+
+`pi_scholar_image_models` 可读取支持的平台模型目录（不提交生图）；`pi_scholar_image_service` 可对 OpenAI、Gemini、xAI、Vertex 和声明了 `/models` 的自定义 OpenAI 兼容服务执行只读连接测试。fal、Qwen 与 Atlas 未核实到稳定的无生成探测接口时会返回 `unsupported`。当前也没有核实到这些平台可通用且稳定的余额 API，因此 `balance` 会明确返回 `unsupported`，请在平台账单控制台查询。
+
+自定义 OpenAI 兼容配置示例见仓库根目录的 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json)。模型必须显式声明 `image.text_to_image`、`image.image_to_image`、`image.edit` 或 `image.multi_reference` 能力和对应端点。
 
 ## 在线学术服务
 

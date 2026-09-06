@@ -34,7 +34,7 @@ pi install npm:@luffysolution/pi-scholar
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.3.1
+pi install npm:@luffysolution/pi-scholar@0.4.0
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -60,13 +60,13 @@ Setup and status are handled by the same command:
 
 ```text
 /pi-scholar setup       Configure the online-service API key
-/pi-scholar status      Show configuration source and connection mode
+/pi-scholar status      Show configuration source, connection mode, and image providers
 /pi-scholar credits     Check online-service credits
 /pi-scholar docs        Show the configuration documentation URL
 /pi-scholar clear-key   Delete the locally stored key
 ```
 
-The API key lives only in an environment variable or `~/.pi/agent/pi-scholar.credentials.json`; it is never written to project configuration, model messages, or parsed output.
+The Ai4Scholar key lives only in an environment variable or `~/.pi/agent/pi-scholar.credentials.json`. Image-provider keys come from the unified `media` configuration or its named environment variables; prefer `apiKeyEnv` and never commit a credential-bearing config.
 
 ## 🧠 Included skills
 
@@ -118,8 +118,12 @@ Discovery order:
 4. `~/.pi-scholar.json`
 5. Built-in defaults
 
-Environment variables always override JSON. Relative JSON paths resolve from the configuration file's directory.
+Zotero/MinerU environment variables override JSON; explicit image-provider config wins, with environment variables as fallback. Relative JSON paths resolve from the configuration file's directory.
 
+Scientific image tools natively support Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text generation, image generation/editing, multiple references, dimensions/resolution, count, quality, transparency, and 1K/2K/4K where the selected model supports them. Read-only connection checks and live model catalogs are available; providers without a verified stable balance API explicitly report unsupported.
+
+> 🎨 See [Image Provider Compatibility](./docs/IMAGE_PROVIDERS.en.md) for models, controls, and platform limits.
+>
 > 📖 See the [full English configuration reference](./docs/CONFIGURATION.en.md) or [中文版](./docs/CONFIGURATION.md) for every field, default, range, and environment variable.
 
 Enable “Allow other applications on this computer to communicate with Zotero” in Zotero. Never expose port `23119` externally.

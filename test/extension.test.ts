@@ -5,7 +5,7 @@ import piScholarExtension from "../src/index.js";
 function harness(){const tools:any[]=[];const commands:string[]=[];const hooks:string[]=[];const pi={registerTool:(tool:any)=>tools.push(tool),registerCommand:(name:string)=>commands.push(name),on:(event:string)=>{hooks.push(event);},getAllTools:()=>tools,getActiveTools:()=>[],setActiveTools:()=>{},sendUserMessage:()=>{}};piScholarExtension(pi as any);return{pi,tools,commands,hooks};}
 
 test("Pi entry point registers integrated Ai4Scholar and local tools exactly once",()=>{
-  const h=harness();const names=h.tools.map(t=>t.name);for(const name of ["ai4scholar_search","ai4scholar_paper","ai4scholar_cite","ai4scholar_mcp","zotero_collections","zotero_search","zotero_item","pi_scholar_parse"])assert.equal(names.filter(n=>n===name).length,1,`${name} registration`);
+  const h=harness();const names=h.tools.map(t=>t.name);for(const name of ["ai4scholar_search","ai4scholar_paper","ai4scholar_cite","ai4scholar_mcp","zotero_collections","zotero_search","zotero_item","pi_scholar_parse","pi_scholar_image_models","pi_scholar_image_generate","pi_scholar_image_edit","pi_scholar_image_service"])assert.equal(names.filter(n=>n===name).length,1,`${name} registration`);
   assert.deepEqual(names.filter(n=>n.startsWith("zotero_")||n==="pi_scholar_parse"),["zotero_collections","zotero_search","zotero_item","pi_scholar_parse"]);assert.deepEqual(h.commands,["pi-scholar"]);const count=h.tools.length;piScholarExtension(h.pi as any);assert.equal(h.tools.length,count);assert.deepEqual(h.commands,["pi-scholar"]);
 });
 
