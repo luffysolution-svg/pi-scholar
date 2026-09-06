@@ -28,20 +28,20 @@ Pi Scholar 是面向 Pi 的一体化科研扩展，在一个安装包中提供�
 要求 Node.js `>=22.19`、Pi `>=0.84.4`、Zotero `7+`，支持 Windows、macOS 和 Linux。
 
 ```sh
-pi install npm:@luffysolution/pi-scholar
+pi install npm:@luffysolution/pi-scholar@latest
 ```
 
-也可以指定版本或从 GitHub 安装：
+也可以固定版本或从 GitHub 安装：
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.4.0
+pi install npm:@luffysolution/pi-scholar@0.4.3
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
-安装后重启 Pi 或运行 `/reload`。更新与卸载：
+安装后重启 Pi 或运行 `/reload`。已安装固定版本时，使用 `pi install npm:@luffysolution/pi-scholar@latest` 切换到最新通道；更新与卸载：
 
 ```sh
-pi update npm:@luffysolution/pi-scholar
+pi update npm:@luffysolution/pi-scholar@latest
 pi remove npm:@luffysolution/pi-scholar
 ```
 

@@ -2,6 +2,12 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 0.4.3 - 2026-09-06
+
+### Changed
+
+- Installation and update commands now use the npm `latest` channel so new releases are installed without changing the documented command.
+
 ## 0.4.2 - 2026-09-06
 
 ### Changed

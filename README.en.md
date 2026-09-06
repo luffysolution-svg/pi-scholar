@@ -28,20 +28,20 @@ Output is ordinary UTF-8 Markdown, JSON metadata, and image files. No Obsidian p
 Requires Node.js `>=22.19`, Pi `>=0.84.4`, and Zotero `7+`. Windows, macOS, and Linux are supported.
 
 ```sh
-pi install npm:@luffysolution/pi-scholar
+pi install npm:@luffysolution/pi-scholar@latest
 ```
 
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.4.0
+pi install npm:@luffysolution/pi-scholar@0.4.3
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
-Restart Pi or run `/reload`. Update or uninstall with:
+Restart Pi or run `/reload`. For a pinned installation, run `pi install npm:@luffysolution/pi-scholar@latest` to switch to the latest channel; update or uninstall with:
 
 ```sh
-pi update npm:@luffysolution/pi-scholar
+pi update npm:@luffysolution/pi-scholar@latest
 pi remove npm:@luffysolution/pi-scholar
 ```
 
