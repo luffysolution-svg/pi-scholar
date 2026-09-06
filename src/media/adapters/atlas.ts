@@ -52,7 +52,7 @@ export class AtlasAdapter extends BaseAdapter {
     const payload = mergeOptions({
       model: request.model, prompt: requirePrompt(request), n: request.count ?? 1,
       ...(request.aspectRatio ? { aspect_ratio: request.aspectRatio } : {}),
-      ...(request.resolution ? { size: request.resolution } : {}),
+      ...(atlasSize(request) ? { size: atlasSize(request) } : {}),
       response_format: 'url',
       ...(Object.keys(extraFields).length ? { extra_fields: extraFields } : {}),
       ...(request.background ? { background: request.background } : {}),
@@ -85,7 +85,8 @@ export class AtlasAdapter extends BaseAdapter {
     form.set('n', String(request.count ?? 1))
     form.set('response_format', 'url')
     if (request.aspectRatio) form.set('aspect_ratio', request.aspectRatio)
-    if (request.resolution) form.set('size', request.resolution)
+    const size = atlasSize(request)
+    if (size) form.set('size', size)
     if (request.background) form.set('background', request.background)
     if (request.outputFormat) form.set('output_format', request.outputFormat)
     if (request.quality) form.set('quality', request.quality)
@@ -183,7 +184,7 @@ function atlasCapabilities(id: string, declared: ModelDescriptor[]): Capability[
 
 function validateAtlasImage(request: MediaRequest): void {
   if (!Number.isInteger(request.count ?? 1) || (request.count ?? 1) < 1) throw new MediaError('INPUT', 'Atlas image count must be a positive integer', { provider: request.provider })
-  if (/^gpt-image-2/.test(request.model) && request.resolution) throw new MediaError('CAPABILITY_UNSUPPORTED', 'Atlas GPT Image 2 guarantees aspect ratio only, not 1K/2K/4K or explicit dimensions; use aspectRatio', { provider: request.provider })
+  if (/^gpt-image-2/i.test(request.model) && request.resolution && !/^\d+x\d+$/i.test(request.resolution)) throw new MediaError('INPUT', 'Atlas GPT Image 2 resolution must be explicit pixels such as 1024x1024; 1K/2K/4K aliases are unsupported', { provider: request.provider })
   if (request.aspectRatio && !['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '21:9'].includes(request.aspectRatio)) throw new MediaError('INPUT', 'Unsupported Atlas image aspect ratio', { provider: request.provider })
   if (request.compression !== undefined && (!Number.isInteger(request.compression) || request.compression < 0 || request.compression > 100)) throw new MediaError('INPUT', 'Atlas compression must be 0–100', { provider: request.provider })
   if (request.outputFormat && !['png', 'jpeg', 'jpg', 'webp'].includes(request.outputFormat.toLowerCase())) {
@@ -192,6 +193,11 @@ function validateAtlasImage(request: MediaRequest): void {
   if (request.background === 'transparent' && request.outputFormat && !['png', 'webp'].includes(request.outputFormat.toLowerCase())) {
     throw new MediaError('INPUT', 'Transparent Atlas images require PNG or WebP output', { provider: request.provider })
   }
+}
+
+function atlasSize(request: MediaRequest): string | undefined {
+  if (/^gpt-image-2/i.test(request.model)) return request.resolution ?? '1024x1024'
+  return request.resolution
 }
 
 function validateAtlasVideo(request: MediaRequest): void {

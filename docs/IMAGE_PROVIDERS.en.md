@@ -80,7 +80,7 @@ Unsupported normalized controls fail with an explicit error instead of being sil
 ### Atlas / Aixoras
 
 - Documented GPT Image 2 examples include `gpt-image-2-1k` for generation and `gpt-image-2-2k` for editing. Use the exact model available to the account.
-- The service guarantees supported aspect ratios rather than exact output pixels. Resolution aliases and explicit dimensions are therefore rejected.
+- GPT Image 2 requests require an explicit pixel `size` for upstream billing; omitted sizes default to `1024x1024`. `1K`, `2K`, and `4K` aliases are rejected. Accepted pixel dimensions are forwarded, but the service response remains authoritative for the actual output.
 - Supported ratios are 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, and 21:9.
 - Editing accepts one source image. Multiple references and masks are not enabled.
 

@@ -120,10 +120,11 @@ test('custom OpenAI-compatible edits include source images and masks', async () 
   assert.equal(calls.length, 0);
 });
 
-test('Atlas does not promise pixel sizes or unsupported multi-reference editing', async () => {
+test('Atlas supplies a billable pixel size and rejects resolution aliases', async () => {
   const { dependencies, calls } = harness();
   const adapter = new AtlasAdapter(dependencies);
-  await assert.rejects(adapter.execute(request('atlas', 'gpt-image-2-1k', { resolution: '1K' }), {}), /aspect ratio/);
+  await adapter.execute(request('atlas', 'gpt-image-2-1k'), {});
+  assert.equal(calls[0]!.body.size, '1024x1024');
+  await assert.rejects(adapter.execute(request('atlas', 'gpt-image-2-1k', { resolution: '1K' }), {}), /explicit pixels/);
   assert.equal(adapter.supports('image.multi_reference', 'gpt-image-2-1k'), false);
-  assert.equal(calls.length, 0);
 });

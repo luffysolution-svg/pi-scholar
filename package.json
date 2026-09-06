@@ -1,6 +1,6 @@
 {
   "name": "@luffysolution/pi-scholar",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "All-in-one Pi research extension for literature discovery, Zotero, PDF parsing, citations, and multi-provider scientific image generation",
   "type": "module",
   "license": "MIT",

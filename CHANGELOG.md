@@ -2,6 +2,12 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 0.4.1 - 2026-09-06
+
+### Fixed
+
+- Atlas GPT Image 2 requests now include the upstream billing-required `size`, defaulting to `1024x1024`; explicit pixel dimensions are accepted while `1K`/`2K`/`4K` aliases remain rejected.
+
 ## 0.4.0 - 2026-09-06
 
 ### Added
