@@ -1,9 +1,11 @@
 import os from "node:os";
 import path from "node:path";
+import { resolveApiKey, validateApiKeyEnv } from "../credentials.js";
 
 export interface ProviderConfig {
   enabled?: boolean;
-  credentialEnv?: string;
+  apiKey?: string;
+  apiKeyEnv?: string;
   contact?: string;
   timeoutMs?: number;
   maxRequests?: number;
@@ -28,26 +30,21 @@ export interface ResearchConfig {
 }
 
 const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
-  "semantic-scholar": { enabled: true, credentialEnv: "SEMANTIC_SCHOLAR_API_KEY", priority: 100 },
-  openalex: { enabled: true, credentialEnv: "OPENALEX_API_KEY", priority: 80 },
-  pubmed: { enabled: true, credentialEnv: "NCBI_API_KEY", priority: 60 },
+  "semantic-scholar": { enabled: true, apiKeyEnv: "SEMANTIC_SCHOLAR_API_KEY", priority: 100 },
+  openalex: { enabled: true, apiKeyEnv: "OPENALEX_API_KEY", priority: 80 },
+  pubmed: { enabled: true, apiKeyEnv: "NCBI_API_KEY", priority: 60 },
   arxiv: { enabled: true, priority: 50 },
   crossref: { enabled: true, priority: 40 },
   unpaywall: { enabled: false, priority: 10 },
-  easyscholar: { enabled: false, credentialEnv: "EASYSCHOLAR_SECRET_KEY", priority: -100 },
+  easyscholar: { enabled: false, apiKeyEnv: "EASYSCHOLAR_SECRET_KEY", priority: -100 },
 };
+const KEY_PROVIDERS = new Set(["semantic-scholar", "openalex", "pubmed", "easyscholar"]);
 
 function int(value: unknown, fallback: number, min: number, max: number, label: string): number {
   if (value !== undefined && typeof value !== "number") throw new Error(`${label} must be a number`);
   const n = value === undefined ? fallback : value;
   if (!Number.isInteger(n) || n < min || n > max) throw new Error(`${label} must be an integer from ${min} to ${max}`);
   return n;
-}
-
-function envName(value: unknown, label: string): string | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== "string" || !/^[A-Z_][A-Z0-9_]*$/.test(value)) throw new Error(`${label} must be an uppercase environment variable name`);
-  return value;
 }
 
 /** Validate and normalize the research section accepted by the root config loader. */
@@ -70,10 +67,14 @@ export function validateResearchConfig(value: unknown, env: NodeJS.ProcessEnv = 
     const candidate = providersRaw[id];
     if (candidate !== undefined && (!candidate || typeof candidate !== "object" || Array.isArray(candidate))) throw new Error(`research.providers.${id} must be an object`);
     const input = (candidate ?? {}) as Record<string, unknown>;
-    for (const key of Object.keys(input)) if (!["enabled", "credentialEnv", "contact", "timeoutMs", "maxRequests", "budget", "cacheTtlMs", "priority"].includes(key)) throw new Error(`Invalid research.providers.${id} field: ${key}`);
+    const allowed = ["enabled", "contact", "timeoutMs", "maxRequests", "budget", "cacheTtlMs", "priority", ...(KEY_PROVIDERS.has(id) ? ["apiKey", "apiKeyEnv"] : [])];
+    for (const key of Object.keys(input)) if (!allowed.includes(key)) throw new Error(`Invalid research.providers.${id} field: ${key}`);
     if (input.enabled !== undefined && typeof input.enabled !== "boolean") throw new Error(`research.providers.${id}.enabled must be boolean`);
+    if (input.apiKey !== undefined && (typeof input.apiKey !== "string" || !input.apiKey.trim())) throw new Error(`research.providers.${id}.apiKey must be a non-empty string`);
+    const apiKeyEnv = validateApiKeyEnv(input.apiKeyEnv, `research.providers.${id}.apiKeyEnv`);
     const merged = { ...defaults, ...input } as ProviderConfig;
-    merged.credentialEnv = envName(merged.credentialEnv, `research.providers.${id}.credentialEnv`);
+    if (apiKeyEnv !== undefined) merged.apiKeyEnv = apiKeyEnv;
+    merged.apiKey = resolveApiKey(merged, env, id === "semantic-scholar" ? ["SEMANTIC_SCHOLAR_API_KEY"] : id === "openalex" ? ["OPENALEX_API_KEY"] : id === "pubmed" ? ["NCBI_API_KEY"] : id === "easyscholar" ? ["EASYSCHOLAR_SECRET_KEY"] : []);
     if (merged.contact !== undefined && (typeof merged.contact !== "string" || !merged.contact.trim())) throw new Error(`research.providers.${id}.contact must be a non-empty string`);
     merged.timeoutMs = int(merged.timeoutMs, 30_000, 1_000, 300_000, `${id}.timeoutMs`);
     merged.maxRequests = int(merged.maxRequests, 100, 1, 100_000, `${id}.maxRequests`);

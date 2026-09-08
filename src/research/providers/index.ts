@@ -3,6 +3,7 @@ import { appendQuery, requestBytes, requestJson, requestText } from "../network.
 import type { ProviderConfig, ResearchConfig } from "../config.js";
 import type { LiteratureProvider, LiteratureRecord, ProviderCapability, ProviderStatus, ResearchSearchRequest, ResearchSearchResult } from "../types.js";
 import { SaxesParser } from "saxes";
+import { resolveApiKey } from "../../credentials.js";
 
 const DOCS = {
   "semantic-scholar": "https://api.semanticscholar.org/api-docs/graph",
@@ -16,21 +17,24 @@ const DOCS = {
 
 function cap(id: ProviderCapability["id"], docs: string, status: ProviderCapability["implementationStatus"] = "implemented", notes?: string): ProviderCapability { return { id, docs, implementationStatus: status, notes }; }
 function source(provider: string, config: ProviderConfig, capabilities: ProviderCapability[], paid: boolean, limitations: string[] = []): ProviderStatus {
-  const env = config.credentialEnv;
-  const configured = Boolean(env && process.env[env]);
+  const env = config.apiKeyEnv;
+  const configured = Boolean(resolveApiKey(config, process.env, provider === "semantic-scholar" ? ["SEMANTIC_SCHOLAR_API_KEY"] : provider === "openalex" ? ["OPENALEX_API_KEY"] : provider === "pubmed" ? ["NCBI_API_KEY"] : provider === "easyscholar" ? ["EASYSCHOLAR_SECRET_KEY"] : []));
   const blocked = capabilities.some((item) => item.implementationStatus === "contract_blocked");
   const credentialRequired = provider === "easyscholar";
   const contactMissing = provider === "unpaywall" && !config.contact?.trim();
-  return { id: provider, name: provider, enabled: config.enabled === true, paid, implementationStatus: blocked ? "contract_blocked" : capabilities.some((item) => item.implementationStatus === "implemented") ? "implemented" : "not_implemented", credentialStatus: configured ? "configured" : credentialRequired ? "missing" : "not_required", accessStatus: blocked ? "permission_required" : credentialRequired && !configured ? "restricted" : contactMissing ? "unknown" : "public", validationStatus: blocked ? "live_untested" : "mock_passed", capabilities, credentialEnv: env, docs: [DOCS[provider as keyof typeof DOCS]], limitations };
+  return { id: provider, name: provider, enabled: config.enabled === true, paid, implementationStatus: blocked ? "contract_blocked" : capabilities.some((item) => item.implementationStatus === "implemented") ? "implemented" : "not_implemented", credentialStatus: configured ? "configured" : credentialRequired ? "missing" : "not_required", accessStatus: blocked ? "permission_required" : credentialRequired && !configured ? "restricted" : contactMissing ? "unknown" : "public", validationStatus: blocked ? "live_untested" : "mock_passed", capabilities, apiKeyEnv: env, docs: [DOCS[provider as keyof typeof DOCS]], limitations };
+}
+function providerKey(config: ProviderConfig, provider: string): string | undefined {
+  return resolveApiKey(config, process.env, provider === "semantic-scholar" ? ["SEMANTIC_SCHOLAR_API_KEY"] : provider === "openalex" ? ["OPENALEX_API_KEY"] : provider === "pubmed" ? ["NCBI_API_KEY"] : provider === "easyscholar" ? ["EASYSCHOLAR_SECRET_KEY"] : []);
 }
 function auth(config: ProviderConfig, provider: string, kind: "x-api-key" | "bearer" = "bearer"): Record<string, string> {
-  const value = config.credentialEnv ? process.env[config.credentialEnv]?.trim() : undefined;
-  if (!value) throw new ResearchError("AUTH_REQUIRED", `${provider} requires ${config.credentialEnv ?? "a credential"}`, provider);
+  const value = providerKey(config, provider);
+  if (!value) throw new ResearchError("AUTH_REQUIRED", `${provider} requires ${config.apiKeyEnv ?? "a credential"}`, provider);
   const header = kind === "x-api-key" ? "x-api-key" : "Authorization";
   return { [header]: kind === "bearer" ? `Bearer ${value}` : value };
 }
 function optionalAuth(config: ProviderConfig, kind: "x-api-key" | "bearer" = "x-api-key"): Record<string, string> {
-  const value = config.credentialEnv ? process.env[config.credentialEnv]?.trim() : undefined;
+  const value = providerKey(config, "semantic-scholar");
   if (!value) return {};
   return { [kind === "x-api-key" ? "x-api-key" : "Authorization"]: kind === "bearer" ? `Bearer ${value}` : value };
 }
@@ -107,7 +111,7 @@ export class CrossrefProvider extends BaseProvider {
 export class PubmedProvider extends BaseProvider {
   readonly status = source("pubmed", this.config, [cap("literature.search", DOCS.pubmed), cap("literature.lookup", DOCS.pubmed), cap("literature.references", DOCS.pubmed), cap("fulltext.resolve", DOCS.pubmed, "implemented", "Only PMC records with an explicit OA license are eligible."), cap("fulltext.fetch", DOCS.pubmed, "implemented", "Fetches licensed PMC XML through NCBI E-utilities; it does not bypass publisher access controls.")], false, ["PubMed metadata access does not imply PMC full-text permission; PMC OA license is checked before fetch."]);
   private base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
-  private params(r: any) { return { db: "pubmed", retmode: "json", ...(this.config.credentialEnv && process.env[this.config.credentialEnv] ? { api_key: process.env[this.config.credentialEnv] } : {}) , ...r }; }
+  private params(r: any) { const key = providerKey(this.config, this.provider); return { db: "pubmed", retmode: "json", ...(key ? { api_key: key } : {}), ...r }; }
   private identifiers(value: any, pmid: string): Record<string, string> { const identifiers: Record<string, string> = { PMID: pmid }; for (const item of Array.isArray(value?.articleids) ? value.articleids : []) { const id = text(item?.id ?? item?.value); const type = text(item?.idtype)?.toLowerCase(); if (!id || !type || type === "pubmed") continue; if (type === "pmc" || type === "pmcid") identifiers.PMCID = id.toUpperCase().startsWith("PMC") ? id.toUpperCase() : `PMC${id}`; else if (type === "doi") identifiers.DOI = id; else identifiers[type.toUpperCase()] = id; } return identifiers; }
   async search(r: ResearchSearchRequest) { this.ensureEnabled(); const s = await requestJson<any>({ provider: this.provider, url: appendQuery(`${this.base}esearch.fcgi`, this.params({ term: r.query, retmax: Math.min(r.limit ?? 20, 100), retstart: r.offset ?? 0 })), signal: r.signal, timeoutMs: this.config.timeoutMs }); const search = schema(s.data?.esearchresult, this.provider, ["idlist"]); const ids = search.idlist ?? []; if (!ids.length) return result(this.provider, [], 0, undefined, 1); const d = await requestJson<any>({ provider: this.provider, url: appendQuery(`${this.base}esummary.fcgi`, this.params({ id: ids.join(",") })), signal: r.signal, timeoutMs: this.config.timeoutMs }); const summary = schema(d.data?.result, this.provider, ids); const items = ids.map((id: string) => record(this.provider, summary[id], { id, identifiers: this.identifiers(summary[id], id), title: summary[id]?.title, authors: authors(summary[id]?.authors), year: Number((summary[id]?.pubdate ?? "").slice(0, 4)) || undefined })); return result(this.provider, items, Number(search.count ?? items.length), undefined, 2); }
   async get(id: string, signal?: AbortSignal) { this.ensureEnabled(); const d = await requestJson<any>({ provider: this.provider, url: appendQuery(`${this.base}esummary.fcgi`, this.params({ id })), signal, timeoutMs: this.config.timeoutMs }); const p = d.data?.result?.[id]; if (!p) throw new ResearchError("NOT_FOUND", `PubMed record ${id} was not found`, this.provider); return record(this.provider, p, { id, identifiers: this.identifiers(p, id), title: p.title, authors: authors(p.authors), year: Number((p.pubdate ?? "").slice(0, 4)) || undefined }); }
@@ -144,8 +148,8 @@ export class ArxivProvider extends BaseProvider {
 
 export class OpenAlexProvider extends BaseProvider {
   readonly status = source("openalex", this.config, [cap("literature.search", DOCS.openalex), cap("literature.lookup", DOCS.openalex), cap("literature.references", DOCS.openalex), cap("literature.citations", DOCS.openalex)], false);
-  private headers() { return this.config.credentialEnv && process.env[this.config.credentialEnv] ? {} : {}; }
-  private url(path: string, q: any) { if (this.config.credentialEnv && process.env[this.config.credentialEnv]) q.api_key = process.env[this.config.credentialEnv]; return appendQuery(`https://api.openalex.org/${path}`, q); }
+  private headers() { return {}; }
+  private url(path: string, q: any) { const key = providerKey(this.config, this.provider); if (key) q.api_key = key; return appendQuery(`https://api.openalex.org/${path}`, q); }
   private mapped(w: any, fallback?: string): LiteratureRecord { return record(this.provider, w, { id: w?.id ?? fallback, title: w?.title, authors: (w?.authorships ?? []).map((a: any) => ({ name: a.author?.display_name ?? "Unknown", id: a.author?.id, institutions: (a.institutions ?? []).map((i: any) => ({ name: i.display_name ?? "Unknown", id: i.id })) })), year: w?.publication_year, venue: w?.primary_location?.source?.display_name, doi: w?.doi?.replace(/^https?:\/\/doi.org\//, ""), url: w?.id, openAccessUrl: w?.open_access?.oa_url, citationCount: w?.cited_by_count, identifiers: { OpenAlex: w?.id ?? fallback } }); }
   async search(r: ResearchSearchRequest) { this.ensureEnabled(); const x = await requestJson<any>({ provider: this.provider, url: this.url("works", { search: r.query, per_page: Math.min(r.limit ?? 20, 100), page: Math.floor((r.offset ?? 0) / Math.max(1, r.limit ?? 20)) + 1, filter: [r.yearFrom && `from_publication_date:${r.yearFrom}-01-01`, r.yearTo && `to_publication_date:${r.yearTo}-12-31`, r.openAccessOnly && "is_oa:true"].filter(Boolean).join(",") }), headers: this.headers(), signal: r.signal, timeoutMs: this.config.timeoutMs }); const data = schema(x.data, this.provider, ["results"]); return result(this.provider, (data.results ?? []).map((w: any) => this.mapped(w)), data.meta?.count, undefined, 1, [], data.meta?.cost_usd); }
   async get(id: string, signal?: AbortSignal) { this.ensureEnabled(); const x = await requestJson<any>({ provider: this.provider, url: this.url(`works/${encodeURIComponent(id.replace(/^https?:\/\/openalex.org\//, ""))}`, {}), headers: this.headers(), signal, timeoutMs: this.config.timeoutMs }); return this.mapped(x.data, id); }
@@ -169,8 +173,8 @@ export class EasyScholarProvider extends BaseProvider {
   async metrics(query: string, signal?: AbortSignal): Promise<unknown> {
     this.ensureEnabled();
     if (!query.trim() || query.length > 500) throw new ResearchError("SCHEMA_MISMATCH", "easyScholar publicationName must contain 1 to 500 characters", this.provider);
-    const secretKey = this.config.credentialEnv ? process.env[this.config.credentialEnv]?.trim() : undefined;
-    if (!secretKey) throw new ResearchError("AUTH_REQUIRED", `easyscholar requires ${this.config.credentialEnv ?? "a credential"}`, this.provider);
+    const secretKey = providerKey(this.config, this.provider);
+    if (!secretKey) throw new ResearchError("AUTH_REQUIRED", `easyscholar requires ${this.config.apiKeyEnv ?? "a credential"}`, this.provider);
     const x = await requestJson<any>({ provider: this.provider, url: appendQuery("https://www.easyscholar.cc/open/getPublicationRank", { secretKey, publicationName: query }), signal, timeoutMs: this.config.timeoutMs });
     const payload = schema(x.data, this.provider, ["code", "msg", "data"]);
     if (payload.code !== 200) {

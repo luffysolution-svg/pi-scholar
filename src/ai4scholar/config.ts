@@ -5,6 +5,7 @@ import {
   saveStoredApiKey,
   type Ai4ScholarConfig,
 } from "./client.js";
+import { loadConfig as loadScholarConfig } from "../config.js";
 
 export async function promptAndSaveApiKey(ctx: ExtensionContext): Promise<Ai4ScholarConfig> {
   if (!ctx.hasUI) {
@@ -21,12 +22,14 @@ export async function promptAndSaveApiKey(ctx: ExtensionContext): Promise<Ai4Sch
     throw new Ai4ScholarError("已取消 Ai4Scholar 配置。");
   }
 
-  const path = await saveStoredApiKey(apiKey);
-  ctx.ui.notify(`Ai4Scholar 已配置，密钥保存在 ${path}`, "info");
-  return { ...loadConfig(), apiKey: apiKey.trim() };
+  const root = loadScholarConfig(process.env, ctx.cwd, ctx.isProjectTrusted?.() === true);
+  const saveEnv = root.configPath ? { ...process.env, PI_SCHOLAR_CONFIG: root.configPath } : process.env;
+  const path = await saveStoredApiKey(apiKey, saveEnv);
+  ctx.ui.notify(`Ai4Scholar 已写入统一配置 ${path}`, "info");
+  return { ...loadConfig(process.env, { cwd: ctx.cwd, projectTrusted: ctx.isProjectTrusted?.() === true }), apiKey: apiKey.trim() };
 }
 
 export async function resolveConfig(ctx: ExtensionContext): Promise<Ai4ScholarConfig> {
-  const config = loadConfig();
+  const config = loadConfig(process.env, { cwd: ctx.cwd, projectTrusted: ctx.isProjectTrusted?.() === true });
   return config.apiKey ? config : promptAndSaveApiKey(ctx);
 }

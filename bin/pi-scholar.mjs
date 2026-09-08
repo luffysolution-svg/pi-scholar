@@ -112,15 +112,24 @@ async function doctor() {
   const zotero = await probeZotero(baseUrl);
   console.log(`  ${zotero.ok ? "OK" : "FAILED"}: ${zotero.detail}`);
 
-  const tokenEnv = scholarConfig?.mineru?.tokenEnv ?? "MINERU_API_TOKEN";
-  const hasToken = Boolean(process.env.MINERU_API_TOKEN ?? process.env[tokenEnv]);
+  const tokenEnv = scholarConfig?.mineru?.apiKeyEnv ?? "MINERU_API_TOKEN";
+  const hasToken = Boolean(scholarConfig?.mineru?.apiKey ?? process.env[tokenEnv] ?? process.env.MINERU_API_TOKEN);
   console.log(`MinerU token (${tokenEnv}): ${hasToken ? "set" : "not set (MinerU parsing will be unavailable)"}`);
 
-  const ai4AgentDir = process.env.PI_CODING_AGENT_DIR?.trim() || path.join(home, ".pi", "agent");
-  const ai4ConfigPath = path.join(ai4AgentDir, "pi-scholar.credentials.json");
-  const ai4Stored = existsSync(ai4ConfigPath) ? readJsonSafely(ai4ConfigPath).value?.apiKey : undefined;
-  const hasAi4Token = Boolean(process.env.AI4SCHOLAR_API_KEY || ai4Stored);
-  console.log(`Ai4Scholar token: ${hasAi4Token ? "set" : "not set (run /pi-scholar setup or set AI4SCHOLAR_API_KEY)"}`);
+  const ai4Env = scholarConfig?.ai4scholar?.apiKeyEnv ?? "AI4SCHOLAR_API_KEY";
+  const hasAi4Token = Boolean(scholarConfig?.ai4scholar?.apiKey ?? process.env[ai4Env] ?? process.env.AI4SCHOLAR_API_KEY);
+  console.log(`Ai4Scholar token (${ai4Env}): ${hasAi4Token ? "set" : "not set (use ai4scholar.apiKey, /pi-scholar setup, or AI4SCHOLAR_API_KEY)"}`);
+
+  const configuredSources = [];
+  for (const [id, provider] of Object.entries(scholarConfig?.research?.providers ?? {})) {
+    const envName = provider?.apiKeyEnv;
+    if (provider?.enabled) configuredSources.push(`${id}:${provider.apiKey || (envName && process.env[envName]) ? "key set" : "enabled"}`);
+  }
+  for (const [id, provider] of Object.entries(scholarConfig?.data?.providers ?? {})) {
+    const envName = provider?.apiKeyEnv;
+    if (provider?.enabled) configuredSources.push(`${id}:${provider.apiKey || (envName && process.env[envName]) ? "key set" : "enabled"}`);
+  }
+  console.log(`Research/data sources: ${configuredSources.join(", ") || "none explicitly enabled"}`);
 
   console.log(`\nNext steps:`);
   console.log(`  1. In Zotero: Settings > Advanced > enable "Allow other applications to communicate with Zotero".`);

@@ -1,21 +1,24 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "ai4scholar": {
+    "apiKey": "YOUR_AI4SCHOLAR_API_KEY"
+  },
   "research": {
     "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },
     "providers": {
-      "semantic-scholar": { "enabled": true, "credentialEnv": "SEMANTIC_SCHOLAR_API_KEY" },
-      "openalex": { "enabled": true, "credentialEnv": "OPENALEX_API_KEY" },
-      "pubmed": { "enabled": true, "credentialEnv": "NCBI_API_KEY" },
+      "semantic-scholar": { "enabled": true, "apiKey": "YOUR_SEMANTIC_SCHOLAR_API_KEY" },
+      "openalex": { "enabled": true, "apiKey": "YOUR_OPENALEX_API_KEY" },
+      "pubmed": { "enabled": true, "apiKey": "YOUR_NCBI_API_KEY" },
       "arxiv": { "enabled": true },
       "crossref": { "enabled": true },
       "unpaywall": { "enabled": true, "contact": "researcher@example.org" },
-      "easyscholar": { "enabled": false, "credentialEnv": "EASYSCHOLAR_SECRET_KEY" }
+      "easyscholar": { "enabled": true, "apiKey": "YOUR_EASYSCHOLAR_SECRET_KEY" }
     }
   },
   "data": {
     "providers": {
-      "materials-project": { "enabled": false, "credentialEnv": "MP_API_KEY", "maxRequests": 10, "maxResults": 100 },
-      "cas-common-chemistry": { "enabled": false }
+      "materials-project": { "enabled": true, "apiKey": "YOUR_MATERIALS_PROJECT_API_KEY", "maxRequests": 10, "maxResults": 100 },
+      "cas-common-chemistry": { "enabled": true, "apiKey": "YOUR_CAS_COMMON_CHEMISTRY_API_KEY" }
     }
   },
   "sync": {
@@ -73,7 +76,7 @@
     }]
   },
   "mineru": {
-    "tokenEnv": "MINERU_API_TOKEN",
+    "apiKey": "YOUR_MINERU_API_KEY",
     "timeoutMs": 600000,
     "pollInitialMs": 3000,
     "pollMaxMs": 15000,

@@ -1,23 +1,23 @@
-# 📚 Pi Scholar
+# Pi Scholar
 
 [![npm version](https://img.shields.io/npm/v/@luffysolution/pi-scholar.svg)](https://www.npmjs.com/package/@luffysolution/pi-scholar)
 [![GitHub release](https://img.shields.io/github/v/release/luffysolution-svg/pi-scholar)](https://github.com/luffysolution-svg/pi-scholar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/node/v/@luffysolution/pi-scholar.svg)](https://nodejs.org)
 
-🌐 [简体中文](./README.md) ｜ **English**
+[简体中文](./README.md) | English
 
 Pi Scholar is an all-in-one research extension for Pi. One package provides online scholarly discovery, read-only local Zotero access, MinerU PDF parsing, citation and journal analysis, scientific figures, and on-demand MCP capabilities.
 
 Output is ordinary UTF-8 Markdown, JSON metadata, and image files. No Obsidian plugin or database is required; point the output directory at an Obsidian vault if desired.
 
-Safe sync, multi-source literature, and Materials Project use versioned configuration. See the [v2 guide](docs/UPGRADE_V2.en.md) for migration previews and cost boundaries.
+Safe sync, literature sources, and Materials Project share one configuration. Version 1.0.0 does not read or migrate the old schema; see the [1.0.0 configuration note](docs/UPGRADE_V2.en.md).
 
-## ✨ Features
+## Features
 
 - Discover and verify literature through Semantic Scholar, OpenAlex, PubMed/PMC, arXiv, and Crossref
 - Resolve open-access versions with version and license metadata through Unpaywall
-- Query Materials Project while keeping CAS Common Chemistry substance records in a separate data model
+- Use the MP01-MP17 Materials Project workflow, including route searches, full-object bridging, exports, phase diagrams, and simulated XRD; CAS Common Chemistry records stay separate
 - Preserve explicitly selected Ai4Scholar workflows, including Google Scholar and patents, without automatic paid fallback
 - Inspect papers, authors, citation networks, recommendations, snippets, and datasets
 - Query JCR/CAS journal metrics and recommend submission venues
@@ -28,7 +28,7 @@ Safe sync, multi-source literature, and Materials Project use versioned configur
 - Discover and load hosted MCP tools on demand
 - Enforce loopback-only Zotero access, secret redaction, safe ZIP extraction, and transactional publishing
 
-## 📦 Install
+## Install
 
 Requires Node.js `>=22.19`, Pi `>=0.84.4`, and Zotero `7+`. Windows, macOS, and Linux are supported.
 
@@ -39,7 +39,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.5.0
+pi install npm:@luffysolution/pi-scholar@1.0.0
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -50,7 +50,7 @@ pi update npm:@luffysolution/pi-scholar@latest
 pi remove npm:@luffysolution/pi-scholar
 ```
 
-## 💬 One entry point: `/pi-scholar`
+## Entry point: `/pi-scholar`
 
 ```text
 /pi-scholar
@@ -70,12 +70,11 @@ Setup and status are handled by the same command:
 /pi-scholar docs        Show the configuration documentation URL
 /pi-scholar clear-key   Delete the locally stored key
 /pi-scholar setup-sources  Preview and write a multi-source configuration candidate
-/pi-scholar config-migrate  Safely write a v2 candidate and verified backup
 ```
 
-The Ai4Scholar service remains available: its key still lives only in an environment variable or `~/.pi/agent/pi-scholar.credentials.json`, and the service is called only when the user explicitly selects its tools. New literature/data source configuration stores credential environment-variable names. Image providers retain their existing direct `media.apiKey` or `apiKeyEnv` compatibility. Never commit a credential-bearing config.
+Ai4Scholar remains in the package and is called only when its tools are selected. Every keyed service accepts `apiKey` in the unified config and can instead use `apiKeyEnv`. Resolution order is `apiKey`, the named environment variable, then the service's standard environment variable. Never commit a credential-bearing config.
 
-## 🧠 Included skills
+## Included skills
 
 The package contains one orchestrator and seven focused skills:
 
@@ -92,7 +91,7 @@ The package contains one orchestrator and seven focused skills:
 
 For everyday use, remember only `/pi-scholar`. Focused skills can also be invoked explicitly with `/skill:<name>`.
 
-## 📁 Output layout
+## Output layout
 
 Default layout:
 
@@ -115,7 +114,7 @@ Default layout:
 - Paper directory names are shortened against the actual output root as needed, keeping final Markdown and image paths within 240 characters. The complete title remains in frontmatter and `metadata.json`.
 - Markdown uses relative image paths, so moving the complete paper directory preserves rendering.
 
-## ⚙️ Configuration
+## Configuration
 
 Copy [`pi-scholar.config.example.json`](./pi-scholar.config.example.json) to `pi-scholar.config.json`, or use a user-level location.
 
@@ -127,17 +126,17 @@ Discovery order:
 4. `~/.pi-scholar.json`
 5. Built-in defaults
 
-Zotero/MinerU environment variables override JSON; explicit image-provider config wins, with environment variables as fallback. Relative JSON paths resolve from the configuration file's directory.
+Direct credentials win and environment variables are fallbacks. Zotero and output-path environment variables can still override JSON. Relative JSON paths resolve from the configuration file's directory.
 
 Scientific image tools natively support Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text generation, image generation/editing, multiple references, dimensions/resolution, count, quality, transparency, and model-supported 1K/2K/4K tiers. Connection checks and live model catalogs are available.
 
-> 🎨 See [Image Provider Compatibility](./docs/IMAGE_PROVIDERS.en.md) for models, controls, and platform limits.
+> See [Image Provider Compatibility](./docs/IMAGE_PROVIDERS.en.md) for models, controls, and platform limits.
 >
-> 📖 See the [full English configuration reference](./docs/CONFIGURATION.en.md) or [中文版](./docs/CONFIGURATION.md) for every field, default, range, and environment variable.
+> See the [full English configuration reference](./docs/CONFIGURATION.en.md) or [中文版](./docs/CONFIGURATION.md) for every field, default, range, and environment variable.
 
 Enable “Allow other applications on this computer to communicate with Zotero” in Zotero. Never expose port `23119` externally.
 
-## 🩺 Diagnostics
+## Diagnostics
 
 No Pi session is required:
 
@@ -150,7 +149,7 @@ npx @luffysolution/pi-scholar --help
 `doctor` checks Node, config discovery, Zotero reachability, and whether MinerU/online-service keys exist. It never displays secrets or reads library content.
 
 <details>
-<summary>🔒 Security and privacy</summary>
+<summary>Security and privacy</summary>
 
 - Zotero requests are hard-restricted to `localhost:23119/api` or `127.0.0.1:23119/api`, GET-only, with redirects disabled.
 - MinerU receives the selected PDF over the network; call it only when structured text, formulas, tables, or figures are required.
@@ -161,7 +160,7 @@ npx @luffysolution/pi-scholar --help
 
 </details>
 
-## 🛠️ Development
+## Development
 
 ```sh
 npm install
@@ -173,7 +172,7 @@ npm audit --omit=dev
 
 Tests use mocks and temporary directories; they do not contact real services.
 
-## 📄 License
+## License
 
 [MIT](./LICENSE) © Pi Scholar contributors
 

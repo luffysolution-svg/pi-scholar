@@ -32,6 +32,10 @@ function bundle(value: MaterialRecord[] | MaterialsExportBundle): MaterialsExpor
   return Array.isArray(value) ? { records: value } : value;
 }
 
+function recordIdentifier(record: MaterialRecord): string {
+  return record.materialId ?? record.recordId ?? "";
+}
+
 /** JSON export is deterministic and recursively redacts credential-like fields. */
 export function exportMaterialsJson(value: MaterialRecord[] | MaterialsExportBundle): string {
   return JSON.stringify(sanitizePayload(bundle(value)), null, 2) + "\n";
@@ -47,12 +51,13 @@ function csvCell(value: unknown): string {
 export function exportMaterialsCsv(value: MaterialRecord[] | MaterialsExportBundle): string {
   const records = bundle(value).records;
   const keys = [...new Set(records.flatMap((record) => Object.keys(record.raw)))].sort();
-  const columns = ["material_id", "formula", "formula_state", "formula_unit", "elements", "elements_state", "provenance_endpoint", "provenance_sources", "provenance_retrieved_at", "provenance_query", "field_states", ...keys.filter((key) => key !== "material_id")];
+  const columns = ["record_id", "record_id_field", "formula", "formula_state", "formula_unit", "elements", "elements_state", "provenance_endpoint", "provenance_sources", "provenance_retrieved_at", "database_version", "license", "provenance_query", "field_states", "warnings", ...keys.filter((key) => key !== "material_id")];
   const lines = [columns.map(csvCell).join(",")];
   for (const record of records) {
     const safeRaw = sanitizePayload(record.raw) as Record<string, unknown>;
     const values: Record<string, unknown> = {
-      material_id: record.materialId,
+      record_id: recordIdentifier(record),
+      record_id_field: record.recordIdField ?? (record.materialId ? "material_id" : undefined),
       formula: record.formula?.value,
       formula_state: record.formula?.state,
       formula_unit: record.formula?.unit,
@@ -61,8 +66,11 @@ export function exportMaterialsCsv(value: MaterialRecord[] | MaterialsExportBund
       provenance_endpoint: record.provenance.endpoint,
       provenance_sources: sanitizePayload(record.provenanceSources ?? [record.provenance]),
       provenance_retrieved_at: record.provenance.retrievedAt,
+      database_version: record.provenance.databaseVersion,
+      license: record.provenance.license,
       provenance_query: sanitizePayload(record.provenance.query),
       field_states: Object.fromEntries(Object.entries(record.fields).map(([name, item]) => [name, { state: item.state, unit: item.unit, reason: item.reason }])),
+      warnings: record.warnings,
     };
     for (const key of keys) values[key] = safeRaw[key];
     lines.push(columns.map((key) => csvCell(values[key])).join(","));
@@ -89,6 +97,8 @@ function firstFinite(...values: unknown[]): number | undefined {
  * an explicit error rather than a fabricated CIF.
  */
 export function exportMaterialCif(record: MaterialRecord): string {
+  const materialId = recordIdentifier(record);
+  if (!materialId) throw new Error("CIF export requires a record with material_id");
   const raw = sanitizePayload(record.raw) as Record<string, unknown>;
   const structure = (raw.structure && typeof raw.structure === "object" ? raw.structure : raw) as Record<string, unknown>;
   const lattice = (structure.lattice && typeof structure.lattice === "object" ? structure.lattice : {}) as Record<string, unknown>;
@@ -97,17 +107,17 @@ export function exportMaterialCif(record: MaterialRecord): string {
   const b = Array.isArray(matrix[1]) ? matrix[1] as unknown[] : [];
   const c = Array.isArray(matrix[2]) ? matrix[2] as unknown[] : [];
   const sites = Array.isArray(structure.sites) ? structure.sites : [];
-  if (sites.length === 0 || matrix.length !== 3 || [a, b, c].some((v) => v.length !== 3 || v.some((n) => typeof n !== "number" || !Number.isFinite(n)))) throw new Error(`Incomplete structure data for ${record.materialId}; CIF export requires a finite 3x3 lattice matrix and sites`);
+  if (sites.length === 0 || matrix.length !== 3 || [a, b, c].some((v) => v.length !== 3 || v.some((n) => typeof n !== "number" || !Number.isFinite(n)))) throw new Error(`Incomplete structure data for ${materialId}; CIF export requires a finite 3x3 lattice matrix and sites`);
   const vectors = [a, b, c] as number[][];
   const dot = (x: number[], y: number[]) => x.reduce((sum, n, index) => sum + n * y[index], 0);
   const norm = (x: number[]) => Math.sqrt(dot(x, x));
   const lengths = vectors.map(norm);
-  if (lengths.some((length) => length <= 0)) throw new Error(`Invalid zero-length lattice vector for ${record.materialId}`);
+  if (lengths.some((length) => length <= 0)) throw new Error(`Invalid zero-length lattice vector for ${materialId}`);
   const angle = (x: number[], y: number[]) => Math.acos(Math.min(1, Math.max(-1, dot(x, y) / (norm(x) * norm(y))))) * 180 / Math.PI;
   const angles = [angle(vectors[1], vectors[2]), angle(vectors[0], vectors[2]), angle(vectors[0], vectors[1])];
-  const formula = record.formula?.value ?? raw.formula_pretty ?? raw.formula ?? record.materialId;
+  const formula = record.formula?.value ?? raw.formula_pretty ?? raw.formula ?? materialId;
   const lines = [
-    `data_${record.materialId.replace(/[^A-Za-z0-9_]/g, "_")}`,
+    `data_${materialId.replace(/[^A-Za-z0-9_]/g, "_")}`,
     `_audit_creation_method 'pi-scholar Materials Project REST export'`,
     `_audit_update_record ${cifValue(record.provenance.retrievedAt)}`,
     `_chemical_formula_sum ${cifValue(formula)}`,
@@ -126,8 +136,8 @@ export function exportMaterialCif(record: MaterialRecord): string {
       // MSON uses `abc` for fractional coordinates; retain frac_coords as a
       // compatibility fallback for REST representations.
       const frac = Array.isArray(row.abc) ? row.abc : row.frac_coords;
-      if (!Array.isArray(frac) || frac.length !== 3 || frac.some((n) => typeof n !== "number" || !Number.isFinite(n))) throw new Error(`Invalid fractional coordinates for ${record.materialId} site ${index}`);
-      if (!speciesList.length) throw new Error(`Missing species for ${record.materialId} site ${index}`);
+      if (!Array.isArray(frac) || frac.length !== 3 || frac.some((n) => typeof n !== "number" || !Number.isFinite(n))) throw new Error(`Invalid fractional coordinates for ${materialId} site ${index}`);
+      if (!speciesList.length) throw new Error(`Missing species for ${materialId} site ${index}`);
       speciesList.forEach((species, speciesIndex) => {
         const speciesObject = species && typeof species === "object" ? species as Record<string, unknown> : {};
         const symbol = speciesObject.element ?? speciesObject.label ?? (typeof species === "string" ? species : row.label) ?? "X";
@@ -142,14 +152,14 @@ export function exportMaterialCif(record: MaterialRecord): string {
 export function exportMaterialsMarkdown(value: MaterialRecord[] | MaterialsExportBundle): string {
   const input = bundle(value);
   const rows = input.records;
-  const lines = ["# Materials Project export", "", `Source: Materials Project REST API`, `Retrieved: ${input.retrievedAt ?? rows[0]?.provenance.retrievedAt ?? "unknown"}`, ""];
+  const lines = ["# Materials Project export", "", `Source: ${input.source ?? "Materials Project REST API"}`, `Retrieved: ${input.retrievedAt ?? rows[0]?.provenance.retrievedAt ?? "unknown"}`, `Database version: ${input.databaseVersion ?? rows[0]?.provenance.databaseVersion ?? "not returned"}`, ""];
   if (input.query) lines.push("## Query", "", "```json", JSON.stringify(sanitizePayload(input.query), null, 2), "```", "");
-  lines.push("## Records", "", "| Material ID | Formula | Elements | Fields | Provenance |", "| --- | --- | --- | --- | --- |", ...rows.map((record) => {
+  lines.push("## Records", "", "| Record ID | Formula | Elements | Fields | Provenance |", "| --- | --- | --- | --- | --- |", ...rows.map((record) => {
     const formula = record.formula?.state === "provided" ? String(record.formula.value) : `_${record.formula?.state ?? "missing"}_`;
     const elements = record.elements?.state === "provided" ? (record.elements.value ?? []).join(", ") : `_${record.elements?.state ?? "missing"}_`;
     const fields = Object.entries(record.fields).map(([name, item]) => `${name}=${item.state === "provided" ? JSON.stringify(sanitizePayload(item.value)) : item.state}${item.unit ? ` ${item.unit}` : ""}`).join("; ");
     const provenance = (record.provenanceSources ?? [record.provenance]).map((source) => `${source.endpoint} @ ${source.retrievedAt}`).join("; ");
-    return `| ${record.materialId.replace(/\|/g, "\\|")} | ${formula.replace(/\|/g, "\\|")} | ${elements.replace(/\|/g, "\\|")} | ${fields.replace(/\|/g, "\\|")} | ${provenance.replace(/\|/g, "\\|")} |`;
+    return `| ${recordIdentifier(record).replace(/\|/g, "\\|")} | ${formula.replace(/\|/g, "\\|")} | ${elements.replace(/\|/g, "\\|")} | ${fields.replace(/\|/g, "\\|")} | ${provenance.replace(/\|/g, "\\|")} |`;
   }));
   if (input.warnings?.length) lines.push("", "## Warnings", "", ...input.warnings.map((warning) => `- ${warning}`));
   return lines.join("\n") + "\n";

@@ -9,3 +9,5 @@ dist/
 pi-scholar.config.json
 .pi-scholar-locks/
 .pi-scholar-*/
+__pycache__/
+*.pyc

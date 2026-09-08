@@ -22,9 +22,11 @@ const requiredFiles = [
   "src/chemistry/types.ts",
   "src/materials-project/index.ts",
   "src/materials-project/capabilities.ts",
+  "src/materials-project/derived.ts",
+  "src/materials-project/python-bridge.py",
   "src/sync/index.ts",
-  "src/config-migration.ts",
   "scripts/live-sources.ts",
+  "scripts/generate-materials-capabilities.ts",
   "src/media/adapters/google.ts",
   "src/media/adapters/openai.ts",
   "skills/pi-scholar/SKILL.md",
@@ -66,6 +68,9 @@ try {
   const output = execFileSync(process.execPath, [npmCli, "pack", "--json", "--pack-destination", directory], { encoding: "utf8" });
   const info = JSON.parse(output)[0];
   const files = new Set(info.files.map((entry) => entry.path));
+  for (const packed of files) {
+    if (packed.includes("/__pycache__/") || packed.endsWith(".pyc")) throw new Error(`packed artifact contains Python cache ${packed}`);
+  }
   for (const required of requiredFiles) {
     if (!files.has(required)) throw new Error(`packed artifact missing ${required}`);
   }

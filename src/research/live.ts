@@ -5,7 +5,7 @@ import type { LiteratureRecord, ResearchSearchResult } from "./types.js";
 export interface ResearchRequestPreview {
   provider: string;
   enabled: boolean;
-  credentialEnv?: string;
+  apiKeyEnv?: string;
   credentialConfigured: boolean;
   estimatedRequests: number;
   estimatedCost: "unknown";
@@ -16,7 +16,7 @@ export interface ResearchRequestPreview {
 export function previewResearchRequest(config: ResearchConfig, provider: string): ResearchRequestPreview {
   const status = createResearchRouter(config).listSources().find((item) => item.id === provider);
   if (!status) throw new Error(`Unknown research provider: ${provider}`);
-  return { provider, enabled: status.enabled, credentialEnv: status.credentialEnv, credentialConfigured: status.credentialStatus === "configured" || status.accessStatus === "public", estimatedRequests: 1, estimatedCost: "unknown", paid: status.paid };
+  return { provider, enabled: status.enabled, apiKeyEnv: status.apiKeyEnv, credentialConfigured: status.credentialStatus === "configured" || status.accessStatus === "public", estimatedRequests: 1, estimatedCost: "unknown", paid: status.paid };
 }
 
 /** Explicit live smoke check. It performs one bounded search only after the caller selected a provider. */

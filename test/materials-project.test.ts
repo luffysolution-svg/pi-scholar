@@ -68,11 +68,11 @@ test("property route uses task_ids separately from material_ids", async () => {
 
 test("property projections are route-specific and schema drift is rejected", async () => {
   let calls = 0;
-  const client = new MaterialsProjectClient({ apiKey: "test-only" }, async () => { calls += 1; return response({ data: [{ material_id: "mp-1", eos: { energies: [1] } }] }); });
-  const result = await client.get({ materialIds: ["mp-1"], properties: ["eos"], fields: ["material_id", "eos"] });
+  const client = new MaterialsProjectClient({ apiKey: "test-only" }, async () => { calls += 1; return response({ data: [{ task_id: "task-1", eos: { energies: [1] } }] }); });
+  const result = await client.get({ taskIds: ["task-1"], properties: ["eos"], fields: ["task_id", "eos"] });
   assert.equal(result.records.length, 1);
   assert.equal(calls, 1);
-  await assert.rejects(() => client.get({ materialIds: ["mp-1"], properties: ["eos"], fields: ["not_a_verified_field"] }), /SCHEMA_MISMATCH/);
+  await assert.rejects(() => client.get({ taskIds: ["task-1"], properties: ["eos"], fields: ["not_a_verified_field"] }), /SCHEMA_MISMATCH/);
   const drift = new MaterialsProjectClient({ apiKey: "test-only" }, async () => response({ data: [{ formula_pretty: "Si" }] }));
   await assert.rejects(() => drift.search({ maxPages: 1 }), /SCHEMA_MISMATCH/);
 });
@@ -125,12 +125,27 @@ test("body timeout aborts a stalled stream without exposing request details", as
 });
 
 test("all declared extension routes use bounded projections", async () => {
-  const properties = ["bandstructure", "dos", "magnetism", "elasticity", "dielectric", "piezoelectric", "phonon", "absorption", "xas", "insertion_electrodes", "provenance", "bonds", "chemenv", "oxidation_states", "robocrys", "doi", "eos", "surface_properties", "grain_boundaries", "substrates", "alloys", "similarity", "synthesis"] as const;
   const seen: string[] = [];
-  const client = new MaterialsProjectClient({ apiKey: "test-only", maxPages: 1 }, async (input) => { seen.push(new URL(String(input)).pathname); return response({ data: [{ material_id: "mp-1" }] }); });
-  for (const property of properties) await client.get({ materialIds: ["mp-1"], properties: [property], fields: ["material_id"] });
-  assert.equal(seen.length, properties.length);
-  assert.ok(seen.includes("/materials/electronic_structure/bandstructure/"));
+  const client = new MaterialsProjectClient({ apiKey: "test-only", maxPages: 1 }, async (input) => {
+    const path = new URL(String(input)).pathname;
+    seen.push(path);
+    if (path.includes("/eos/") || path.includes("/xas/") || path.includes("/tasks/")) return response({ data: [{ task_id: "task-1" }] });
+    if (path.includes("/phonon/")) return response({ data: [{ identifier: "mp-1-pbe" }] });
+    if (path.includes("/substrates/")) return response({ data: [{ film_id: "mp-1", sub_id: "mp-2" }] });
+    if (path.includes("/alloys/")) return response({ data: [{ pair_id: "mp-1_mp-2", alloy_pair: [] }] });
+    if (path.includes("/synthesis/")) return response({ data: [{ doi: "10.1/example", paragraph_string: "procedure" }] });
+    return response({ data: [{ material_id: "mp-1" }] });
+  });
+  for (const property of ["bandstructure", "dos", "magnetism", "elasticity", "dielectric", "piezoelectric", "absorption", "provenance", "bonds", "chemenv", "oxidation_states", "robocrys", "doi", "surface_properties", "grain_boundaries", "alloys", "similarity"] as const) {
+    await client.get({ materialIds: ["mp-1"], properties: [property] });
+  }
+  await client.searchRoute({ property: "phonon", identifiers: ["mp-1-pbe"], maxPages: 1 });
+  await client.searchRoute({ property: "xas", taskIds: ["task-1"], maxPages: 1 });
+  await client.searchRoute({ property: "eos", taskIds: ["task-1"], maxPages: 1 });
+  await client.searchRoute({ property: "insertion_electrodes", filters: { working_ion: "Li" }, maxPages: 1 });
+  await client.searchRoute({ property: "substrates", filters: { film_id: "mp-1" }, maxPages: 1 });
+  await client.searchRoute({ property: "synthesis", filters: { target_formula: "LiFePO4" }, maxPages: 1 });
+  assert.ok(seen.includes("/materials/electronic_structure/"));
   assert.ok(seen.includes("/materials/synthesis/"));
 });
 
@@ -164,12 +179,15 @@ test("CIF derives non-orthogonal angles, MSON abc, and mixed occupancy", () => {
   assert.throws(() => exportMaterialCif({ ...value, raw: {} }));
 });
 
-test("config validation keeps credentials as environment references", () => {
-  const result = validateMaterialsConfig({ enabled: true, credentialEnv: "MP_API_KEY", maxRequests: 1000, maxResults: 10000, maxResponseBytes: 64 * 1024 * 1024 }, {});
+test("config validation accepts direct keys and environment fallback with direct precedence", () => {
+  const result = validateMaterialsConfig({ enabled: true, apiKeyEnv: "MP_API_KEY", maxRequests: 1000, maxResults: 10000, maxResponseBytes: 64 * 1024 * 1024 }, {});
   assert.equal(result.config.apiKey, undefined);
   assert.equal(result.config.maxResponseBytes, 64 * 1024 * 1024);
   assert.match(result.warnings.join(" "), /credential missing/);
-  assert.throws(() => validateMaterialsConfig({ credentialEnv: "not-safe" }, {}));
+  assert.equal(validateMaterialsConfig({ apiKey: "direct", apiKeyEnv: "CUSTOM_MP_KEY" }, { CUSTOM_MP_KEY: "environment", MP_API_KEY: "standard" }).config.apiKey, "direct");
+  assert.equal(validateMaterialsConfig({ apiKeyEnv: "CUSTOM_MP_KEY" }, { CUSTOM_MP_KEY: "environment", MP_API_KEY: "standard" }).config.apiKey, "environment");
+  assert.equal(validateMaterialsConfig({}, { MP_API_KEY: "standard" }).config.apiKey, "standard");
+  assert.throws(() => validateMaterialsConfig({ apiKeyEnv: "not-safe" }, {}));
   assert.throws(() => validateMaterialsConfig({ maxResponseBytes: 64 * 1024 * 1024 + 1 }, {}));
 });
 
@@ -188,7 +206,7 @@ test("materials tool output is bounded by bytes and lines", async () => {
 test("capability and source status matrix is truthful and side-effect free", () => {
   const capabilities = getMaterialsCapabilities();
   assert.equal(capabilities.length, 17);
-  assert.equal(capabilities.find((item) => item.capabilityId === "MP17")?.implementationStatus, "planned");
+  assert.equal(capabilities.find((item) => item.capabilityId === "MP17")?.implementationStatus, "implemented");
   assert.equal(getMaterialsSourceStatus({}).accessStatus, "unknown_until_requested");
   assert.deepEqual(sanitizePayload({ apiKey: "secret", nextPage: "https://example.test/?key=secret" }), { apiKey: "[REDACTED]", nextPage: "[REDACTED]" });
 });

@@ -20,8 +20,8 @@ const config = loadConfig(process.env, process.cwd(), false);
 if (provider === "materials-project") {
   const raw = config.data?.providers?.["materials-project"];
   const validated = validateMaterialsConfig(raw);
-  const preview = createMaterialsLiveTestPlan({ credentialEnv: validated.config.credentialEnv, maxRequests: 1 });
-  console.log(JSON.stringify({ preview, configured: Boolean(process.env[preview.requiredCredentialEnv]), permissions: "account entitlement unknown", willExecute: enabled && execute }, null, 2));
+  const preview = createMaterialsLiveTestPlan({ apiKeyEnv: validated.config.apiKeyEnv, maxRequests: 1 });
+  console.log(JSON.stringify({ preview, configured: Boolean(validated.config.apiKey), permissions: "account entitlement unknown", willExecute: enabled && execute }, null, 2));
   if (!enabled || !execute) process.exit(0);
   const result = await new MaterialsProjectClient(validated.config).search({ formula: query, maxResults: 1, maxPages: 1 });
   console.log(JSON.stringify({ provider, records: result.records.length, requestsMade: result.requestsMade, truncated: result.truncated }, null, 2));

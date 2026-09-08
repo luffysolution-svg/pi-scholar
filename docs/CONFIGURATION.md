@@ -1,51 +1,166 @@
-# ⚙️ Pi Scholar 配置说明
+# Pi Scholar 配置
 
 [English](./CONFIGURATION.en.md)
 
-Ai4Scholar 密钥通过 `/pi-scholar setup` 或环境变量提供。绘图服务支持在统一配置的 `media.providerOptions` 中直接填写 `apiKey`，也支持填写 `apiKeyEnv` 指定环境变量。不要提交包含密钥的配置文件。
+Pi Scholar 1.0 使用 `schemaVersion: 3`。需要密钥的服务都接受两种配置：
 
-## 配置文件位置
+- `apiKey`：直接填写密钥。
+- `apiKeyEnv`：填写环境变量名，运行时读取该变量。
 
-按以下顺序查找，首个命中项生效：
+同一服务同时配置两者时，`apiKey` 优先；随后检查 `apiKeyEnv`，最后检查服务的标准环境变量。配置文件可能包含明文密钥，请只放在本机。仓库已忽略 `pi-scholar.config.json`，但用户级文件仍需自行保护。
 
-1. `PI_SCHOLAR_CONFIG` 指定的文件；路径不存在时直接报错。
-2. 从当前工作目录向上查找 `pi-scholar.config.json`；仅可信 Pi 项目可用。
-3. `~/.config/pi-scholar/config.json`；Windows 对应 `%USERPROFILE%\.config\pi-scholar\config.json`。
-4. `~/.pi-scholar.json`。
-5. 内置默认值。
-
-JSON 中的相对 `output.directory`、`zotero.dataDir`、`media.outputDir` 和 Vertex `credentialsFile` 相对于配置文件目录解析。环境变量中的相对路径相对于运行时工作目录解析。原有 Zotero/MinerU 环境变量覆盖 JSON；绘图服务则以统一配置中显式填写的凭据和端点为准，仅在未填写时回退到环境变量。
-
-> `pi-scholar.config.json` 已被 `.gitignore` 忽略。不要把包含本地路径的个人配置提交到公开仓库。
-
-## `schemaVersion: 2`：科研来源、数据来源与安全同步
-
-所有来源在同一份配置中启用，但仍使用各自的官方接口和数据模型。`research.providers` 只接受 `semantic-scholar`、`openalex`、`pubmed`、`arxiv`、`crossref`、`unpaywall` 和 `easyscholar`；Materials Project 与 CAS Common Chemistry 位于 `data.providers`，不会被转换成普通文献记录。现有 `ai4scholar_*` 服务和 `/pi-scholar setup` 保持可用，但它是用户显式选择的独立服务，不是多源路由的必需依赖或自动付费兜底。
+## 最小可用示例
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "ai4scholar": {
+    "apiKey": "YOUR_AI4SCHOLAR_API_KEY"
+  },
   "research": {
     "policy": {
       "allowPaidFallback": false,
       "allowExternalFulltextUpload": false
     },
     "providers": {
-      "semantic-scholar": { "enabled": true, "credentialEnv": "SEMANTIC_SCHOLAR_API_KEY" },
-      "openalex": { "enabled": true, "credentialEnv": "OPENALEX_API_KEY" },
-      "pubmed": { "enabled": true, "credentialEnv": "NCBI_API_KEY" },
+      "semantic-scholar": { "enabled": true, "apiKey": "YOUR_SEMANTIC_SCHOLAR_API_KEY" },
+      "openalex": { "enabled": true, "apiKey": "YOUR_OPENALEX_API_KEY" },
+      "pubmed": { "enabled": true, "apiKey": "YOUR_NCBI_API_KEY" },
       "arxiv": { "enabled": true },
       "crossref": { "enabled": true },
       "unpaywall": { "enabled": true, "contact": "researcher@example.org" },
-      "easyscholar": { "enabled": false, "credentialEnv": "EASYSCHOLAR_SECRET_KEY" }
+      "easyscholar": { "enabled": true, "apiKey": "YOUR_EASYSCHOLAR_SECRET_KEY" }
     }
   },
   "data": {
     "providers": {
-      "materials-project": { "enabled": false, "credentialEnv": "MP_API_KEY" },
-      "cas-common-chemistry": { "enabled": false }
+      "materials-project": { "enabled": true, "apiKey": "YOUR_MATERIALS_PROJECT_API_KEY" },
+      "cas-common-chemistry": { "enabled": true, "apiKey": "YOUR_CAS_COMMON_CHEMISTRY_API_KEY" }
     }
   },
+  "mineru": {
+    "apiKey": "YOUR_MINERU_API_KEY"
+  }
+}
+```
+
+完整示例见 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json)。占位值必须替换或删除，不能直接作为有效凭据使用。
+
+## 使用环境变量
+
+将某个服务的 `apiKey` 改为 `apiKeyEnv` 即可使用自定义变量名：
+
+```json
+{
+  "schemaVersion": 3,
+  "data": {
+    "providers": {
+      "materials-project": { "enabled": true, "apiKeyEnv": "MY_MP_KEY" }
+    }
+  }
+}
+```
+
+PowerShell 当前会话：
+
+```powershell
+$env:SEMANTIC_SCHOLAR_API_KEY = "YOUR_KEY"
+$env:OPENALEX_API_KEY = "YOUR_KEY"
+$env:NCBI_API_KEY = "YOUR_KEY"
+$env:EASYSCHOLAR_SECRET_KEY = "YOUR_KEY"
+$env:MP_API_KEY = "YOUR_KEY"
+$env:CAS_API_KEY = "YOUR_KEY"
+$env:AI4SCHOLAR_API_KEY = "YOUR_KEY"
+$env:MINERU_API_TOKEN = "YOUR_KEY"
+```
+
+Bash、zsh：
+
+```bash
+export SEMANTIC_SCHOLAR_API_KEY="YOUR_KEY"
+export OPENALEX_API_KEY="YOUR_KEY"
+export NCBI_API_KEY="YOUR_KEY"
+export EASYSCHOLAR_SECRET_KEY="YOUR_KEY"
+export MP_API_KEY="YOUR_KEY"
+export CAS_API_KEY="YOUR_KEY"
+export AI4SCHOLAR_API_KEY="YOUR_KEY"
+export MINERU_API_TOKEN="YOUR_KEY"
+```
+
+绘图服务的标准变量包括 `GEMINI_API_KEY`、`GOOGLE_API_KEY`、`OPENAI_API_KEY`、`XAI_API_KEY`、`FAL_KEY`、`FAL_API_KEY`、`DASHSCOPE_API_KEY`、`QWENCLOUD_API_KEY` 和 `ATLAS_API_KEY`。Vertex 使用 ADC 或 `GOOGLE_APPLICATION_CREDENTIALS`。
+
+## 配置文件位置
+
+程序按以下顺序读取首个可用文件：
+
+1. `PI_SCHOLAR_CONFIG` 指定的文件。
+2. 可信项目中，从当前目录向上找到的 `pi-scholar.config.json`。
+3. `~/.config/pi-scholar/config.json`。Windows 路径为 `%USERPROFILE%\.config\pi-scholar\config.json`。
+4. `~/.pi-scholar.json`。
+5. 内置默认值。
+
+JSON 中的相对路径以配置文件目录为基准。路径环境变量仍以运行时工作目录为基准。
+
+## 服务凭据
+
+| 服务 | 配置位置 | 标准环境变量 | 说明 |
+|---|---|---|---|
+| Semantic Scholar | `research.providers.semantic-scholar` | `SEMANTIC_SCHOLAR_API_KEY` | key 可选，配置后使用对应账户额度 |
+| OpenAlex | `research.providers.openalex` | `OPENALEX_API_KEY` | key 可选 |
+| PubMed / PMC | `research.providers.pubmed` | `NCBI_API_KEY` | key 可选；PMC 全文仍受许可限制 |
+| arXiv | `research.providers.arxiv` | 无 | 不接受无意义的 key 字段 |
+| Crossref | `research.providers.crossref` | 无 | 可在 `research.contact` 配置联系信息 |
+| Unpaywall | `research.providers.unpaywall` | 无 | 使用 `contact` 邮箱，不使用 API key |
+| easyScholar | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | 只接入已核验的期刊等级/分区接口 |
+| Materials Project | `data.providers.materials-project` | `MP_API_KEY` | REST 与可选 Python 桥接共用该 key |
+| CAS Common Chemistry | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | 可保存 key；公开契约不足时仍会阻止网络调用 |
+| Ai4Scholar | `ai4scholar` | `AI4SCHOLAR_API_KEY` | 保留原有工具，不作为自动付费兜底 |
+| MinerU | `mineru` | `MINERU_API_TOKEN` | PDF 解析会上传所选文件 |
+
+`enabled` 只允许路由，不代表账户权限、配额或数据可用性已经验证。`/pi-scholar status`、`research_sources` 和 `materials_capabilities` 不会发起网络请求，也不会显示密钥。
+
+## Materials Project
+
+`data.providers.materials-project` 支持：
+
+| 字段 | 默认值 | 范围或用途 |
+|---|---|---|
+| `enabled` | `false` | 是否允许材料工具联网 |
+| `apiKey` | 无 | 直接密钥 |
+| `apiKeyEnv` | `MP_API_KEY` | 自定义环境变量名 |
+| `timeoutMs` | `20000` | 1,000 到 120,000 毫秒 |
+| `maxRequests` / `maxPages` | `10` | 单次操作的请求上限 |
+| `maxResults` | `100` | 单次结果上限，最大 10,000 |
+| `maxResponseBytes` | `5242880` | 1 KiB 到 64 MiB |
+
+`materials_search` 用于 summary 筛选；`materials_get` 按材料 ID 合并可直接寻址的属性；`materials_route_search` 处理 task、phonon identifier、电极、衬底和合成等独立路由；`materials_advanced` 提供固定的 Python 操作及本地相图、模拟 XRD。完整矩阵见 [`materials-capabilities.md`](./materials-capabilities.md)。
+
+完整能带、DOS、声子对象、官方结构辅助方法和多元相图需要 Python 3.11 以上及官方包：
+
+```powershell
+python -m pip install mp-api pymatgen
+$env:PI_SCHOLAR_PYTHON = "C:\Path\To\python.exe"
+```
+
+```bash
+python -m pip install mp-api pymatgen
+export PI_SCHOLAR_PYTHON="/path/to/python"
+```
+
+桥接器只接受固定操作和 JSON 输入输出，不运行用户或模型提供的 Python、shell、pickle。相图会标明热力学类型、0 K/0 atm 条件和本地派生身份；模拟 XRD 不会标作实验数据。
+
+## Ai4Scholar 与 MinerU
+
+Ai4Scholar 还支持 `baseUrl`、`timeoutMs` 和 `proxyUrl`。`proxyUrl` 可以是 HTTP(S) 代理或 `direct`。对应环境变量是 `AI4SCHOLAR_BASE_URL`、`AI4SCHOLAR_TIMEOUT_MS`、`AI4SCHOLAR_PROXY` 和 `AI4SCHOLAR_MCP_URL`。`/pi-scholar setup` 将新密钥写入统一配置，`clear-key` 只删除 `ai4scholar.apiKey`。
+
+MinerU 支持 `timeoutMs`、`pollInitialMs`、`pollMaxMs`、`maxAttempts`、`language`、`enableFormula`、`enableTable`、`isOcr` 和 `modelVersion`。原有 `MINERU_*` 环境变量仍可覆盖这些非凭据字段。外部上传必须同时满足 `research.policy.allowExternalFulltextUpload` 和调用时授权。
+
+## 同步、输出与 Zotero
+
+同步策略只接受以下保守值：
+
+```json
+{
   "sync": {
     "missingPolicy": "skip-and-report",
     "conflictPolicy": "preserve-local",
@@ -56,183 +171,20 @@ JSON 中的相对 `output.directory`、`zotero.dataDir`、`media.outputDir` 和 
 }
 ```
 
-`credentialEnv` 只保存环境变量名称。Semantic Scholar、OpenAlex 和 PubMed 的基本调用可在官方允许时不带 key；配置 key 只用于相应账户额度。Unpaywall REST v2 要求请求携带联系邮箱，因此使用 `contact`，它不是 API 密钥。easyScholar 的 `getPublicationRank` 接口要求 `EASYSCHOLAR_SECRET_KEY`，仅提供期刊等级/分区查询，不代表其会员产品的其他能力。Materials Project 需要 `MP_API_KEY`。CAS Common Chemistry 的 API 访问资料需向 CAS 申请；获得的认证和合同必须与实际文档匹配，不能用 Common Chemistry 冒充 SciFinder 文献或反应检索。
+`sync.namespace` 用于隔离不同资料库，`sync.cacheDir` 指定解析缓存。缺失输出默认只报告；恢复、排除和修复必须使用各自的显式动作。元数据刷新不会因此重传 PDF。
 
-`enabled` 只表示允许路由，不会在加载配置时联网，也不表示账户 entitlement 已验证。使用 `research_sources` 读取 implementation、credential、access 和 validation 状态；live 检查必须由用户显式发起。完整接口边界见 [`research.md`](./research.md)，Materials Project 能力见 [`materials-capabilities.md`](./materials-capabilities.md)，CAS 边界见 [`chemistry.md`](./chemistry.md)。
+`output.directory` 默认为 `~/pi-scholar`；`literaturesDirectory`、`assetFilePrefix`、`filenameSeparator` 和 `tagSpaceReplacement` 控制目录与文件名。对应的 `PI_SCHOLAR_OUTPUT_DIR` 等环境变量仍可覆盖 JSON。
 
-同步策略目前只接受上例中的四个保守值。缺失输出默认报告并跳过，恢复和排除是不同的显式动作；元数据刷新不应触发 PDF 重传。`sync.namespace` 可隔离多个库，`sync.cacheDir` 可指定解析缓存，`backupRetentionDays` 范围为 1–3650。外部 MinerU 上传同时要求配置允许和调用时显式授权。
+Zotero `baseUrl` 只允许 `http://localhost:23119/api` 或 `http://127.0.0.1:23119/api`。`timeoutMs` 范围为 1,000 到 120,000 毫秒，`maxItems` 范围为 1 到 50,000。不要将 23119 端口暴露到外网。
 
-## 完整示例
+## 绘图服务
 
-```json
-{
-  "schemaVersion": 2,
-  "output": {
-    "directory": "F:/个人知识库",
-    "literaturesDirectory": "Literatures",
-    "filenameSeparator": "-",
-    "assetFilePrefix": "figure",
-    "tagSpaceReplacement": "-"
-  },
-  "zotero": {
-    "baseUrl": "http://127.0.0.1:23119/api",
-    "timeoutMs": 15000,
-    "maxItems": 5000
-  },
-  "media": {
-    "outputDir": "./pi-scholar-output/images",
-    "providerOptions": {
-      "gemini": { "apiKey": "YOUR_GEMINI_API_KEY" },
-      "vertex": { "credentialsFile": "./vertex-service-account.json", "location": "global" },
-      "openai": { "apiKey": "YOUR_OPENAI_API_KEY" },
-      "xai": { "apiKey": "YOUR_XAI_API_KEY" },
-      "fal": { "apiKey": "YOUR_FAL_API_KEY" },
-      "dashscope": { "apiKey": "YOUR_DASHSCOPE_API_KEY" },
-      "qwencloud": { "apiKey": "YOUR_QWENCLOUD_API_KEY" },
-      "atlas": { "apiKey": "YOUR_ATLAS_API_KEY" }
-    }
-  },
-  "mineru": {
-    "tokenEnv": "MINERU_API_TOKEN",
-    "timeoutMs": 600000,
-    "pollInitialMs": 3000,
-    "pollMaxMs": 15000,
-    "maxAttempts": 120,
-    "language": "en",
-    "enableFormula": true,
-    "enableTable": true,
-    "isOcr": false,
-    "modelVersion": "vlm"
-  }
-}
+`media.providerOptions.<id>.apiKey` 和 `apiKeyEnv` 的优先级与其他服务相同。内置供应商为 Gemini、Vertex、OpenAI、xAI、fal.ai、Qwen/DashScope 和 Atlas，也支持显式声明的 OpenAI 兼容服务。模型、尺寸、连接测试和字段限制见 [`IMAGE_PROVIDERS.md`](./IMAGE_PROVIDERS.md)。
+
+## 校验
+
+加载配置时会检查未知字段、错误类型、数值范围、URL 和路径安全。旧 `schemaVersion`、`credentialEnv`、`mineru.tokenEnv` 和迁移命令不再支持。先从 1.0.0 示例建立新配置，再运行：
+
+```sh
+npx @luffysolution/pi-scholar doctor
 ```
-
-## `output`：输出结构与命名
-
-| JSON 字段 | 环境变量 | 默认值 |
-|---|---|---|
-| `directory` | `PI_SCHOLAR_OUTPUT_DIR` | `~/pi-scholar` |
-| `literaturesDirectory` | `PI_SCHOLAR_LITERATURES_DIR` | `Literatures` |
-| `filenameSeparator` | `PI_SCHOLAR_FILENAME_SEPARATOR` | `-` |
-| `assetFilePrefix` | `PI_SCHOLAR_ASSET_FILE_PREFIX` | `figure` |
-| `tagSpaceReplacement` | `PI_SCHOLAR_TAG_SPACE_REPLACEMENT` | `-` |
-
-默认结构：
-
-```text
-<directory>/
-└── <literaturesDirectory>/
-    └── <Author-Year-Title>/
-        ├── <Author-Year-Title>.md
-        ├── metadata.json
-        └── assets/
-            └── <assetFilePrefix>-01.png
-```
-
-<details>
-<summary>字段约束</summary>
-
-- `directory`：Vault 或普通输出根目录；不存在时自动创建。
-- `literaturesDirectory`：根目录下的单级文献目录名。不能包含路径分隔符、Windows 保留设备名、结尾点或空格；最长 64 UTF-8 字节。
-- `filenameSeparator`：连接作者、年份和标题，允许 1–3 个字符，字符范围为 `[+._ -]`。
-- `assetFilePrefix`：图片文件名前缀，如 `figure-01.png`；必须是安全单级文件名。
-
-- `tagSpaceReplacement`：只能是 `-` 或 `_`；仅用于 Markdown frontmatter 标签，`metadata.json` 保留 Zotero 原始标签。
-
-论文名缺失部分分别使用 `UnknownAuthor`、`UnknownYear`、`Untitled`。非法跨平台字符会替换为空格，保留设备名会加前缀。名称首先限制为 220 UTF-8 字节，再根据实际 `directory` 路径动态截短，使最终 Markdown 和图片路径不超过 240 个字符；完整标题仍写入 frontmatter 和 `metadata.json`。同名不同条目使用 ` (2)`、` (3)` 等后缀。资源目录固定为 `assets`，已有同条目的过长目录会在重新解析时事务化迁移。
-
-</details>
-
-## `zotero`：本地 Zotero
-
-| JSON 字段 | 环境变量 | 默认值 |
-|---|---|---|
-| `baseUrl` | `ZOTERO_BASE_URL` | `http://127.0.0.1:23119/api` |
-| `dataDir` | `ZOTERO_DATA_DIR` | 无 |
-| `timeoutMs` | `ZOTERO_TIMEOUT_MS` | `15000` |
-| `maxItems` | `ZOTERO_MAX_ITEMS` | `5000` |
-
-- `baseUrl` 只允许 `http://localhost:23119/api` 或 `http://127.0.0.1:23119/api`，不接受其他主机、端口、凭据、查询或重定向。
-- `dataDir` 是包含 `storage/` 的 Zotero 数据目录，仅在 Local API 无法解析受管附件路径时作为兜底。
-- `timeoutMs` 范围为 1,000–120,000 毫秒。
-- `maxItems` 范围为 1–50,000。
-
-请在 Zotero 设置中开启“允许其他应用程序与 Zotero 通信”，不要把端口 23119 暴露到外网。
-
-## `mineru`：PDF 解析
-
-| JSON 字段 | 环境变量 | 默认值 |
-|---|---|---|
-| `tokenEnv` | — | `MINERU_API_TOKEN` |
-| 实际密钥 | `MINERU_API_TOKEN` 或 `tokenEnv` 指定名称 | 无 |
-| `timeoutMs` | `MINERU_TIMEOUT_MS` | `600000` |
-| `pollInitialMs` | `MINERU_POLL_INITIAL_MS` | `3000` |
-| `pollMaxMs` | `MINERU_POLL_MAX_MS` | `15000` |
-| `maxAttempts` | `MINERU_MAX_ATTEMPTS` | `120` |
-| `language` | `MINERU_LANGUAGE` | `en` |
-| `enableFormula` | `MINERU_ENABLE_FORMULA` | `true` |
-| `enableTable` | `MINERU_ENABLE_TABLE` | `true` |
-| `isOcr` | `MINERU_IS_OCR` | `false` |
-| `modelVersion` | `MINERU_MODEL_VERSION` | `vlm` |
-
-- `tokenEnv` 只保存环境变量名称，不保存令牌；名称必须匹配 `[A-Z_][A-Z0-9_]*`。
-- `timeoutMs` 是整体解析期限，范围 10,000–3,600,000 毫秒；单次 HTTP 尝试另有 60 秒上限。
-- 轮询间隔分别限制在 100–60,000 和 100–120,000 毫秒；`maxAttempts` 范围 1–1000。
-- 布尔环境变量接受 `1/0`、`true/false`、`yes/no`，不区分大小写。
-- `isOcr=true` 会对已有文本层的 PDF 仍然强制 OCR。
-
-MinerU 会通过网络接收所选 PDF，并可能消耗配额。只有需要结构化正文、公式、表格或图片时才应解析。
-
-## `media`：多平台科研绘图
-
-内置供应商 ID：`gemini`、`vertex`、`openai`、`xai`、`fal`、`dashscope`、`qwencloud`、`atlas`。统一工具支持文生图、图生图/编辑、多参考图、宽高比、尺寸/分辨率、张数、质量、透明背景和输出格式；但参数会按模型能力严格校验，不支持的字段会报错，不会静默忽略。
-
-| 字段 | 说明 |
-|---|---|
-| `outputDir` | 图片下载目录；默认 `<output.directory>/images` |
-| `maxArtifactBytes` | 单个下载文件上限；默认 52,428,800（50 MiB），范围 1–1,073,741,824 字节 |
-| `artifactTimeoutMs` | 下载超时；默认 120,000，范围 1,000–3,600,000 毫秒 |
-| `providerOptions.<id>.apiKey` | 直接配置密钥；显式配置优先于环境变量，不建议提交到仓库 |
-| `providerOptions.<id>.apiKeyEnv` | 指定承载密钥的环境变量名 |
-| `providerOptions.vertex.credentialsFile` | Vertex 服务账号 JSON；相对配置文件目录解析，也支持标准 ADC |
-| `providerOptions.vertex.location` / `project` | Vertex 地区与可选项目 ID；地区须为 `global` 或合法 GCP region（如 `us-central1`），项目可从 JSON/ADC 推断 |
-| `defaultModels.<id>.<capability>` | 可选固定模型；省略时选择官方目录或内置候选中的最新可用模型 |
-| `customProviders` | 声明自定义 OpenAI 兼容服务的模型、能力及 generation/edit 端点 |
-
-默认环境变量为 `GEMINI_API_KEY`（亦回退 `GOOGLE_API_KEY`）、`OPENAI_API_KEY`、`XAI_API_KEY`、`FAL_KEY`/`FAL_API_KEY`、`DASHSCOPE_API_KEY`、`QWENCLOUD_API_KEY` 和 `ATLAS_API_KEY`。Vertex 支持 `GOOGLE_APPLICATION_CREDENTIALS`、`VERTEX_CREDENTIALS_FILE`、`GOOGLE_CLOUD_PROJECT` 和 `GOOGLE_CLOUD_LOCATION`。
-
-Qwen 3 官方服务常使用带 Workspace ID 的地区域名，应把实际账号对应的 origin 配为 `baseUrl`。配置字段按供应商严格限制：Vertex 使用 `credentialsFile/project/location`，Qwen 可额外使用 `workspace`，fal 仅接受密钥设置，自定义供应商的服务地址写在 `customProviders[].baseUrl`。调用级 `providerOptions` 只能放模型原生高级字段，不能覆盖密钥、端点或统一参数。
-
-尺寸格式按供应商使用：OpenAI 使用明确像素尺寸；Gemini/fal 使用 1K/2K/4K 档位；xAI 使用 1K/2K；Qwen 使用 1K/2K 或明确像素尺寸；Atlas GPT Image 2 使用明确像素尺寸，默认 `1024x1024`。透明背景与质量等参数按模型能力提供。完整参数见 [`IMAGE_PROVIDERS.md`](./IMAGE_PROVIDERS.md)。
-
-`pi_scholar_image_models` 可读取支持的平台模型目录（不提交生图）；`pi_scholar_image_service` 可对 OpenAI、Gemini、xAI、Vertex 和声明了 `/models` 的自定义 OpenAI 兼容服务执行只读连接测试。fal、Qwen 与 Atlas 未核实到稳定的无生成探测接口时会返回 `unsupported`。当前也没有核实到这些平台可通用且稳定的余额 API，因此 `balance` 会明确返回 `unsupported`，请在平台账单控制台查询。
-
-自定义 OpenAI 兼容配置示例见仓库根目录的 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json)。模型必须显式声明 `image.text_to_image`、`image.image_to_image`、`image.edit` 或 `image.multi_reference` 能力和对应端点。
-
-## 在线学术服务
-
-在线检索、引用、期刊、绘图和 MCP 功能使用以下环境变量：
-
-| 环境变量 | 默认值 / 说明 |
-|---|---|
-| `AI4SCHOLAR_API_KEY` | 在线服务 API Key；也可运行 `/pi-scholar setup` |
-| `AI4SCHOLAR_BASE_URL` | `https://ai4scholar.net` |
-| `AI4SCHOLAR_TIMEOUT_MS` | `30000` 毫秒 |
-| `AI4SCHOLAR_PROXY` | HTTP(S) 代理；设为 `direct` 强制直连 |
-| `AI4SCHOLAR_MCP_URL` | `https://mcp.ai4scholar.net/sse` |
-| `HTTPS_PROXY` / `HTTP_PROXY` | 未设置专用代理时的通用代理兜底 |
-
-`/pi-scholar setup` 把密钥保存到 `~/.pi/agent/pi-scholar.credentials.json`，目录和文件权限会尽可能限制为当前用户。环境变量优先于本机凭据文件。未显式配置代理时，Windows 系统代理检测只有在注册表 `ProxyEnable` 已开启时才会采用 `ProxyServer`，不会使用关闭代理后残留的旧地址。
-
-相关管理命令：
-
-```text
-/pi-scholar setup
-/pi-scholar status
-/pi-scholar credits
-/pi-scholar clear-key
-```
-
-## 配置校验
-
-所有字段在加载时检查类型、范围和路径安全。未知字段、错误类型、危险文件名、越界数字或非法 URL 都会明确报错，不会静默忽略或自动退回默认值。

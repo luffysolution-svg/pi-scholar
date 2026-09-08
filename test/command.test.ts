@@ -47,6 +47,7 @@ test("/pi-scholar status reports configured image providers without secrets", as
 test("/pi-scholar exposes unified management actions", () => {
   const value = harness();
   assert.deepEqual(value.command.getArgumentCompletions("st"), [{ value: "status", label: "status" }]);
+  assert.equal(value.command.getArgumentCompletions("config"), null);
   assert.equal(value.command.getArgumentCompletions("unknown"), null);
 });
 
@@ -70,7 +71,7 @@ test("source setup writes a reviewed environment reference without changing acti
   assert.equal(await readFile(file, "utf8"), "{}");
   const candidate = (await readdir(dir)).find(name => name.startsWith("config.json.sources-"))!;
   const parsed = JSON.parse(await readFile(path.join(dir, candidate), "utf8"));
-  assert.deepEqual(parsed.data.providers["materials-project"], { enabled: true, credentialEnv: "CUSTOM_MP_KEY" });
+  assert.deepEqual(parsed.data.providers["materials-project"], { enabled: true, apiKeyEnv: "CUSTOM_MP_KEY" });
 
   await harness().command.handler("setup-sources", {
     hasUI: true, cwd: dir, isProjectTrusted: () => false,

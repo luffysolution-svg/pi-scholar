@@ -3,6 +3,7 @@ import type { MediaConfig } from "./media/config.js";
 import os from "node:os";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { validateResearchConfig, type ResearchConfig } from "./research/config.js";
+import { resolveApiKey, validateApiKeyEnv } from "./credentials.js";
 
 export interface SyncConfig {
   missingPolicy: "skip-and-report";
@@ -15,7 +16,8 @@ export interface SyncConfig {
 }
 export interface DataProviderConfig {
   enabled?: boolean;
-  credentialEnv?: string;
+  apiKey?: string;
+  apiKeyEnv?: string;
   timeoutMs?: number;
   maxRequests?: number;
   maxPages?: number;
@@ -28,11 +30,19 @@ export interface DataConfig {
     "cas-common-chemistry"?: DataProviderConfig;
   };
 }
+export interface Ai4ScholarConfig {
+  apiKey?: string;
+  apiKeyEnv?: string;
+  baseUrl?: string;
+  timeoutMs?: number;
+  proxyUrl?: string;
+}
 
 export interface ScholarConfig {
-  schemaVersion?: 1 | 2;
+  schemaVersion?: 3;
   research?: ResearchConfig;
   data?: DataConfig;
+  ai4scholar?: Ai4ScholarConfig;
   sync?: SyncConfig;
   configPath?: string;
   media?: MediaConfig;
@@ -59,9 +69,10 @@ export interface ScholarConfig {
 }
 
 interface ConfigFile {
-  schemaVersion?: 1 | 2;
+  schemaVersion?: 3;
   research?: ResearchConfig;
   data?: DataConfig;
+  ai4scholar?: Ai4ScholarConfig;
   sync?: Partial<SyncConfig>;
   media?: MediaConfig;
   zotero?: { baseUrl?: string; dataDir?: string; timeoutMs?: number; maxItems?: number };
@@ -73,7 +84,8 @@ interface ConfigFile {
     tagSpaceReplacement?: "-" | "_";
   };
   mineru?: {
-    tokenEnv?: string;
+    apiKey?: string;
+    apiKeyEnv?: string;
     timeoutMs?: number;
     pollInitialMs?: number;
     pollMaxMs?: number;
@@ -122,7 +134,7 @@ export function safeName(value: unknown, label: string, max = 64): string {
 const configTypes: Record<string, Record<string, "string" | "number" | "boolean">> = {
   zotero: { baseUrl: "string", dataDir: "string", timeoutMs: "number", maxItems: "number" },
   output: { directory: "string", literaturesDirectory: "string", filenameSeparator: "string", assetFilePrefix: "string", tagSpaceReplacement: "string" },
-  mineru: { tokenEnv: "string", timeoutMs: "number", pollInitialMs: "number", pollMaxMs: "number", maxAttempts: "number", language: "string", enableFormula: "boolean", enableTable: "boolean", isOcr: "boolean", modelVersion: "string" },
+  mineru: { apiKey: "string", apiKeyEnv: "string", timeoutMs: "number", pollInitialMs: "number", pollMaxMs: "number", maxAttempts: "number", language: "string", enableFormula: "boolean", enableTable: "boolean", isOcr: "boolean", modelVersion: "string" },
 };
 function readConfig(file: string): ConfigFile {
   let value: unknown;
@@ -130,9 +142,10 @@ function readConfig(file: string): ConfigFile {
   catch (error) { throw new Error(`Cannot read pi-scholar config ${file}: ${error instanceof Error ? error.message : String(error)}`); }
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`pi-scholar config ${file} must contain a JSON object`);
   for (const [section, fields] of Object.entries(value)) {
-    if (section === "schemaVersion") { if (fields !== 1 && fields !== 2) throw new Error("Unsupported schemaVersion"); continue; }
+    if (section === "schemaVersion") { if (fields !== 3) throw new Error("Unsupported schemaVersion"); continue; }
     if (section === "research") { validateResearchConfig(fields); continue; }
     if (section === "data") { validateDataConfig(fields); continue; }
+    if (section === "ai4scholar") { validateAi4ScholarConfig(fields); continue; }
     if (section === "sync") { validateSyncConfig(fields); continue; }
     if (section === "media") { validateMediaConfig(fields); continue; }
     if (!Object.hasOwn(configTypes, section) || !fields || typeof fields !== "object" || Array.isArray(fields)) throw new Error(`Invalid config section: ${section}`);
@@ -153,8 +166,24 @@ function readConfig(file: string): ConfigFile {
   for (const key of ["literaturesDirectory", "assetFilePrefix"] as const) if (config.output?.[key] !== undefined) safeName(config.output[key], `output.${key}`);
   if (config.output?.filenameSeparator !== undefined && !/^[+._ -]{1,3}$/.test(config.output.filenameSeparator)) throw new Error("Invalid output.filenameSeparator");
   if (config.output?.tagSpaceReplacement !== undefined && !["-", "_"].includes(config.output.tagSpaceReplacement)) throw new Error("Invalid output.tagSpaceReplacement");
-  if (config.mineru?.tokenEnv !== undefined && !/^[A-Z_][A-Z0-9_]*$/.test(config.mineru.tokenEnv)) throw new Error("Invalid mineru.tokenEnv");
+  validateApiKeyEnv(config.mineru?.apiKeyEnv, "mineru.apiKeyEnv");
+  if (config.mineru?.apiKey !== undefined && (typeof config.mineru.apiKey !== "string" || !config.mineru.apiKey.trim())) throw new Error("mineru.apiKey must be a non-empty string");
   return config;
+}
+
+function validateAi4ScholarConfig(value: unknown): void {
+  const config = mediaObject(value, "ai4scholar");
+  mediaFields(config, ["apiKey", "apiKeyEnv", "baseUrl", "timeoutMs", "proxyUrl"], "ai4scholar");
+  if (config.apiKey !== undefined && (typeof config.apiKey !== "string" || !config.apiKey.trim())) throw new Error("ai4scholar.apiKey must be a non-empty string");
+  validateApiKeyEnv(config.apiKeyEnv, "ai4scholar.apiKeyEnv");
+  if (config.baseUrl !== undefined) {
+    mediaUrl(config.baseUrl, "ai4scholar.baseUrl");
+    if (new URL(config.baseUrl as string).protocol !== "https:") throw new Error("ai4scholar.baseUrl must use HTTPS");
+  }
+  if (config.proxyUrl !== undefined) {
+    if (config.proxyUrl !== "direct") mediaUrl(config.proxyUrl, "ai4scholar.proxyUrl");
+  }
+  if (config.timeoutMs !== undefined) integer(config.timeoutMs as number, 30_000, 1, 3_600_000);
 }
 
 function validateDataConfig(value: unknown): void {
@@ -167,14 +196,27 @@ function validateDataConfig(value: unknown): void {
   for (const id of supported) {
     if (providers[id] === undefined) continue;
     const provider = mediaObject(providers[id], id);
-    mediaFields(provider, ["enabled", "credentialEnv", "timeoutMs", "maxRequests", "maxPages", "maxResults", "maxResponseBytes"], id);
+    mediaFields(provider, ["enabled", "apiKey", "apiKeyEnv", "timeoutMs", "maxRequests", "maxPages", "maxResults", "maxResponseBytes"], id);
     if (provider.enabled !== undefined && typeof provider.enabled !== "boolean") throw new Error(`${id}.enabled must be boolean`);
-    if (provider.credentialEnv !== undefined && (typeof provider.credentialEnv !== "string" || !/^[A-Z_][A-Z0-9_]*$/.test(provider.credentialEnv))) throw new Error(`Invalid ${id}.credentialEnv`);
+    if (provider.apiKey !== undefined && (typeof provider.apiKey !== "string" || !provider.apiKey.trim())) throw new Error(`${id}.apiKey must be a non-empty string`);
+    validateApiKeyEnv(provider.apiKeyEnv, `${id}.apiKeyEnv`);
     for (const [key, min, max] of [["timeoutMs", 1000, 300000], ["maxRequests", 1, 1000], ["maxPages", 1, 100], ["maxResults", 1, 10000], ["maxResponseBytes", 1024, 64 * 1024 * 1024]] as const) {
       if (provider[key] !== undefined && typeof provider[key] !== "number") throw new Error(`${id}.${key} must be numeric`);
       integer(provider[key] as number | undefined, min, min, max);
     }
   }
+}
+
+function normalizeDataConfig(value: DataConfig | undefined, env: NodeJS.ProcessEnv): DataConfig | undefined {
+  if (!value?.providers) return value;
+  const providers = { ...value.providers };
+  for (const id of ["materials-project", "cas-common-chemistry"] as const) {
+    const provider = providers[id];
+    if (!provider) continue;
+    const apiKey = resolveApiKey(provider, env, id === "materials-project" ? ["MP_API_KEY"] : ["CAS_API_KEY"]);
+    providers[id] = { ...provider, ...(apiKey ? { apiKey } : {}) };
+  }
+  return { ...value, providers };
 }
 
 function validateSyncConfig(value: unknown): void {
@@ -307,6 +349,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
   const configPath = env.PI_SCHOLAR_CONFIG || env === process.env ? discoverConfigPath(env, cwd, home, projectTrusted) : undefined;
   const file = configPath ? readConfig(configPath) : {};
   const baseDir = configPath ? path.dirname(configPath) : cwd;
+  const ai4scholarKey = resolveApiKey(file.ai4scholar, env, ["AI4SCHOLAR_API_KEY"]);
+  const ai4scholar = file.ai4scholar ? { ...file.ai4scholar, ...(ai4scholarKey ? { apiKey: ai4scholarKey } : {}) } : undefined;
   const fileOutput = configuredString(file.output?.directory, "output.directory");
   const fileDataDir = configuredString(file.zotero?.dataDir, "zotero.dataDir");
   const outputDir = env.PI_SCHOLAR_OUTPUT_DIR
@@ -315,8 +359,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
   const dataDir = env.ZOTERO_DATA_DIR
     ? path.resolve(cwd, env.ZOTERO_DATA_DIR)
     : fileDataDir ? path.resolve(baseDir, fileDataDir) : undefined;
-  const tokenEnv = configuredString(file.mineru?.tokenEnv, "mineru.tokenEnv") ?? "MINERU_API_TOKEN";
-  if (!/^[A-Z_][A-Z0-9_]*$/.test(tokenEnv)) throw new Error("mineru.tokenEnv must be an uppercase environment variable name");
+  const mineruToken = resolveApiKey(file.mineru, env, ["MINERU_API_TOKEN"]);
 
   const filenameSeparator = env.PI_SCHOLAR_FILENAME_SEPARATOR ?? file.output?.filenameSeparator ?? "-";
   if (!/^[+._ -]{1,3}$/.test(filenameSeparator)) throw new Error("output.filenameSeparator must contain 1-3 safe separator characters");
@@ -326,9 +369,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
   if (tagSpaceReplacement !== "-" && tagSpaceReplacement !== "_") throw new Error("output.tagSpaceReplacement must be '-' or '_'");
 
   return {
-    schemaVersion: file.schemaVersion ?? 1,
+    schemaVersion: file.schemaVersion ?? 3,
     ...(file.research ? { research: validateResearchConfig(file.research, env) } : {}),
-    ...(file.data ? { data: file.data } : {}),
+    ...(file.data ? { data: normalizeDataConfig(file.data, env) } : {}),
+    ...(ai4scholar ? { ai4scholar } : {}),
     sync: {
       missingPolicy: "skip-and-report", conflictPolicy: "preserve-local",
       metadataPolicy: "three-way-merge", reparsePolicy: "when-required-and-authorized",
@@ -347,7 +391,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     literaturesDirectory,
     assetFilePrefix,
     tagSpaceReplacement,
-    ...(env.MINERU_API_TOKEN || env[tokenEnv] ? { mineruToken: env.MINERU_API_TOKEN ?? env[tokenEnv] } : {}),
+    ...(mineruToken ? { mineruToken } : {}),
     mineruTimeoutMs: integer(env.MINERU_TIMEOUT_MS, file.mineru?.timeoutMs ?? 600_000, 10_000, 3_600_000),
     mineruPollInitialMs: integer(env.MINERU_POLL_INITIAL_MS, file.mineru?.pollInitialMs ?? 3_000, 100, 60_000),
     mineruPollMaxMs: integer(env.MINERU_POLL_MAX_MS, file.mineru?.pollMaxMs ?? 15_000, 100, 120_000),

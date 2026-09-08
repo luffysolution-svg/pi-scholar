@@ -31,7 +31,7 @@ export interface ProviderStatus {
   accessStatus: AccessStatus;
   validationStatus: ValidationStatus;
   capabilities: ProviderCapability[];
-  credentialEnv?: string;
+  apiKeyEnv?: string;
   docs: string[];
   limitations: string[];
 }

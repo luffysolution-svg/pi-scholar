@@ -1,12 +1,13 @@
 import { ResearchError } from "../research/errors.js";
+import { apiKeyConfigured, validateApiKeyEnv } from "../credentials.js";
 import type { ChemicalRecord, ChemicalSearchRequest, ChemicalSearchResult, ChemistrySourceStatus } from "./types.js";
 
 const DOCS = "https://www.cas.org/services/commonchemistry-api";
 
 export interface CASCommonChemistryConfig {
   enabled?: boolean;
-  /** Name of the environment variable holding the provider-issued credential. */
-  credentialEnv?: string;
+  apiKey?: string;
+  apiKeyEnv?: string;
 }
 
 /**
@@ -18,18 +19,17 @@ export interface CASCommonChemistryConfig {
  */
 export class CASCommonChemistryClient {
   readonly status: ChemistrySourceStatus;
-  private readonly credentialEnv: string;
 
   constructor(config: CASCommonChemistryConfig = {}) {
-    this.credentialEnv = config.credentialEnv ?? "CAS_API_KEY";
-    if (!/^[A-Z_][A-Z0-9_]*$/.test(this.credentialEnv)) throw new Error("credentialEnv must be an uppercase environment variable name");
+    const apiKeyEnv = config.apiKeyEnv ?? "CAS_API_KEY";
+    validateApiKeyEnv(apiKeyEnv, "apiKeyEnv");
     this.status = {
       id: "cas-common-chemistry",
       enabled: config.enabled === true,
       implementationStatus: "contract_blocked",
       accessStatus: "permission_required",
-      credentialEnv: this.credentialEnv,
-      credentialConfigured: Boolean(process.env[this.credentialEnv]?.trim()),
+      apiKeyEnv,
+      credentialConfigured: apiKeyConfigured(config, process.env, ["CAS_API_KEY"]),
       docs: DOCS,
       limitations: [
         "Official API access and endpoint contract are required before requests can be enabled.",

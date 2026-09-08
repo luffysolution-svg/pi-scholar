@@ -1,9 +1,12 @@
-import { chmod, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
-import { existsSync, readFileSync } from "node:fs";
+import { chmod, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fetch as undiciFetch, ProxyAgent } from "undici";
+import { loadConfig as loadScholarConfig } from "../config.js";
+import { resolveApiKey } from "../credentials.js";
 
 export type QueryValue = string | number | boolean | null | undefined | readonly (string | number | boolean)[];
 export type Query = Record<string, QueryValue>;
@@ -42,31 +45,28 @@ export class Ai4ScholarError extends Error {
 }
 
 export function getConfigPath(env: NodeJS.ProcessEnv = process.env): string {
-  const agentDir = env.PI_CODING_AGENT_DIR?.trim() || join(homedir(), ".pi", "agent");
-  return join(agentDir, "pi-scholar.credentials.json");
-}
-
-function readStoredApiKey(path: string): string {
-  if (!existsSync(path)) return "";
-  try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as { apiKey?: unknown };
-    return typeof parsed.apiKey === "string" ? parsed.apiKey.trim() : "";
-  } catch {
-    return "";
-  }
+  if (env.PI_SCHOLAR_CONFIG?.trim()) return resolve(process.cwd(), env.PI_SCHOLAR_CONFIG);
+  const home = env.HOME ?? env.USERPROFILE ?? homedir();
+  return join(home, ".config", "pi-scholar", "config.json");
 }
 
 export function loadConfig(
   env: NodeJS.ProcessEnv = process.env,
-  options: { configPath?: string | null } = {},
+  options: { configPath?: string | null; cwd?: string; projectTrusted?: boolean } = {},
 ): Ai4ScholarConfig {
-  const configPath = options.configPath === undefined ? getConfigPath(env) : options.configPath;
-  const storedApiKey = configPath ? readStoredApiKey(configPath) : "";
-  const apiKey = env.AI4SCHOLAR_API_KEY?.trim() || storedApiKey;
-  const baseUrl = (env.AI4SCHOLAR_BASE_URL?.trim() || "https://ai4scholar.net").replace(/\/+$/, "");
-  const parsedTimeout = Number(env.AI4SCHOLAR_TIMEOUT_MS || 30_000);
+  const useUnified = options.configPath !== null;
+  const storedUnifiedPath = getConfigPath(env);
+  const effectiveEnv = options.configPath !== undefined
+    ? { ...env, PI_SCHOLAR_CONFIG: options.configPath ?? undefined }
+    : env !== process.env && !env.PI_SCHOLAR_CONFIG && existsSync(storedUnifiedPath)
+      ? { ...env, PI_SCHOLAR_CONFIG: storedUnifiedPath }
+      : env;
+  const unified = useUnified ? loadScholarConfig(effectiveEnv, options.cwd ?? process.cwd(), options.projectTrusted === true).ai4scholar : undefined;
+  const apiKey = resolveApiKey(unified, env, ["AI4SCHOLAR_API_KEY"]) ?? "";
+  const baseUrl = (env.AI4SCHOLAR_BASE_URL?.trim() || unified?.baseUrl?.trim() || "https://ai4scholar.net").replace(/\/+$/, "");
+  const parsedTimeout = Number(env.AI4SCHOLAR_TIMEOUT_MS || unified?.timeoutMs || 30_000);
   const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30_000;
-  const proxyUrl = env.AI4SCHOLAR_PROXY?.trim() || env.HTTPS_PROXY?.trim() || env.HTTP_PROXY?.trim() || undefined;
+  const proxyUrl = env.AI4SCHOLAR_PROXY?.trim() || unified?.proxyUrl?.trim() || env.HTTPS_PROXY?.trim() || env.HTTP_PROXY?.trim() || undefined;
 
   return { apiKey, baseUrl, timeoutMs, proxyUrl };
 }
@@ -77,8 +77,26 @@ export async function saveStoredApiKey(apiKey: string, env: NodeJS.ProcessEnv = 
     throw new Ai4ScholarError("API Key 格式不正确，应为 sk- 开头的 Ai4Scholar 密钥。");
   }
   const path = getConfigPath(env);
+  let root: Record<string, unknown> = {};
+  if (existsSync(path)) {
+    try {
+      loadScholarConfig({ ...env, PI_SCHOLAR_CONFIG: path }, process.cwd(), false);
+      const parsed = JSON.parse(await readFile(path, "utf8"));
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("root must be an object");
+      root = parsed as Record<string, unknown>;
+    } catch (error) {
+      throw new Ai4ScholarError(`无法更新统一配置：${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  const current = root.ai4scholar && typeof root.ai4scholar === "object" && !Array.isArray(root.ai4scholar)
+    ? root.ai4scholar as Record<string, unknown>
+    : {};
+  const next = { ...root, schemaVersion: 3, ai4scholar: { ...current, apiKey: normalized } };
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-  await writeFile(path, `${JSON.stringify({ apiKey: normalized }, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  const temporary = `${path}.${process.pid}-${randomUUID()}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
+  try { await rename(temporary, path); }
+  catch (error) { await unlink(temporary).catch(() => undefined); throw error; }
   await chmod(path, 0o600).catch(() => undefined);
   return path;
 }
@@ -86,8 +104,17 @@ export async function saveStoredApiKey(apiKey: string, env: NodeJS.ProcessEnv = 
 export async function clearStoredApiKey(env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
   const path = getConfigPath(env);
   try {
-    await readFile(path, "utf8");
-    await unlink(path);
+    const root = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+    const current = root.ai4scholar && typeof root.ai4scholar === "object" && !Array.isArray(root.ai4scholar)
+      ? root.ai4scholar as Record<string, unknown>
+      : undefined;
+    if (!current || !Object.hasOwn(current, "apiKey")) return false;
+    const { apiKey: _removed, ...remaining } = current;
+    const next = { ...root, ai4scholar: remaining };
+    const temporary = `${path}.${process.pid}-${randomUUID()}.tmp`;
+    await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
+    try { await rename(temporary, path); }
+    catch (error) { await unlink(temporary).catch(() => undefined); throw error; }
     return true;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
@@ -98,7 +125,7 @@ export async function clearStoredApiKey(env: NodeJS.ProcessEnv = process.env): P
 export function requireApiKey(config: Ai4ScholarConfig): string {
   if (!config.apiKey) {
     throw new Ai4ScholarError(
-      "缺少 Ai4Scholar API Key。请设置环境变量 AI4SCHOLAR_API_KEY，然后重启 Pi。密钥可在 https://ai4scholar.net/open-platform 创建。",
+      "缺少 Ai4Scholar API Key。请在统一配置的 ai4scholar.apiKey 中填写，或设置 AI4SCHOLAR_API_KEY 后重启 Pi。密钥可在 https://ai4scholar.net/open-platform 创建。",
     );
   }
   return config.apiKey;

@@ -67,8 +67,13 @@ export function registerResearchTools(pi: ExtensionAPI, config?: ResearchConfig,
     const effective = config ?? (loaded?.research === undefined ? disabledResearchConfig() : loadResearchConfig(loaded.research));
     // Include only credential presence (never the secret itself), so rotating or
     // adding an environment credential refreshes status without leaking it into cache keys.
-    const credentialState = Object.entries(effective.providers).map(([id, provider]) => `${id}:${provider.credentialEnv ? Boolean(process.env[provider.credentialEnv]) : false}`).join("|");
-    const key = `${JSON.stringify(effective)}|${credentialState}`;
+    const key = JSON.stringify({
+      ...effective,
+      providers: Object.fromEntries(Object.entries(effective.providers).map(([id, provider]) => [id, {
+        ...provider,
+        apiKey: provider.apiKey ? "[CONFIGURED]" : undefined,
+      }])),
+    });
     if (!cachedRouter || key !== cachedKey) { cachedKey = key; cachedRouter = createResearchRouter(effective); }
     return cachedRouter;
   };

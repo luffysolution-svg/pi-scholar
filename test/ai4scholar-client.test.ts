@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -24,13 +24,17 @@ test("loadConfig reads supported environment variables", () => {
   );
 });
 
-test("stored configuration works without restarting Pi", async () => {
+test("unified configuration works without restarting Pi", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pi-ai4scholar-config-"));
-  const env = { PI_CODING_AGENT_DIR: directory };
+  const env = { HOME: directory };
   const path = await saveStoredApiKey("sk-user-test_12345678", env);
   assert.equal(path, getConfigPath(env));
+  const saved = JSON.parse(await readFile(path, "utf8"));
+  assert.equal(saved.schemaVersion, 3);
+  assert.equal(saved.ai4scholar.apiKey, "sk-user-test_12345678");
   assert.equal(loadConfig(env).apiKey, "sk-user-test_12345678");
   assert.equal(await clearStoredApiKey(env), true);
+  assert.equal(Object.hasOwn(JSON.parse(await readFile(path, "utf8")).ai4scholar, "apiKey"), false);
   assert.equal(loadConfig(env).apiKey, "");
 });
 

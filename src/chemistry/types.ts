@@ -39,7 +39,7 @@ export interface ChemistrySourceStatus {
   enabled: boolean;
   implementationStatus: ChemistryImplementationStatus;
   accessStatus: ChemistryAccessStatus;
-  credentialEnv: string;
+  apiKeyEnv: string;
   credentialConfigured: boolean;
   docs: string;
   limitations: string[];

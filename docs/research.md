@@ -22,29 +22,30 @@ CAS Common Chemistry 是独立的 `src/chemistry` 数据边界，使用 `Chemica
 
 `chemical_sources`、`chemical_search` 和 `chemical_get` 属于独立化学数据工具；它们读取 `data.providers["cas-common-chemistry"]`，当前契约阻断时不会发起请求。
 
-请求仅允许官方 HTTPS 主机。凭据只保存环境变量名，不保存 token；Unpaywall 联系邮箱通过 `research.contact` 或 provider 的 `contact` 提供，并在 URL/诊断中脱敏。GET 使用有界重试并遵守 `Retry-After`，POST 默认不重试；请求超时、请求数、页数和响应体大小均有上限。失败响应、URL、分页 token 和响应字段会递归脱敏。
+请求仅允许官方 HTTPS 主机。需要密钥的来源可直接使用 `apiKey`，也可用 `apiKeyEnv` 或标准环境变量；Unpaywall 联系邮箱通过 `research.contact` 或 provider 的 `contact` 提供。URL、诊断和工具输出都会脱敏。GET 使用有界重试并遵守 `Retry-After`，POST 默认不重试；请求超时、请求数、页数和响应体大小均有上限。
 
 ## 配置示例
 
 ```json
 {
+  "schemaVersion": 3,
   "research": {
     "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },
     "contact": "you@example.org",
     "providers": {
-      "semantic-scholar": { "enabled": true, "credentialEnv": "SEMANTIC_SCHOLAR_API_KEY" },
-      "openalex": { "enabled": true, "credentialEnv": "OPENALEX_API_KEY" },
-      "pubmed": { "enabled": true, "credentialEnv": "NCBI_API_KEY" },
+      "semantic-scholar": { "enabled": true, "apiKeyEnv": "SEMANTIC_SCHOLAR_API_KEY" },
+      "openalex": { "enabled": true, "apiKeyEnv": "OPENALEX_API_KEY" },
+      "pubmed": { "enabled": true, "apiKeyEnv": "NCBI_API_KEY" },
       "arxiv": { "enabled": true },
       "crossref": { "enabled": true },
       "unpaywall": { "enabled": true },
-      "easyscholar": { "enabled": false, "credentialEnv": "EASYSCHOLAR_SECRET_KEY" }
+      "easyscholar": { "enabled": false, "apiKeyEnv": "EASYSCHOLAR_SECRET_KEY" }
     }
   }
 }
 ```
 
-API key 变量名仅作为环境变量引用。Semantic Scholar、OpenAlex 和 PubMed 的 key 可选；easyScholar 的 SecretKey 必需。缺少联系邮箱时，Unpaywall 请求会在执行前明确失败。
+上例使用环境变量，也可以把 `apiKeyEnv` 换成直接 `apiKey`。Semantic Scholar、OpenAlex 和 PubMed 的 key 可选；easyScholar 的 SecretKey 必需。缺少联系邮箱时，Unpaywall 请求会在执行前明确失败。
 
 ## 官方契约
 

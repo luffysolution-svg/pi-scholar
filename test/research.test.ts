@@ -15,6 +15,8 @@ test("research config validates credential references and legacy defaults are di
   assert.equal(disabledResearchConfig().providers.crossref?.enabled, false);
   assert.throws(() => validateResearchConfig({ providers: { crossref: { enabled: "true" } } }), /enabled must be boolean/);
   assert.throws(() => validateResearchConfig({ providers: { crossref: { apiKey: "secret" } } }), /Invalid research.providers.crossref field/);
+  assert.equal(validateResearchConfig({ providers: { "semantic-scholar": { apiKey: "direct", apiKeyEnv: "CUSTOM_S2" } } }, { CUSTOM_S2: "environment", SEMANTIC_SCHOLAR_API_KEY: "standard" }).providers["semantic-scholar"]?.apiKey, "direct");
+  assert.equal(validateResearchConfig({ providers: { "semantic-scholar": { apiKeyEnv: "CUSTOM_S2" } } }, { CUSTOM_S2: "environment", SEMANTIC_SCHOLAR_API_KEY: "standard" }).providers["semantic-scholar"]?.apiKey, "environment");
 });
 
 test("redaction recursively removes credentials and signed query values", () => {
@@ -85,7 +87,7 @@ test("provider responses with drift fail closed and credential headers use the d
   const oldKey = process.env.RESEARCH_TEST_S2_KEY;
   process.env.RESEARCH_TEST_S2_KEY = "test-key";
   try {
-    const provider = new SemanticScholarProvider({ enabled: true, credentialEnv: "RESEARCH_TEST_S2_KEY", timeoutMs: 30000, maxRequests: 10, budget: 10 }, "semantic-scholar");
+    const provider = new SemanticScholarProvider({ enabled: true, apiKeyEnv: "RESEARCH_TEST_S2_KEY", timeoutMs: 30000, maxRequests: 10, budget: 10 }, "semantic-scholar");
     await assert.rejects(() => provider.search({ query: "drift", limit: 1 }), (error: unknown) => error instanceof ResearchError && error.code === "SCHEMA_MISMATCH");
     assert.equal(seenHeader, "test-key");
   } finally { globalThis.fetch = previous; if (oldKey === undefined) delete process.env.RESEARCH_TEST_S2_KEY; else process.env.RESEARCH_TEST_S2_KEY = oldKey; }
@@ -121,7 +123,7 @@ test("non-search sources expose only verified capabilities and credential state"
   const unpaywall = new UnpaywallProvider({ enabled: true, contact: "researcher@example.org", timeoutMs: 30000, maxRequests: 10, budget: 10 }, "unpaywall");
   assert.equal(unpaywall.status.capabilities.some((item) => item.id === "literature.search"), false);
   await assert.rejects(() => unpaywall.search({ query: "not a DOI search" }), /does not support literature\.search/);
-  const easy = new EasyScholarProvider({ enabled: true, credentialEnv: "RESEARCH_TEST_MISSING_EASY_KEY", timeoutMs: 30000, maxRequests: 10, budget: 10 });
+  const easy = new EasyScholarProvider({ enabled: true, apiKeyEnv: "RESEARCH_TEST_MISSING_EASY_KEY", timeoutMs: 30000, maxRequests: 10, budget: 10 });
   assert.equal(easy.status.credentialStatus, "missing");
   assert.equal(easy.status.accessStatus, "restricted");
 });
@@ -192,7 +194,7 @@ test("easyScholar journal rank uses only the configured SecretKey and URL-encode
   process.env.RESEARCH_EASY_KEY = "test-only-secret";
   globalThis.fetch = (async (url: URL) => { requested = url; return new Response(JSON.stringify({ code: 200, msg: "SUCCESS", data: { officialRank: { select: { sci: "Q1" } }, customRank: { rankInfo: [], rank: [] } } }), { status: 200 }); }) as typeof fetch;
   try {
-    const provider = new EasyScholarProvider({ enabled: true, credentialEnv: "RESEARCH_EASY_KEY", timeoutMs: 30000, maxRequests: 10, budget: 10 });
+    const provider = new EasyScholarProvider({ enabled: true, apiKeyEnv: "RESEARCH_EASY_KEY", timeoutMs: 30000, maxRequests: 10, budget: 10 });
     const result = await provider.metrics("Journal & Test");
     assert.equal((result as any).data.officialRank.select.sci, "Q1");
     assert.equal(requested?.protocol, "https:");

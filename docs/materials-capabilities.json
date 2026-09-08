@@ -1,26 +1,1318 @@
 {
-  "source": "materials-project",
-  "generatedFrom": "src/materials-project/capabilities.ts",
-  "generatedAt": "2026-09-08",
-  "officialDocs": "https://docs.materialsproject.org/downloading-data/using-the-api",
-  "realValidationDefault": "mock_passed_live_untested",
+  "schemaVersion": 1,
+  "source": "src/materials-project/capabilities.ts",
   "capabilities": [
-    {"capabilityId":"MP01","implementationStatus":"implemented","endpoint":"/materials/summary","fields":["material_id","formula_pretty","formula","elements","chemsys","band_gap","energy_above_hull","formation_energy_per_atom","density","volume","is_stable","is_metal","structure","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"live_passed_2026-09-08"},
-    {"capabilityId":"MP02","implementationStatus":"implemented","endpoint":"/materials/summary (structure field)","fields":["material_id","formula_pretty","elements","structure","symmetry","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"live_passed_2026-09-08"},
-    {"capabilityId":"MP03","implementationStatus":"implemented","endpoint":"/materials/thermo","fields":["material_id","entries","formation_energy_per_atom","energy_above_hull","energy_per_atom","uncorrected_energy_per_atom","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"live_passed_2026-09-08"},
-    {"capabilityId":"MP04","implementationStatus":"implemented","endpoint":"/materials/summary","fields":["material_id","formula_pretty","formula","elements","chemsys","band_gap","energy_above_hull","formation_energy_per_atom","density","volume","is_stable","is_metal","structure","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"live_passed_2026-09-08"},
-    {"capabilityId":"MP05","implementationStatus":"partial","endpoint":"/materials/electronic_structure/bandstructure","fields":["material_id","bandstructure","band_gap","cbm","vbm","efermi","is_gap_direct","structure","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested","limitation":"generic retrieval; no band-curve interpretation"},
-    {"capabilityId":"MP06","implementationStatus":"partial","endpoint":"/materials/electronic_structure/dos","fields":["material_id","dos","structure","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested","limitation":"generic retrieval; field-limit large objects"},
-    {"capabilityId":"MP07","implementationStatus":"partial","endpoint":"/materials/magnetism","fields":["material_id","ordering","is_magnetic","total_magnetization","total_magnetization_normalized_formula_units","total_magnetization_normalized_vol","num_magnetic_sites","num_unique_magnetic_sites","types_of_magnetic_species","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP08","implementationStatus":"partial","endpoint":"/materials/elasticity","fields":["material_id","elastic_tensor","compliance_tensor","bulk_modulus","shear_modulus","universal_anisotropy","homogeneous_poisson","warnings"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP09","implementationStatus":"partial","endpoint":"/materials/dielectric, /materials/piezoelectric","fields":["material_id","total","ionic","electronic","e_electronic","e_ionic","e_total","n","structure","origins","warnings","e_ij_max","max_direction","strain_for_max"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP10","implementationStatus":"partial","endpoint":"/materials/phonon","fields":["material_id","phonon_bandstructure","phonon_dos","structure","origins","warnings"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP11","implementationStatus":"partial","endpoint":"/materials/absorption, /materials/xas","fields":["material_id","energies","energy_max","absorption_coefficient","average_imaginary_dielectric","average_real_dielectric","bandgap","nkpoints","structure","origins","warnings","spectrum","spectrum_name","absorbing_element","spectrum_type","edge"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP12","implementationStatus":"partial","endpoint":"/materials/insertion_electrodes","fields":["material_id","battery_id","working_ion","average_voltage","capacity_grav","capacity_vol","energy_grav","energy_vol","task_ids","warnings"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP13","implementationStatus":"implemented","endpoint":"/materials/provenance, /materials/tasks, /doi","fields":["material_id","origins","remarks","tags","warnings","task_id","task_type","run_type","input","output","calcs_reversed","doi","citation"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP14","implementationStatus":"partial","endpoint":"/materials/bonds, /materials/chemenv, /materials/oxidation_states, /materials/robocrys","fields":["material_id","structure_graph","method","bond_types","bond_length_stats","coordination_envs","coordination_envs_anonymous","origins","warnings","structure","valences","species","chemenv_symbol","chemenv_iupac","chemenv_iucr","chemenv_name","chemenv_name_with_alternatives","csm","wyckoff_positions","possible_species","possible_valences","average_oxidation_states","description","condensed_structure","robocrys_version"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested"},
-    {"capabilityId":"MP15","implementationStatus":"partial","endpoint":"/materials/eos, /materials/surface_properties, /materials/grain_boundaries, /materials/substrates, /materials/alloys, /materials/similarity, /materials/synthesis","fields":["material_id","eos","energies","volumes","warnings","surfaces","weighted_surface_energy_EV_PER_ANG2","weighted_surface_energy","surface_anisotropy","pretty_formula","shape_factor","weighted_work_function","has_reconstructed","structure","sigma","type","rotation_axis","gb_plane","rotation_angle","gb_energy","initial_structure","final_structure","w_sep","chemsys","last_updated","sub_form","sub_id","film_orient","area","energy","film_id","norients","orient","alloy_pair","pair_id","alloy_system","alloy_id","sim","feature_vector","method","origins","synthesis_type","synthesis","keywords"],"testId":"materials-project.test.ts","realValidation":"mock_passed_live_untested","limitation":"bounded top-level projections only; route-specific search filters and scientific interpretation unavailable; substrates and synthesis are not addressable by materials_get material IDs"},
-    {"capabilityId":"MP16","implementationStatus":"implemented","endpoint":"local export","fields":["records","raw","fields","provenance"],"testId":"materials-project.test.ts","realValidation":"local_passed_2026-09-08"},
-    {"capabilityId":"MP17","implementationStatus":"planned","endpoint":"local","fields":[],"testId":"materials-project.test.ts","realValidation":"not_tested","limitation":"no phase-diagram or simulated-XRD calculations"}
+    {
+      "capabilityId": "MP01",
+      "title": "Summary material search",
+      "endpoint": "/materials/summary",
+      "fields": [
+        "material_id",
+        "formula_pretty",
+        "formula",
+        "elements",
+        "chemsys",
+        "band_gap",
+        "energy_above_hull",
+        "formation_energy_per_atom",
+        "density",
+        "volume",
+        "is_stable",
+        "is_metal",
+        "structure",
+        "origins",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-summary"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "formula",
+          "elements",
+          "elementsMode",
+          "chemsys",
+          "bandGap",
+          "energyAboveHull",
+          "density",
+          "volume",
+          "numSites",
+          "isStable",
+          "isMetal",
+          "hasProps",
+          "fields",
+          "maxResults",
+          "maxPages"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Keep each source field's unit; common energy, density, and volume fields are annotated.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "exact element-set matching is a bounded local filter"
+      ]
+    },
+    {
+      "capabilityId": "MP02",
+      "title": "Structure retrieval",
+      "endpoint": "/materials/summary (structure field)",
+      "fields": [
+        "material_id",
+        "formula_pretty",
+        "elements",
+        "structure",
+        "symmetry",
+        "origins",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-summary (structure field)"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_advanced",
+          "materials_export"
+        ],
+        "selectors": [
+          "materialIds",
+          "final",
+          "conventionalUnitCell",
+          "format=cif|json"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Lattice lengths are Å; CIF uses fractional site coordinates and explicit occupancies.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "CIF export supports the common lattice/sites JSON shape"
+      ]
+    },
+    {
+      "capabilityId": "MP03",
+      "title": "Thermodynamics",
+      "endpoint": "/materials/thermo",
+      "fields": [
+        "material_id",
+        "entries",
+        "formation_energy_per_atom",
+        "energy_above_hull",
+        "energy_per_atom",
+        "uncorrected_energy_per_atom",
+        "origins",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-thermo"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "thermo_ids",
+          "material_ids",
+          "thermo_types",
+          "formula",
+          "chemsys",
+          "is_stable",
+          "nsites_min",
+          "nsites_max",
+          "nelements_min",
+          "nelements_max",
+          "volume_min",
+          "volume_max",
+          "density_min",
+          "density_max",
+          "density_atomic_min",
+          "density_atomic_max",
+          "uncorrected_energy_per_atom_min",
+          "uncorrected_energy_per_atom_max",
+          "energy_per_atom_min",
+          "energy_per_atom_max",
+          "energy_uncertainy_per_atom_min",
+          "energy_uncertainy_per_atom_max",
+          "formation_energy_per_atom_min",
+          "formation_energy_per_atom_max",
+          "energy_above_hull_min",
+          "energy_above_hull_max",
+          "equilibrium_reaction_energy_per_atom_min",
+          "equilibrium_reaction_energy_per_atom_max",
+          "decomposition_enthalpy_min",
+          "decomposition_enthalpy_max"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Formation, hull, and per-atom energies remain eV/atom; keep thermo type and corrections.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "formation and hull energies remain source-method dependent"
+      ]
+    },
+    {
+      "capabilityId": "MP04",
+      "title": "Common summary properties",
+      "endpoint": "/materials/summary",
+      "fields": [
+        "material_id",
+        "formula_pretty",
+        "formula",
+        "elements",
+        "chemsys",
+        "band_gap",
+        "energy_above_hull",
+        "formation_energy_per_atom",
+        "density",
+        "volume",
+        "is_stable",
+        "is_metal",
+        "structure",
+        "origins",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-summary"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_search"
+        ],
+        "selectors": [
+          "bandGap",
+          "energyAboveHull",
+          "density",
+          "volume",
+          "isStable",
+          "isMetal",
+          "hasProps"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Band gap is eV, density is g/cm^3, and volume is Å^3.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": []
+    },
+    {
+      "capabilityId": "MP05",
+      "title": "Band structure",
+      "endpoint": "/materials/electronic_structure + optional mp-api bridge",
+      "fields": [
+        "material_id",
+        "bandstructure",
+        "band_gap",
+        "cbm",
+        "vbm",
+        "efermi",
+        "is_gap_direct",
+        "origins",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-electronic_structure + optional mp-api bridge"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search",
+          "materials_advanced"
+        ],
+        "selectors": [
+          "materialIds",
+          "band_gap_min",
+          "band_gap_max",
+          "efermi_min",
+          "efermi_max",
+          "is_gap_direct",
+          "is_metal",
+          "magnetic_ordering",
+          "path_type",
+          "pathType",
+          "lineMode",
+          "loadProjections"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Retain eV energy reference, spin channels, path convention, and k-point labels.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch",
+        "optional Python mp-api/pymatgen"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "rest_live_helper_unavailable",
+      "limitations": [
+        "REST metadata passed live validation; sampled complete objects were unavailable from the official helper"
+      ]
+    },
+    {
+      "capabilityId": "MP06",
+      "title": "Density of states",
+      "endpoint": "/materials/electronic_structure + optional mp-api bridge",
+      "fields": [
+        "material_id",
+        "dos",
+        "band_gap",
+        "efermi",
+        "origins",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-electronic_structure + optional mp-api bridge"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search",
+          "materials_advanced"
+        ],
+        "selectors": [
+          "materialIds",
+          "band_gap_min",
+          "band_gap_max",
+          "efermi_min",
+          "efermi_max",
+          "element",
+          "magnetic_ordering",
+          "orbital",
+          "projection_type",
+          "spin",
+          "loadProjections"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Retain eV energy axis, spin, projection, and source normalization.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch",
+        "optional Python mp-api/pymatgen"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "rest_live_helper_unavailable",
+      "limitations": [
+        "REST metadata passed live validation; sampled complete objects were unavailable from the official helper"
+      ]
+    },
+    {
+      "capabilityId": "MP07",
+      "title": "Magnetism",
+      "endpoint": "/materials/magnetism",
+      "fields": [
+        "material_id",
+        "ordering",
+        "is_magnetic",
+        "total_magnetization",
+        "total_magnetization_normalized_formula_units",
+        "total_magnetization_normalized_vol",
+        "num_magnetic_sites",
+        "num_unique_magnetic_sites",
+        "types_of_magnetic_species",
+        "origins",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-magnetism"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "num_magnetic_sites_min",
+          "num_magnetic_sites_max",
+          "num_unique_magnetic_sites_min",
+          "num_unique_magnetic_sites_max",
+          "ordering",
+          "total_magnetization_min",
+          "total_magnetization_max",
+          "total_magnetization_normalized_vol_min",
+          "total_magnetization_normalized_vol_max",
+          "total_magnetization_normalized_formula_units_min",
+          "total_magnetization_normalized_formula_units_max"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Keep total, per-formula-unit, and per-volume magnetization separate.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "normalization fields remain separate"
+      ]
+    },
+    {
+      "capabilityId": "MP08",
+      "title": "Elasticity",
+      "endpoint": "/materials/elasticity",
+      "fields": [
+        "material_id",
+        "elastic_tensor",
+        "compliance_tensor",
+        "bulk_modulus",
+        "shear_modulus",
+        "universal_anisotropy",
+        "homogeneous_poisson",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-elasticity"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "chemsys",
+          "elastic_anisotropy_min",
+          "elastic_anisotropy_max",
+          "g_voigt_min",
+          "g_voigt_max",
+          "g_reuss_min",
+          "g_reuss_max",
+          "g_vrh_min",
+          "g_vrh_max",
+          "k_voigt_min",
+          "k_voigt_max",
+          "k_reuss_min",
+          "k_reuss_max",
+          "k_vrh_min",
+          "k_vrh_max",
+          "poisson_min",
+          "poisson_max"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Elastic tensors and moduli retain source GPa conventions and averaging method.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "tensor convention, fitting method, state, and warnings remain source data"
+      ]
+    },
+    {
+      "capabilityId": "MP09",
+      "title": "Dielectric and piezoelectric",
+      "endpoint": "/materials/dielectric, /materials/piezoelectric",
+      "fields": [
+        "material_id",
+        "total",
+        "ionic",
+        "electronic",
+        "e_electronic",
+        "e_ionic",
+        "e_total",
+        "n",
+        "structure",
+        "origins",
+        "warnings",
+        "e_ij_max",
+        "max_direction",
+        "strain_for_max"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-dielectric, -materials-piezoelectric"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "e_total_min",
+          "e_total_max",
+          "e_ionic_min",
+          "e_ionic_max",
+          "e_electronic_min",
+          "e_electronic_max",
+          "n_min",
+          "n_max",
+          "piezo_modulus_min",
+          "piezo_modulus_max"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Dielectric response is dimensionless where returned; piezoelectric tensors retain the source convention and C/m² when applicable.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "electronic, ionic, and total response fields remain separate"
+      ]
+    },
+    {
+      "capabilityId": "MP10",
+      "title": "Phonon",
+      "endpoint": "/materials/phonon + optional mp-api bridge",
+      "fields": [
+        "identifier",
+        "phonon_method",
+        "phonon_bandstructure",
+        "phonon_dos",
+        "structure",
+        "total_dft_energy",
+        "volume_per_formula_unit",
+        "formula_units",
+        "force_constants",
+        "last_updated"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-phonon + optional mp-api bridge"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_route_search",
+          "materials_advanced"
+        ],
+        "selectors": [
+          "identifiers",
+          "identifiers",
+          "formula",
+          "chemsys",
+          "elements",
+          "exclude_elements",
+          "crystal_system",
+          "spacegroup_number",
+          "spacegroup_symbol",
+          "phonon_method",
+          "nsites_min",
+          "nsites_max",
+          "nelements_min",
+          "nelements_max",
+          "volume_min",
+          "volume_max",
+          "density_min",
+          "density_max",
+          "density_atomic_min",
+          "density_atomic_max",
+          "total_dft_energy_min",
+          "total_dft_energy_max",
+          "volume_per_formula_unit_min",
+          "volume_per_formula_unit_max",
+          "formula_units_min",
+          "formula_units_max",
+          "materialId",
+          "phononKind"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Retain the returned phonon frequency units, method, and imaginary-mode information.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch",
+        "optional Python mp-api/pymatgen"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "rest_live_helper_unavailable",
+      "limitations": [
+        "REST identifier search passed live validation; sampled complete objects were unavailable from the official helper"
+      ]
+    },
+    {
+      "capabilityId": "MP11",
+      "title": "Optical and XAS",
+      "endpoint": "/materials/absorption, /materials/xas",
+      "fields": [
+        "material_id",
+        "energies",
+        "energy_max",
+        "absorption_coefficient",
+        "average_imaginary_dielectric",
+        "average_real_dielectric",
+        "bandgap",
+        "nkpoints",
+        "structure",
+        "origins",
+        "warnings",
+        "task_id",
+        "spectrum",
+        "spectrum_name",
+        "absorbing_element",
+        "spectrum_type",
+        "edge",
+        "last_updated"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-absorption, -materials-xas"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "taskIds",
+          "spectrumIds",
+          "nsites_min",
+          "nsites_max",
+          "nelements_min",
+          "nelements_max",
+          "volume_min",
+          "volume_max",
+          "density_min",
+          "density_max",
+          "density_atomic_min",
+          "density_atomic_max",
+          "bandgap_min",
+          "bandgap_max",
+          "edge",
+          "absorbing_element",
+          "formula",
+          "chemsys",
+          "elements",
+          "task_ids",
+          "spectrum_type",
+          "spectrum_ids"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Retain energy axes, polarization or absorbing atom, edge, and spectrum type.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "XAS uses task or spectrum identifiers; results are not labelled experimental unless the source says so"
+      ]
+    },
+    {
+      "capabilityId": "MP12",
+      "title": "Insertion electrodes",
+      "endpoint": "/materials/insertion_electrodes",
+      "fields": [
+        "material_ids",
+        "battery_type",
+        "battery_formula",
+        "working_ion",
+        "average_voltage",
+        "capacity_grav",
+        "capacity_vol",
+        "energy_grav",
+        "energy_vol",
+        "framework",
+        "framework_formula",
+        "thermo_type",
+        "warnings"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-insertion_electrodes"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_route_search"
+        ],
+        "selectors": [
+          "battery_ids",
+          "average_voltage_min",
+          "average_voltage_max",
+          "capacity_grav_min",
+          "capacity_grav_max",
+          "capacity_vol_min",
+          "capacity_vol_max",
+          "elements",
+          "energy_grav_min",
+          "energy_grav_max",
+          "energy_vol_min",
+          "energy_vol_max",
+          "exclude_elements",
+          "formula",
+          "fracA_charge_min",
+          "fracA_charge_max",
+          "fracA_discharge_min",
+          "fracA_discharge_max",
+          "max_delta_volume_min",
+          "max_delta_volume_max",
+          "max_voltage_step_min",
+          "max_voltage_step_max",
+          "nelements_min",
+          "nelements_max",
+          "num_steps_min",
+          "num_steps_max",
+          "stability_charge_min",
+          "stability_charge_max",
+          "stability_discharge_min",
+          "stability_discharge_max",
+          "working_ion"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Keep voltage, gravimetric/volumetric capacity, energy, working ion, and reaction range separate.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "electrode documents use battery/chemistry filters and are not treated as single structures"
+      ]
+    },
+    {
+      "capabilityId": "MP13",
+      "title": "Provenance and tasks",
+      "endpoint": "/materials/provenance, /materials/tasks, /doi",
+      "fields": [
+        "material_id",
+        "origins",
+        "remarks",
+        "tags",
+        "warnings",
+        "task_id",
+        "task_type",
+        "run_type",
+        "input",
+        "output",
+        "calcs_reversed",
+        "doi",
+        "citation"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-provenance, -materials-tasks, -doi"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "taskIds",
+          "task_ids",
+          "elements",
+          "exclude_elements",
+          "formula",
+          "last_updated_min",
+          "last_updated_max"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Identifiers and versions are unitless provenance; calculation units remain in their task payload.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "database version is only reported when returned by the service"
+      ]
+    },
+    {
+      "capabilityId": "MP14",
+      "title": "Local structure descriptions",
+      "endpoint": "/materials/bonds, /materials/chemenv, /materials/oxidation_states, /materials/robocrys",
+      "fields": [
+        "material_id",
+        "structure_graph",
+        "method",
+        "bond_types",
+        "bond_length_stats",
+        "coordination_envs",
+        "coordination_envs_anonymous",
+        "origins",
+        "warnings",
+        "structure",
+        "valences",
+        "species",
+        "chemenv_symbol",
+        "chemenv_iupac",
+        "chemenv_iucr",
+        "chemenv_name",
+        "chemenv_name_with_alternatives",
+        "csm",
+        "wyckoff_positions",
+        "possible_species",
+        "possible_valences",
+        "average_oxidation_states",
+        "description",
+        "condensed_structure",
+        "robocrys_version"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-bonds, -materials-chemenv, -materials-oxidation_states, -materials-robocrys"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "coordination_envs",
+          "coordination_envs_anonymous",
+          "max_bond_length_min",
+          "max_bond_length_max",
+          "mean_bond_length_min",
+          "mean_bond_length_max",
+          "min_bond_length_min",
+          "min_bond_length_max",
+          "species",
+          "elements",
+          "exclude_elements",
+          "csm_min",
+          "csm_max",
+          "density_min",
+          "density_max",
+          "nelements_min",
+          "nelements_max",
+          "nsites_min",
+          "nsites_max",
+          "volume_min",
+          "volume_max",
+          "chemsys",
+          "formula",
+          "possible_species"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Coordination, bond, oxidation-state, and text descriptions retain their algorithm labels.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "algorithm-derived descriptions remain labelled as derived source output"
+      ]
+    },
+    {
+      "capabilityId": "MP15",
+      "title": "Other material routes",
+      "endpoint": "/materials/eos, /materials/surface_properties, /materials/grain_boundaries, /materials/substrates, /materials/alloys, /materials/similarity, /materials/synthesis",
+      "fields": [
+        "task_id",
+        "eos",
+        "energies",
+        "volumes",
+        "material_id",
+        "surfaces",
+        "weighted_surface_energy_EV_PER_ANG2",
+        "weighted_surface_energy",
+        "surface_anisotropy",
+        "pretty_formula",
+        "shape_factor",
+        "weighted_work_function",
+        "has_reconstructed",
+        "structure",
+        "sigma",
+        "type",
+        "rotation_axis",
+        "gb_plane",
+        "rotation_angle",
+        "gb_energy",
+        "initial_structure",
+        "final_structure",
+        "w_sep",
+        "chemsys",
+        "last_updated",
+        "sub_form",
+        "sub_id",
+        "film_orient",
+        "area",
+        "energy",
+        "film_id",
+        "_norients",
+        "orient",
+        "alloy_pair",
+        "pair_id",
+        "alloy_system",
+        "alloy_id",
+        "sim",
+        "feature_vector",
+        "method",
+        "origins",
+        "warnings",
+        "doi",
+        "paragraph_string",
+        "synthesis_type",
+        "reaction_string",
+        "reaction",
+        "target",
+        "targets_formula",
+        "precursors_formula",
+        "targets_formula_s",
+        "precursors_formula_s",
+        "precursors",
+        "operations",
+        "search_score",
+        "highlights"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#-materials-eos, -materials-surface_properties, -materials-grain_boundaries, -materials-substrates, -materials-alloys, -materials-similarity, -materials-synthesis"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_get",
+          "materials_route_search"
+        ],
+        "selectors": [
+          "materialIds",
+          "taskIds",
+          "task_ids",
+          "has_reconstructed",
+          "shape_factor_min",
+          "shape_factor_max",
+          "surface_anisotropy_min",
+          "surface_anisotropy_max",
+          "weighted_surface_energy_EV_PER_ANG2_min",
+          "weighted_surface_energy_EV_PER_ANG2_max",
+          "weighted_surface_energy_min",
+          "weighted_surface_energy_max",
+          "weighted_work_function_min",
+          "weighted_work_function_max",
+          "chemsys",
+          "gb_plane",
+          "gb_energy_min",
+          "gb_energy_max",
+          "pretty_formula",
+          "rotation_axis",
+          "rotation_angle_min",
+          "rotation_angle_max",
+          "w_sep_min",
+          "w_sep_max",
+          "sigma",
+          "type",
+          "area_min",
+          "area_max",
+          "energy_min",
+          "energy_max",
+          "film_id",
+          "film_orientation",
+          "sub_id",
+          "sub_form",
+          "substrate_orientation",
+          "norients_min",
+          "norients_max",
+          "material_ids",
+          "formulae",
+          "keywords",
+          "synthesis_type",
+          "target_formula",
+          "precursor_formula",
+          "operations",
+          "condition_heating_temperature_min",
+          "condition_heating_temperature_max",
+          "condition_heating_time_min",
+          "condition_heating_time_max",
+          "condition_heating_atmosphere",
+          "condition_mixing_device",
+          "condition_mixing_media"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Each route retains its own units, including EOS energy/volume, surface energy, work function, angles, and interface area.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "Materials Project API key",
+        "HTTPS fetch"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "live_passed",
+      "limitations": [
+        "each collection has its own allow-listed filters and identity semantics"
+      ]
+    },
+    {
+      "capabilityId": "MP16",
+      "title": "Safe reproducible exports",
+      "endpoint": "local export",
+      "fields": [
+        "records",
+        "raw",
+        "fields",
+        "provenance"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#local export"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_export"
+        ],
+        "selectors": [
+          "records",
+          "query",
+          "format=json|csv|cif|markdown"
+        ]
+      },
+      "outputSchema": {
+        "record": "MaterialRecord with raw source data and provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Exports preserve every field's unit or state that the source did not specify one.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "local filesystem"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "local_passed",
+      "limitations": [
+        "CIF requires a finite lattice and site data"
+      ]
+    },
+    {
+      "capabilityId": "MP17",
+      "title": "Local derived calculations",
+      "endpoint": "local + optional pymatgen",
+      "fields": [
+        "phase_diagram",
+        "simulated_xrd"
+      ],
+      "officialDocumentation": [
+        "https://docs.materialsproject.org/downloading-data/using-the-api/querying-data",
+        "https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage",
+        "https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.html#local + optional pymatgen"
+      ],
+      "inputSchema": {
+        "tools": [
+          "materials_advanced"
+        ],
+        "selectors": [
+          "action=phase_diagram|phase_diagram_from_chemsys|simulated_xrd",
+          "records",
+          "elements",
+          "thermoType",
+          "energyField",
+          "tolerance",
+          "wavelength",
+          "twoThetaRange"
+        ]
+      },
+      "outputSchema": {
+        "record": "derived result with provenance",
+        "fieldStates": [
+          "requested",
+          "provided",
+          "missing",
+          "not_requested",
+          "unsupported",
+          "error"
+        ]
+      },
+      "unitRules": "Phase-diagram energies are eV/atom at 0 K and 0 atm; XRD positions are 2θ degrees, intensity is relative, and d-spacing is Å.",
+      "availabilityCheck": "Missing, unrequested, unsupported, and failed values remain distinct",
+      "dependencies": [
+        "optional Python 3.11+, mp-api, and pymatgen"
+      ],
+      "implementationStatus": "implemented",
+      "tests": [
+        "materials-project.test.ts",
+        "materials-derived.test.ts"
+      ],
+      "realValidation": "local_passed",
+      "limitations": [
+        "phase diagrams are labelled 0 K/0 atm local derivations; simulated XRD is not experimental data"
+      ]
+    }
   ]
 }

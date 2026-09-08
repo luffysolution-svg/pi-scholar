@@ -21,9 +21,25 @@ test("configuration parses defaults, bounds and booleans",()=>{
 });
 
 test("JSON configuration is discoverable, resolves relative paths and yields to environment overrides",async()=>{
-  const dir=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-config-"));const file=path.join(dir,"pi-scholar.config.json");await writeFile(file,JSON.stringify({zotero:{timeoutMs:9000,maxItems:321},output:{directory:"./vault",literaturesDirectory:"Papers",filenameSeparator:"_",assetFilePrefix:"image",tagSpaceReplacement:"_"},mineru:{language:"ch",enableFormula:false,tokenEnv:"CUSTOM_MINERU_TOKEN"}}));
+  const dir=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-config-"));const file=path.join(dir,"pi-scholar.config.json");await writeFile(file,JSON.stringify({schemaVersion:3,zotero:{timeoutMs:9000,maxItems:321},output:{directory:"./vault",literaturesDirectory:"Papers",filenameSeparator:"_",assetFilePrefix:"image",tagSpaceReplacement:"_"},mineru:{language:"ch",enableFormula:false,apiKeyEnv:"CUSTOM_MINERU_TOKEN"}}));
   assert.equal(discoverConfigPath({PI_SCHOLAR_CONFIG:file},dir,dir),file);const c=loadConfig({PI_SCHOLAR_CONFIG:file,CUSTOM_MINERU_TOKEN:"secret",MINERU_LANGUAGE:"en"});assert.equal(c.configPath,file);assert.equal(c.outputDir,path.join(dir,"vault"));assert.equal(c.literaturesDirectory,"Papers");assert.equal(c.filenameSeparator,"_");assert.equal(c.assetFilePrefix,"image");assert.equal(c.tagSpaceReplacement,"_");assert.equal(c.zoteroTimeoutMs,9000);assert.equal(c.zoteroMaxItems,321);assert.equal(c.mineruToken,"secret");assert.equal(c.mineruLanguage,"en");assert.equal(c.mineruEnableFormula,false);
   await writeFile(file,JSON.stringify({output:{literaturesDirectory:"../unsafe"}}));assert.throws(()=>loadConfig({PI_SCHOLAR_CONFIG:file}),/safe filename component/);
+});
+
+test("unified direct keys win over configured and standard environment variables", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "pi-scholar-keys-"));
+  const file = path.join(dir, "config.json");
+  await writeFile(file, JSON.stringify({
+    schemaVersion: 3,
+    ai4scholar: { apiKey: "ai-direct", apiKeyEnv: "CUSTOM_AI4" },
+    data: { providers: { "materials-project": { enabled: true, apiKey: "mp-direct", apiKeyEnv: "CUSTOM_MP" }, "cas-common-chemistry": { enabled: true, apiKey: "cas-direct" } } },
+    mineru: { apiKey: "mineru-direct", apiKeyEnv: "CUSTOM_MINERU" },
+  }));
+  const config = loadConfig({ PI_SCHOLAR_CONFIG: file, CUSTOM_AI4: "ai-env", AI4SCHOLAR_API_KEY: "ai-standard", CUSTOM_MP: "mp-env", MP_API_KEY: "mp-standard", CUSTOM_MINERU: "mineru-env", MINERU_API_TOKEN: "mineru-standard" });
+  assert.equal(config.ai4scholar?.apiKey, "ai-direct");
+  assert.equal(config.data?.providers?.["materials-project"]?.apiKey, "mp-direct");
+  assert.equal(config.data?.providers?.["cas-common-chemistry"]?.apiKey, "cas-direct");
+  assert.equal(config.mineruToken, "mineru-direct");
 });
 
 test("scholarly identity prefers normalized DOI then title/year",()=>{

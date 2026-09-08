@@ -36,7 +36,12 @@ export interface Provenance {
 }
 
 export interface MaterialRecord {
-  materialId: string;
+  /** Material ID when the source document has one. Non-material collections
+   * (tasks, EOS, substrates, alloys and synthesis) use recordId instead. */
+  materialId?: string;
+  /** Stable source identifier for every collection document. */
+  recordId?: string;
+  recordIdField?: string;
   formula?: MaterialField<string>;
   elements?: MaterialField<string[]>;
   fields: Record<string, MaterialField>;
@@ -126,6 +131,35 @@ export interface MaterialsGetOptions {
   maxPages?: number;
 }
 
+/**
+ * Route-specific search input. The property-specific SDK wrappers do not all
+ * share the summary endpoint's material_ids contract, so this is deliberately
+ * separate from MaterialsGetOptions.
+ */
+export interface MaterialsRouteSearchOptions {
+  property: Exclude<MaterialProperty, "summary" | "structure">;
+  materialIds?: string[];
+  taskIds?: string[];
+  identifiers?: string[];
+  spectrumIds?: string[];
+  fields?: string[];
+  /** REST names are accepted only from the verified allow-list in the client. */
+  filters?: Record<string, string | number | boolean | Array<string | number>>;
+  maxResults?: number;
+  maxPages?: number;
+}
+
+export interface MaterialsRouteSearchResult {
+  records: MaterialRecord[];
+  property: MaterialProperty;
+  pagesFetched: number;
+  requestsMade: number;
+  truncated: boolean;
+  query: Record<string, unknown>;
+  provenance: Provenance[];
+  warnings: string[];
+}
+
 export interface MaterialsGetResult {
   records: MaterialRecord[];
   properties: MaterialProperty[];
@@ -138,7 +172,7 @@ export interface MaterialsGetResult {
 export interface MaterialsProjectConfig {
   enabled?: boolean;
   apiKey?: string;
-  credentialEnv?: string;
+  apiKeyEnv?: string;
   endpoint?: string;
   timeoutMs?: number;
   maxPages?: number;

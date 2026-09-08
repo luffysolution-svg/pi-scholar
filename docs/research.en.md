@@ -22,29 +22,30 @@ CAS Common Chemistry is an independent `src/chemistry` data boundary using `Chem
 
 `chemical_sources`, `chemical_search`, and `chemical_get` are separate chemical-data tools. They read `data.providers["cas-common-chemistry"]` and make no request while the CAS contract is blocked.
 
-Only official HTTPS hosts are allowed. Credentials are environment-variable names, never stored secrets. The Unpaywall contact email comes from `research.contact` or the provider `contact` and is redacted from URLs and diagnostics. GET requests use bounded retries with `Retry-After`; POST is not retried by default. Timeouts, request/page budgets, and response-body limits are enforced, with recursive redaction of headers, URLs, pagination tokens, and response fields.
+Only official HTTPS hosts are allowed. Keyed providers accept direct `apiKey`, `apiKeyEnv`, or their standard environment variable. The Unpaywall contact email comes from `research.contact` or the provider `contact`. URLs, diagnostics, and tool output are redacted. GET requests use bounded retries with `Retry-After`; POST is not retried by default. Timeouts, request/page budgets, and response-body limits are enforced.
 
 ## Configuration
 
 ```json
 {
+  "schemaVersion": 3,
   "research": {
     "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },
     "contact": "you@example.org",
     "providers": {
-      "semantic-scholar": { "enabled": true, "credentialEnv": "SEMANTIC_SCHOLAR_API_KEY" },
-      "openalex": { "enabled": true, "credentialEnv": "OPENALEX_API_KEY" },
-      "pubmed": { "enabled": true, "credentialEnv": "NCBI_API_KEY" },
+      "semantic-scholar": { "enabled": true, "apiKeyEnv": "SEMANTIC_SCHOLAR_API_KEY" },
+      "openalex": { "enabled": true, "apiKeyEnv": "OPENALEX_API_KEY" },
+      "pubmed": { "enabled": true, "apiKeyEnv": "NCBI_API_KEY" },
       "arxiv": { "enabled": true },
       "crossref": { "enabled": true },
       "unpaywall": { "enabled": true },
-      "easyscholar": { "enabled": false, "credentialEnv": "EASYSCHOLAR_SECRET_KEY" }
+      "easyscholar": { "enabled": false, "apiKeyEnv": "EASYSCHOLAR_SECRET_KEY" }
     }
   }
 }
 ```
 
-Key variable names are stored only as environment references. Keys are optional for Semantic Scholar, OpenAlex, and PubMed; the easyScholar SecretKey is required. A missing contact email makes an Unpaywall request fail explicitly before execution.
+This example uses environment variables. Replace `apiKeyEnv` with `apiKey` to store a direct key. Keys are optional for Semantic Scholar, OpenAlex, and PubMed; the easyScholar SecretKey is required. A missing contact email makes an Unpaywall request fail before execution.
 
 ## Official contracts
 
