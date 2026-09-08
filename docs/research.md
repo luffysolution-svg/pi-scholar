@@ -12,7 +12,7 @@
 | Unpaywall | 按 DOI 查询 OA 状态、版本、许可和全文位置 | 只解析位置，不代替许可检查或下载 |
 | easyScholar | 期刊等级与分区增强（`getPublicationRank`） | 需要 `SecretKey`；仅声明该 endpoint 能力，不扩展会员产品能力 |
 
-现有 `ai4scholar_*` 服务和工具完整保留，继续承担用户显式选择的 Google Scholar、专利、数据集、期刊和高级工作流；它不进入上述第一方 registry，也不会在其他来源失败时自动调用或扣费。
+`ai4scholar_*` 工具用于用户显式选择的 Google Scholar、专利、数据集、期刊和高级工作流。Ai4Scholar 不进入上述第一方 registry，也不会在其他来源失败时自动调用或扣费。
 
 CAS Common Chemistry 是独立的 `src/chemistry` 数据边界，使用 `ChemicalRecord`，不注册为文献来源。当前 API 访问与 endpoint 契约需向 CAS 申请，客户端保持 `contract_blocked` / `permission_required`，不猜测接口；范围仅限名称、CAS RN、结构和基本信息，不扩展为文献、反应或 SciFinder 检索。
 
@@ -57,7 +57,3 @@ CAS Common Chemistry 是独立的 `src/chemistry` 数据边界，使用 `Chemica
 - [Unpaywall REST API](https://unpaywall.org/api)
 - [easyScholar 期刊等级接口](https://www.easyscholar.cc/open/getPublicationRank)
 - [CAS Common Chemistry API](https://www.cas.org/services/commonchemistry-api)
-
-## 生产验收
-
-2026-09-08 的有界实测通过了 Semantic Scholar、OpenAlex、arXiv、Crossref、Unpaywall、easyScholar 和 Materials Project。PubMed/PMC 在本机于 TLS/DNS 建连阶段失败，没有收到 NCBI HTTP 响应；其适配器仍通过模拟契约测试，未改用非官方端点。CAS 因公开契约不足继续在联网前阻断。运行时不会把这次验收永久等同于其他用户账户的权限或配额。

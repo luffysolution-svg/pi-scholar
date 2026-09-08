@@ -2,12 +2,20 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 1.0.1 - 2026-09-08
+
+- Keep release and configuration-transition notes in this changelog instead of separate upgrade and implementation-report files.
+- Remove test-machine and transport-failure wording from the research documentation.
+- Keep README and configuration references focused on current behavior.
+
 ## 1.0.0 - 2026-09-08
 
 - Replace the v2 credential-reference schema with `schemaVersion: 3`. Keyed services accept direct `apiKey`, `apiKeyEnv`, and standard environment-variable fallback in that order.
+- Rename provider `credentialEnv` fields to `apiKeyEnv` and `mineru.tokenEnv` to `mineru.apiKeyEnv`.
 - Move Ai4Scholar and MinerU credentials into the unified config while preserving Ai4Scholar tools and explicit routing.
 - Remove the old config migration command and module. Version 1.0.0 starts from a new configuration file.
 - Complete the MP01-MP17 Materials Project surface: route-specific REST search, task resolution, fixed optional `mp-api`/`pymatgen` helpers, phase diagrams, simulated XRD, and reproducible exports.
+- Add `materials_search`, `materials_get`, `materials_route_search`, `materials_advanced`, and `materials_export`; Python-backed operations require Python 3.11 or newer with `mp-api` and `pymatgen`.
 - Generate the human and machine Materials capability matrices from one runtime source.
 - Rewrite the Chinese and English setup documentation around current behavior and concrete commands.
 

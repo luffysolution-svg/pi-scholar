@@ -146,7 +146,7 @@ The bridge accepts only fixed operations and JSON. It never executes caller-supp
 
 Ai4Scholar also accepts `baseUrl`, `timeoutMs`, and `proxyUrl`; `proxyUrl` may be an HTTP(S) proxy or `direct`. Environment equivalents are `AI4SCHOLAR_BASE_URL`, `AI4SCHOLAR_TIMEOUT_MS`, `AI4SCHOLAR_PROXY`, and `AI4SCHOLAR_MCP_URL`. `/pi-scholar setup` writes a new key to the unified config. `clear-key` removes only `ai4scholar.apiKey`.
 
-MinerU accepts `timeoutMs`, `pollInitialMs`, `pollMaxMs`, `maxAttempts`, `language`, `enableFormula`, `enableTable`, `isOcr`, and `modelVersion`. Existing `MINERU_*` variables still override these non-credential fields. Upload requires both `research.policy.allowExternalFulltextUpload` and authorization on the call.
+MinerU accepts `timeoutMs`, `pollInitialMs`, `pollMaxMs`, `maxAttempts`, `language`, `enableFormula`, `enableTable`, `isOcr`, and `modelVersion`. `MINERU_*` variables override these non-credential fields. Upload requires both `research.policy.allowExternalFulltextUpload` and authorization on the call.
 
 The sync policies are fixed to `skip-and-report`, `preserve-local`, `three-way-merge`, and `when-required-and-authorized`. `sync.namespace` isolates libraries and `sync.cacheDir` selects the parse cache. Missing output is reported; restore, exclusion, and repair are separate actions. Metadata refresh does not retransmit the PDF.
 
@@ -160,7 +160,7 @@ Zotero `baseUrl` must be exactly `http://localhost:23119/api` or `http://127.0.0
 
 ## Validation
 
-The loader rejects unknown fields, wrong types, unsafe paths, invalid URLs, and out-of-range values. Old schema versions, `credentialEnv`, `mineru.tokenEnv`, and the migration command are no longer supported. Start from the 1.0.0 template and verify it with:
+The loader rejects unknown fields, wrong types, unsafe paths, invalid URLs, and out-of-range values. Configuration files use `schemaVersion: 3`, with `apiKey` and `apiKeyEnv` as the credential fields. Verify a configuration with:
 
 ```sh
 npx @luffysolution/pi-scholar doctor

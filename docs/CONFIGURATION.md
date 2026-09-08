@@ -114,7 +114,7 @@ JSON 中的相对路径以配置文件目录为基准。路径环境变量仍以
 | easyScholar | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | 只接入已核验的期刊等级/分区接口 |
 | Materials Project | `data.providers.materials-project` | `MP_API_KEY` | REST 与可选 Python 桥接共用该 key |
 | CAS Common Chemistry | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | 可保存 key；公开契约不足时仍会阻止网络调用 |
-| Ai4Scholar | `ai4scholar` | `AI4SCHOLAR_API_KEY` | 保留原有工具，不作为自动付费兜底 |
+| Ai4Scholar | `ai4scholar` | `AI4SCHOLAR_API_KEY` | 提供显式调用的独立工具，不作为自动付费兜底 |
 | MinerU | `mineru` | `MINERU_API_TOKEN` | PDF 解析会上传所选文件 |
 
 `enabled` 只允许路由，不代表账户权限、配额或数据可用性已经验证。`/pi-scholar status`、`research_sources` 和 `materials_capabilities` 不会发起网络请求，也不会显示密钥。
@@ -153,7 +153,7 @@ export PI_SCHOLAR_PYTHON="/path/to/python"
 
 Ai4Scholar 还支持 `baseUrl`、`timeoutMs` 和 `proxyUrl`。`proxyUrl` 可以是 HTTP(S) 代理或 `direct`。对应环境变量是 `AI4SCHOLAR_BASE_URL`、`AI4SCHOLAR_TIMEOUT_MS`、`AI4SCHOLAR_PROXY` 和 `AI4SCHOLAR_MCP_URL`。`/pi-scholar setup` 将新密钥写入统一配置，`clear-key` 只删除 `ai4scholar.apiKey`。
 
-MinerU 支持 `timeoutMs`、`pollInitialMs`、`pollMaxMs`、`maxAttempts`、`language`、`enableFormula`、`enableTable`、`isOcr` 和 `modelVersion`。原有 `MINERU_*` 环境变量仍可覆盖这些非凭据字段。外部上传必须同时满足 `research.policy.allowExternalFulltextUpload` 和调用时授权。
+MinerU 支持 `timeoutMs`、`pollInitialMs`、`pollMaxMs`、`maxAttempts`、`language`、`enableFormula`、`enableTable`、`isOcr` 和 `modelVersion`。`MINERU_*` 环境变量可覆盖这些非凭据字段。外部上传必须同时满足 `research.policy.allowExternalFulltextUpload` 和调用时授权。
 
 ## 同步、输出与 Zotero
 
@@ -183,7 +183,7 @@ Zotero `baseUrl` 只允许 `http://localhost:23119/api` 或 `http://127.0.0.1:23
 
 ## 校验
 
-加载配置时会检查未知字段、错误类型、数值范围、URL 和路径安全。旧 `schemaVersion`、`credentialEnv`、`mineru.tokenEnv` 和迁移命令不再支持。先从 1.0.0 示例建立新配置，再运行：
+加载配置时会检查未知字段、错误类型、数值范围、URL 和路径安全。配置文件使用 `schemaVersion: 3`，凭据字段统一为 `apiKey` 和 `apiKeyEnv`。可运行以下命令检查配置：
 
 ```sh
 npx @luffysolution/pi-scholar doctor

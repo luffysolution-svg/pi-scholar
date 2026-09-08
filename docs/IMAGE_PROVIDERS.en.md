@@ -47,7 +47,7 @@ Normalized controls are submitted in the format accepted by the selected model.
 
 ### OpenAI
 
-- Supported GPT Image candidates are `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1`, and `gpt-image-1-mini`. DALL-E remains available only when explicitly selected.
+- Supported GPT Image candidates are `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1`, and `gpt-image-1-mini`. DALL-E is available only when explicitly selected.
 - GPT Image requests support 1–10 outputs and up to 16 edit/reference images.
 - GPT Image quality values are `auto`, `low`, `medium`, and `high`.
 - Transparent output requires PNG or WebP. Compression from 0–100 requires explicit JPEG or WebP output.

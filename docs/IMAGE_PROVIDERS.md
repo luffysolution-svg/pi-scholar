@@ -71,7 +71,7 @@ Atlas 在本项目中指由 `ATLAS_API_KEY` 配置的 Aixoras API。它是第三
 
 ### Qwen / DashScope / QwenCloud
 
-- 当前候选为 `qwen-image-3.0-pro`、`qwen-image-3.0`、`qwen-image-2.0-pro`、`qwen-image-2.0`；旧模型仅在显式指定时使用。
+- 当前候选为 `qwen-image-3.0-pro`、`qwen-image-3.0`、`qwen-image-2.0-pro`、`qwen-image-2.0`；其他模型仅在显式指定时使用。
 - Qwen 3 支持 1–3 张源图和 1–6 张 PNG 输出。
 - 图片面积须在 512²–2048² 像素之间，宽高比为 1:8–8:1。支持方形 1K/2K 别名，不支持 4K。
 - 不开放蒙版、透明背景、质量和压缩控制。

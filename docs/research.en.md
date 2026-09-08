@@ -12,9 +12,9 @@
 | Unpaywall | DOI-based OA status, version, license, and location resolution | Resolves locations only; it does not download or grant content rights |
 | easyScholar | Journal rank and partition enhancement (`getPublicationRank`) | Requires `SecretKey`; only this endpoint is claimed |
 
-The existing `ai4scholar_*` service and tools remain intact for explicitly selected Google Scholar, patent, dataset, journal, and advanced workflows. Ai4Scholar is outside the first-party registry above and is never called—or charged—as an automatic fallback when another source fails.
+The `ai4scholar_*` tools cover explicitly selected Google Scholar, patent, dataset, journal, and advanced workflows. Ai4Scholar is outside the first-party registry above and is never called or charged as an automatic fallback when another source fails.
 
-CAS Common Chemistry is an independent `src/chemistry` data boundary using `ChemicalRecord`; it is not a literature provider. CAS API access and endpoint terms require provider approval, so its client is currently `contract_blocked` / `permission_required` and does not guess routes. Its eventual scope is substance names, CAS RNs, structures, and basic information only—not literature, reactions, or SciFinder search.
+CAS Common Chemistry is an independent `src/chemistry` data boundary using `ChemicalRecord`; it is not a literature provider. CAS API access and endpoint terms require provider approval, so its client is `contract_blocked` / `permission_required` and does not guess routes. Its scope is limited to substance names, CAS RNs, structures, and basic information. It does not cover literature, reactions, or SciFinder search.
 
 ## Tools and safety
 
@@ -57,7 +57,3 @@ This example uses environment variables. Replace `apiKeyEnv` with `apiKey` to st
 - [Unpaywall REST API](https://unpaywall.org/api)
 - [easyScholar journal-rank endpoint](https://www.easyscholar.cc/open/getPublicationRank)
 - [CAS Common Chemistry API](https://www.cas.org/services/commonchemistry-api)
-
-## Production acceptance
-
-Bounded live checks on 2026-09-08 passed for Semantic Scholar, OpenAlex, arXiv, Crossref, Unpaywall, easyScholar, and Materials Project. PubMed/PMC failed during TLS/DNS connection setup on the test host before any NCBI HTTP response; its adapter remains covered by mocked contract tests and was not redirected to an unofficial endpoint. CAS remains blocked before networking because its public contract is insufficient. Runtime status does not treat this acceptance run as proof of another user's entitlement or quota.

@@ -11,14 +11,14 @@ Pi Scholar 是面向 Pi 的一体化科研扩展，在一个安装包中提供�
 
 输出是普通 UTF-8 Markdown、JSON 元数据和图片文件，不依赖 Obsidian 插件或数据库；将输出目录设置为 Obsidian Vault 后即可直接使用。
 
-安全同步、多源文献和 Materials Project 使用统一配置。1.0.0 不读取旧版配置，也不提供自动迁移；切换方法见 [1.0.0 配置说明](docs/UPGRADE_V2.md)。
+安全同步、多源文献和 Materials Project 使用统一配置，完整字段见 [配置说明](docs/CONFIGURATION.md)。
 
 ## 主要功能
 
 - 通过 Semantic Scholar、OpenAlex、PubMed/PMC、arXiv 和 Crossref 发现并核验文献
 - 通过 Unpaywall 定位带版本与许可信息的开放获取全文
 - 查询 Materials Project 的 MP01-MP17 能力，包括路由筛选、完整对象桥接、导出、相图和模拟 XRD；CAS Common Chemistry 化学物质记录独立存储
-- 保留可显式选择的 Ai4Scholar 服务（包括 Google Scholar、专利及高级工作流），不作自动付费兜底
+- 通过显式选择的 Ai4Scholar 工具访问 Google Scholar、专利及高级工作流，不作自动付费兜底
 - 查询论文、作者、引用网络、相关推荐、全文片段和数据集
 - 查询 JCR / 中科院分区并进行投稿期刊推荐
 - 只读搜索 Zotero 收藏夹、条目、笔记、批注和附件
@@ -39,7 +39,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 也可以固定版本或从 GitHub 安装：
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@1.0.0
+pi install npm:@luffysolution/pi-scholar@1.0.1
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -72,7 +72,7 @@ pi remove npm:@luffysolution/pi-scholar
 /pi-scholar setup-sources  预览并生成多源配置候选
 ```
 
-Ai4Scholar 仍在包内，并且只在用户选择相应工具时调用。需要凭据的服务都支持统一配置中的 `apiKey`；也可以用 `apiKeyEnv` 指定环境变量。优先级是 `apiKey`、`apiKeyEnv`、服务的标准环境变量。不要提交含密钥的配置。
+Ai4Scholar 只在用户选择相应工具时调用。需要凭据的服务都支持统一配置中的 `apiKey`；也可以用 `apiKeyEnv` 指定环境变量。优先级是 `apiKey`、`apiKeyEnv`、服务的标准环境变量。不要提交含密钥的配置。
 
 ## 内置技能
 
@@ -126,7 +126,7 @@ Ai4Scholar 仍在包内，并且只在用户选择相应工具时调用。需要
 4. `~/.pi-scholar.json`
 5. 内置默认值
 
-直接填写的凭据优先，环境变量用于回退。Zotero 和输出路径仍允许专用环境变量覆盖 JSON；相对路径按配置文件所在目录解析。
+直接填写的凭据优先，环境变量用于回退。Zotero 和输出路径的专用环境变量可以覆盖 JSON；相对路径按配置文件所在目录解析。
 
 科研绘图原生支持 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 与自定义 OpenAI 兼容服务。支持文生图、图生图/编辑、多参考图、尺寸/分辨率、张数、质量、透明背景及模型支持的 1K/2K/4K 档位，并提供连接测试和模型目录读取。
 

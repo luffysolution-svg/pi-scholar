@@ -11,7 +11,7 @@ Pi Scholar is an all-in-one research extension for Pi. One package provides onli
 
 Output is ordinary UTF-8 Markdown, JSON metadata, and image files. No Obsidian plugin or database is required; point the output directory at an Obsidian vault if desired.
 
-Safe sync, literature sources, and Materials Project share one configuration. Version 1.0.0 does not read or migrate the old schema; see the [1.0.0 configuration note](docs/UPGRADE_V2.en.md).
+Safe sync, literature sources, and Materials Project share one configuration. See the [configuration reference](docs/CONFIGURATION.en.md) for supported fields.
 
 ## Features
 
@@ -39,7 +39,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@1.0.0
+pi install npm:@luffysolution/pi-scholar@1.0.1
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -72,7 +72,7 @@ Setup and status are handled by the same command:
 /pi-scholar setup-sources  Preview and write a multi-source configuration candidate
 ```
 
-Ai4Scholar remains in the package and is called only when its tools are selected. Every keyed service accepts `apiKey` in the unified config and can instead use `apiKeyEnv`. Resolution order is `apiKey`, the named environment variable, then the service's standard environment variable. Never commit a credential-bearing config.
+Ai4Scholar is called only when its tools are selected. Every keyed service accepts `apiKey` in the unified config and can instead use `apiKeyEnv`. Resolution order is `apiKey`, the named environment variable, then the service's standard environment variable. Never commit a credential-bearing config.
 
 ## Included skills
 
@@ -126,7 +126,7 @@ Discovery order:
 4. `~/.pi-scholar.json`
 5. Built-in defaults
 
-Direct credentials win and environment variables are fallbacks. Zotero and output-path environment variables can still override JSON. Relative JSON paths resolve from the configuration file's directory.
+Direct credentials win and environment variables are fallbacks. Zotero and output-path environment variables can override JSON. Relative JSON paths resolve from the configuration file's directory.
 
 Scientific image tools natively support Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text generation, image generation/editing, multiple references, dimensions/resolution, count, quality, transparency, and model-supported 1K/2K/4K tiers. Connection checks and live model catalogs are available.
 
