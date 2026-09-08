@@ -2,6 +2,12 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 1.0.2 - 2026-09-08
+
+- Humanize documentation tone across Chinese and English documentation.
+- Replace overly defensive audit/contract phrasing with clear, developer-oriented usage guides.
+- Streamline configuration and research provider notes around practical developer workflows while preserving all security and error-handling constraints.
+
 ## 1.0.1 - 2026-09-08
 
 - Keep release and configuration-transition notes in this changelog instead of separate upgrade and implementation-report files.

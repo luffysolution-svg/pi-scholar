@@ -1,22 +1,29 @@
-# Pi Scholar configuration
+# Pi Scholar Configuration Guide
 
 [中文版](./CONFIGURATION.md)
 
-Pi Scholar 1.0 uses `schemaVersion: 3`. Every keyed service accepts either:
+Pi Scholar 1.0 uses a `schemaVersion: 3` configuration file. Keyed services support two credential approaches:
 
-- `apiKey`, which stores the key directly in JSON.
-- `apiKeyEnv`, which names an environment variable read at runtime.
+- `apiKey`: Enter the API key directly in the configuration file.
+- `apiKeyEnv`: Specify a custom environment variable name to be read at runtime.
 
-Resolution order is the direct `apiKey`, the variable named by `apiKeyEnv`, then the service's standard environment variable. A direct key is plaintext local data. Keep the file private and never commit it. The repository ignores `pi-scholar.config.json`, but user-level files still need normal filesystem protection.
+**Resolution Precedence**: When multiple credential sources are provided for the same service, Pi Scholar resolves them in this order: `apiKey` → custom environment variable from `apiKeyEnv` → the service's default standard environment variable.
 
-## Minimal configuration
+> Tip: If your configuration file contains plain-text API keys, store it securely. The repository root ignores `pi-scholar.config.json` by default to prevent committing keys into version control.
+
+## Quick-Start Example
 
 ```json
 {
   "schemaVersion": 3,
-  "ai4scholar": { "apiKey": "YOUR_AI4SCHOLAR_API_KEY" },
+  "ai4scholar": {
+    "apiKey": "YOUR_AI4SCHOLAR_API_KEY"
+  },
   "research": {
-    "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },
+    "policy": {
+      "allowPaidFallback": false,
+      "allowExternalFulltextUpload": false
+    },
     "providers": {
       "semantic-scholar": { "enabled": true, "apiKey": "YOUR_SEMANTIC_SCHOLAR_API_KEY" },
       "openalex": { "enabled": true, "apiKey": "YOUR_OPENALEX_API_KEY" },
@@ -33,15 +40,17 @@ Resolution order is the direct `apiKey`, the variable named by `apiKeyEnv`, then
       "cas-common-chemistry": { "enabled": true, "apiKey": "YOUR_CAS_COMMON_CHEMISTRY_API_KEY" }
     }
   },
-  "mineru": { "apiKey": "YOUR_MINERU_API_KEY" }
+  "mineru": {
+    "apiKey": "YOUR_MINERU_API_KEY"
+  }
 }
 ```
 
-The complete template is [`pi-scholar.config.example.json`](../pi-scholar.config.example.json). Replace or remove every placeholder before using a copied file.
+A complete configuration template is available in [`pi-scholar.config.example.json`](../pi-scholar.config.example.json).
 
-## Environment variables
+## Using Environment Variables
 
-Use `apiKeyEnv` when a custom variable name is preferred:
+If you prefer keeping credentials in environment variables, set the service's `apiKeyEnv` field to your variable name:
 
 ```json
 {
@@ -54,8 +63,9 @@ Use `apiKeyEnv` when a custom variable name is preferred:
 }
 ```
 
-PowerShell, current session:
+You can also export each service's standard environment variable directly:
 
+**PowerShell**:
 ```powershell
 $env:SEMANTIC_SCHOLAR_API_KEY = "YOUR_KEY"
 $env:OPENALEX_API_KEY = "YOUR_KEY"
@@ -67,8 +77,7 @@ $env:AI4SCHOLAR_API_KEY = "YOUR_KEY"
 $env:MINERU_API_TOKEN = "YOUR_KEY"
 ```
 
-Bash or zsh:
-
+**Bash / zsh**:
 ```bash
 export SEMANTIC_SCHOLAR_API_KEY="YOUR_KEY"
 export OPENALEX_API_KEY="YOUR_KEY"
@@ -80,87 +89,106 @@ export AI4SCHOLAR_API_KEY="YOUR_KEY"
 export MINERU_API_TOKEN="YOUR_KEY"
 ```
 
-Image providers also recognize `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `FAL_KEY`, `FAL_API_KEY`, `DASHSCOPE_API_KEY`, `QWENCLOUD_API_KEY`, and `ATLAS_API_KEY`. Vertex uses ADC or `GOOGLE_APPLICATION_CREDENTIALS`.
+Image provider environment variables include `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `FAL_KEY`, `DASHSCOPE_API_KEY` (or `QWENCLOUD_API_KEY`), and `ATLAS_API_KEY`. Vertex AI supports Google Application Default Credentials (ADC) or a service-account JSON via `GOOGLE_APPLICATION_CREDENTIALS`.
 
-## Configuration discovery
+## Configuration Discovery Order
 
-The first available location wins:
+During startup, Pi Scholar searches for the first available configuration file in this order:
 
-1. The file named by `PI_SCHOLAR_CONFIG`.
-2. The nearest `pi-scholar.config.json` above the working directory in a trusted project.
-3. `~/.config/pi-scholar/config.json` (`%USERPROFILE%\.config\pi-scholar\config.json` on Windows).
-4. `~/.pi-scholar.json`.
+1. The path specified by the `PI_SCHOLAR_CONFIG` environment variable.
+2. `pi-scholar.config.json` found in the current trusted project or its parent directories.
+3. User global directory: `~/.config/pi-scholar/config.json` (on Windows: `%USERPROFILE%\.config\pi-scholar\config.json`).
+4. User home root: `~/.pi-scholar.json`.
 5. Built-in defaults.
 
-Relative JSON paths resolve from the configuration file. Relative path environment variables resolve from the runtime working directory.
+Relative paths in configuration files resolve from the directory containing that configuration file.
 
-## Credential map
+## Service Credentials Summary
 
-| Service | Configuration | Standard environment variable | Notes |
+| Service | Configuration Path | Standard Environment Variable | Notes |
 |---|---|---|---|
-| Semantic Scholar | `research.providers.semantic-scholar` | `SEMANTIC_SCHOLAR_API_KEY` | Optional key for account quota |
-| OpenAlex | `research.providers.openalex` | `OPENALEX_API_KEY` | Optional key |
-| PubMed / PMC | `research.providers.pubmed` | `NCBI_API_KEY` | Optional key; PMC license checks still apply |
-| arXiv | `research.providers.arxiv` | none | Rejects meaningless key fields |
-| Crossref | `research.providers.crossref` | none | Optional contact metadata belongs in `research.contact` |
-| Unpaywall | `research.providers.unpaywall` | none | Uses a `contact` email, not an API key |
-| easyScholar | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | Verified journal-rank endpoint only |
-| Materials Project | `data.providers.materials-project` | `MP_API_KEY` | Shared by REST and the optional Python bridge |
-| CAS Common Chemistry | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | A stored key does not remove the public-contract block |
-| Ai4Scholar | `ai4scholar` | `AI4SCHOLAR_API_KEY` | Preserved explicit tools; never an automatic paid fallback |
-| MinerU | `mineru` | `MINERU_API_TOKEN` | Sends the selected PDF to MinerU |
+| **Semantic Scholar** | `research.providers.semantic-scholar` | `SEMANTIC_SCHOLAR_API_KEY` | Key is optional; grants higher concurrency and daily limits |
+| **OpenAlex** | `research.providers.openalex` | `OPENALEX_API_KEY` | Key is optional; open academic catalog |
+| **PubMed / PMC** | `research.providers.pubmed` | `NCBI_API_KEY` | Key is optional; increases NCBI request rate limit |
+| **arXiv** | `research.providers.arxiv` | None | Open preprint discovery without a key |
+| **Crossref** | `research.providers.crossref` | None | Configure `research.contact` to use the Crossref polite pool |
+| **Unpaywall** | `research.providers.unpaywall` | None | Requires a valid contact email in `contact` |
+| **easyScholar** | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | Requires SecretKey for journal tiers and rankings |
+| **Materials Project** | `data.providers.materials-project` | `MP_API_KEY` | Shared between REST calls and optional Python bridge |
+| **CAS Common Chemistry** | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | Key can be stored; ready for use when official API opens |
+| **Ai4Scholar** | `ai4scholar` | `AI4SCHOLAR_API_KEY` | Independent tool set invoked on demand |
+| **MinerU** | `mineru` | `MINERU_API_TOKEN` | Deep parsing and structured extraction from PDFs |
 
-`enabled` permits routing. It does not prove entitlement, quota, or property availability. `/pi-scholar status`, `research_sources`, and `materials_capabilities` are offline status checks and never reveal keys.
+The `/pi-scholar status` command inspects local setup without sending unprompted requests across the network, keeping credentials private.
 
-## Materials Project
+## Materials Project Configuration
 
-`data.providers.materials-project` accepts:
+Configure Materials Project options under `data.providers.materials-project`:
 
-| Field | Default | Use or range |
+| Option | Default | Description |
 |---|---|---|
-| `enabled` | `false` | Allows Materials tools to make requests |
-| `apiKey` | none | Direct key |
-| `apiKeyEnv` | `MP_API_KEY` | Custom environment-variable name |
-| `timeoutMs` | `20000` | 1,000 to 120,000 ms |
-| `maxRequests` / `maxPages` | `10` | Per-operation request bound |
-| `maxResults` | `100` | Up to 10,000 records |
-| `maxResponseBytes` | `5242880` | 1 KiB to 64 MiB |
+| `enabled` | `false` | Enables Materials Project tools |
+| `apiKey` / `apiKeyEnv` | None / `MP_API_KEY` | API key or custom environment variable name |
+| `timeoutMs` | `20000` | Network timeout in milliseconds (1,000–120,000) |
+| `maxRequests` / `maxPages` | `10` | Maximum pages or sub-requests allowed per action |
+| `maxResults` | `100` | Maximum records returned per operation (up to 10,000) |
+| `maxResponseBytes` | `5242880` (5 MiB) | Maximum response size limit to prevent memory bloat |
 
-Use `materials_search` for summary screening, `materials_get` for material-addressable properties, `materials_route_search` for task IDs, phonon identifiers, electrodes, substrates, synthesis, and other independent collections, and `materials_advanced` for fixed Python helpers or local derived calculations. See [`materials-capabilities.md`](./materials-capabilities.md) for MP01-MP17.
+### Python Bridge (Optional)
 
-Complete band structures, DOS, phonon objects, structure helpers, and multicomponent phase diagrams require Python 3.11 or newer with the official packages:
+Basic Materials Project REST search (such as summary screening, structure fetching, thermodynamics, and properties) works with zero extra dependencies.
 
-```powershell
-python -m pip install mp-api pymatgen
-$env:PI_SCHOLAR_PYTHON = "C:\Path\To\python.exe"
+If you want to compute **complete band structures, density of states (DOS), phonon dispersions, phase diagrams, or simulated XRD patterns**, install Python 3.11+ along with the official packages:
+
+```sh
+pip install mp-api pymatgen
 ```
 
-```bash
-python -m pip install mp-api pymatgen
+To specify an explicit Python binary:
+```sh
 export PI_SCHOLAR_PYTHON="/path/to/python"
+# Windows PowerShell: $env:PI_SCHOLAR_PYTHON = "C:\Path\To\python.exe"
 ```
 
-The bridge accepts only fixed operations and JSON. It never executes caller-supplied Python, shell, or pickle. Phase diagrams retain thermo type and 0 K/0 atm provenance. Simulated XRD is labelled as local derived data, not an experiment.
+Phase diagram derivation and simulated XRD run locally using theoretical parameters and do not consume remote API quota. See [Materials Capabilities](./materials-capabilities.md) for the complete capability matrix.
 
-## Ai4Scholar, MinerU, sync, and local files
+## Ai4Scholar and MinerU Options
 
-Ai4Scholar also accepts `baseUrl`, `timeoutMs`, and `proxyUrl`; `proxyUrl` may be an HTTP(S) proxy or `direct`. Environment equivalents are `AI4SCHOLAR_BASE_URL`, `AI4SCHOLAR_TIMEOUT_MS`, `AI4SCHOLAR_PROXY`, and `AI4SCHOLAR_MCP_URL`. `/pi-scholar setup` writes a new key to the unified config. `clear-key` removes only `ai4scholar.apiKey`.
+- **Ai4Scholar**: Supports `baseUrl`, `timeoutMs`, and `proxyUrl` (supports HTTP/HTTPS proxy URLs or `direct`). Matching environment variables are `AI4SCHOLAR_BASE_URL`, `AI4SCHOLAR_TIMEOUT_MS`, and `AI4SCHOLAR_PROXY`.
+- **MinerU**: Supports `timeoutMs`, polling backoff (`pollInitialMs`, `pollMaxMs`, `maxAttempts`), and parsing switches: `language`, `enableFormula`, `enableTable`, `isOcr`, and `modelVersion` (defaults to `vlm`). `MINERU_*` environment variables can override these options.
 
-MinerU accepts `timeoutMs`, `pollInitialMs`, `pollMaxMs`, `maxAttempts`, `language`, `enableFormula`, `enableTable`, `isOcr`, and `modelVersion`. `MINERU_*` variables override these non-credential fields. Upload requires both `research.policy.allowExternalFulltextUpload` and authorization on the call.
+## Sync, Zotero, and Output Directories
 
-The sync policies are fixed to `skip-and-report`, `preserve-local`, `three-way-merge`, and `when-required-and-authorized`. `sync.namespace` isolates libraries and `sync.cacheDir` selects the parse cache. Missing output is reported; restore, exclusion, and repair are separate actions. Metadata refresh does not retransmit the PDF.
+```json
+{
+  "sync": {
+    "missingPolicy": "skip-and-report",
+    "conflictPolicy": "preserve-local",
+    "metadataPolicy": "three-way-merge",
+    "reparsePolicy": "when-required-and-authorized",
+    "backupRetentionDays": 30
+  },
+  "output": {
+    "directory": "~/pi-scholar",
+    "literaturesDirectory": "Literatures",
+    "assetFilePrefix": "figure-",
+    "filenameSeparator": "-",
+    "tagSpaceReplacement": "-"
+  }
+}
+```
 
-`output.directory` defaults to `~/pi-scholar`. `literaturesDirectory`, `assetFilePrefix`, `filenameSeparator`, and `tagSpaceReplacement` control names. The corresponding `PI_SCHOLAR_*` path and naming variables may override JSON.
+- **Safe Sync**: Synchronization prioritizes local user edits. Conflicts preserve local changes, and metadata refreshes do not re-upload the original PDF, saving network and parsing costs.
+- **Output Management**: `output.directory` can point directly at an Obsidian vault. Each paper is stored in its own directory, with extracted figures organized in a subfolder named `assets`.
+- **Zotero Setup**: The default local Zotero loopback address is `http://127.0.0.1:23119/api` (enabled in Zotero Preferences → Advanced → "Allow other applications to communicate with Zotero").
 
-Zotero `baseUrl` must be exactly `http://localhost:23119/api` or `http://127.0.0.1:23119/api`. `timeoutMs` ranges from 1,000 to 120,000 ms and `maxItems` from 1 to 50,000. Do not expose port 23119 externally.
+## Scientific Image Generation
 
-## Image providers
+Configure image generation providers under `media` for Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, or custom OpenAI-compatible services. You can customize resolution, quality, aspect ratio, reference images, and transparency. See [Image Providers](./IMAGE_PROVIDERS.en.md) for full compatibility details.
 
-`media.providerOptions.<id>.apiKey` and `apiKeyEnv` follow the same precedence. Built-in adapters cover Gemini, Vertex, OpenAI, xAI, fal.ai, Qwen/DashScope, and Atlas, plus explicitly declared OpenAI-compatible services. See [`IMAGE_PROVIDERS.en.md`](./IMAGE_PROVIDERS.en.md) for model, size, connection-test, and field constraints.
+## Self-Check and Diagnostics
 
-## Validation
-
-The loader rejects unknown fields, wrong types, unsafe paths, invalid URLs, and out-of-range values. Configuration files use `schemaVersion: 3`, with `apiKey` and `apiKeyEnv` as the credential fields. Verify a configuration with:
+After updating your configuration, run the built-in diagnostic tool to verify local setup and connectivity:
 
 ```sh
 npx @luffysolution/pi-scholar doctor

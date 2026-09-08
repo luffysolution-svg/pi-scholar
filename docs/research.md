@@ -1,28 +1,36 @@
-# 文献与科研数据接入
+# 文献数据源与检索
 
-`src/research` 只承载以下文献服务：Semantic Scholar、OpenAlex、PubMed/PMC、arXiv、Crossref、Unpaywall，以及 easyScholar 的期刊等级 endpoint。每个记录统一为 `LiteratureRecord`，保留来源、原始标识符、获取时间、许可和原始响应。
+Pi Scholar 内置了学术文献检索层，聚合了多个主流学术开放接口与检索服务。查询到的文献记录统一格式化，并完整保留原始标识符、引用关系、许可协议及原始数据。
 
-| 来源 | 能力 | 边界 |
-| --- | --- | --- |
-| Semantic Scholar | 检索、详情、参考文献、引用、相关推荐 | Graph API 能力和配额以账户权限为准 |
-| OpenAlex | 检索、结构化筛选、详情、作者/机构、参考文献与引用关系 | key 只用于可选配额提升 |
-| PubMed / PMC | PubMed 检索/详情/关联；PMC OA 许可检查、解析与 XML 获取 | 只有 OA 服务明确给出许可时才获取全文 |
-| arXiv | Atom 检索、版本保留、详情、摘要与原文 PDF 定位/获取 | 遵守官方请求间隔；不推断同行评审状态 |
-| Crossref | DOI 检索/详情、字段补全、参考文献及更新/撤稿关系原文保留 | 元数据不等于全文授权 |
-| Unpaywall | 按 DOI 查询 OA 状态、版本、许可和全文位置 | 只解析位置，不代替许可检查或下载 |
-| easyScholar | 期刊等级与分区增强（`getPublicationRank`） | 需要 `SecretKey`；仅声明该 endpoint 能力，不扩展会员产品能力 |
+## 支持的数据源
 
-`ai4scholar_*` 工具用于用户显式选择的 Google Scholar、专利、数据集、期刊和高级工作流。Ai4Scholar 不进入上述第一方 registry，也不会在其他来源失败时自动调用或扣费。
+| 数据源 | 核心能力 | 配置说明与使用建议 |
+|---|---|---|
+| **Semantic Scholar** | 论文搜索、文献详情、引用/被引网络、相关论文推荐 | 免 Key 可用；配置 API Key 可获得更高的并发与每日请求额度 |
+| **OpenAlex** | 机构/学者检索、多维结构化筛选、文献关系图谱 | 完全开放数据源，无需 Key 即可使用全部功能 |
+| **PubMed / PMC** | 生物医药文献检索，定位与获取 PMC 开放获取（OA）全文 | 检索免 Key；配置 NCBI Key 可提升速率限制；支持获取符合 OA 协议的全文 |
+| **arXiv** | 计算机、物理、数学等预印本检索，直接获取最新版本 PDF | 免 Key；支持解析并下载对应版本号的原版 PDF |
+| **Crossref** | 权威 DOI 元数据反查、更新记录、勘误与撤稿标记 | 适合根据 DOI 补全出版年份、卷期、页码等标准出版信息 |
+| **Unpaywall** | 根据 DOI 检索合法免费的开放获取全文下载地址与许可协议 | 需要在配置中提供有效的联系邮箱（`contact`） |
+| **easyScholar** | 期刊等级与 JCR / 中科院分区快速查询 | 需要在配置中提供 easyScholar 的 `SecretKey` |
 
-CAS Common Chemistry 是独立的 `src/chemistry` 数据边界，使用 `ChemicalRecord`，不注册为文献来源。当前 API 访问与 endpoint 契约需向 CAS 申请，客户端保持 `contract_blocked` / `permission_required`，不猜测接口；范围仅限名称、CAS RN、结构和基本信息，不扩展为文献、反应或 SciFinder 检索。
+### 独立补充服务
 
-## 工具与安全
+- **Ai4Scholar**：包含 Google Scholar 检索、专利查询、学术数据集检索及高级工作流。这是一组独立的显式调用工具（以 `ai4scholar_*` 命名），不会在普通检索未命中时自动调用，确保费用透明可控。
+- **CAS Common Chemistry**：化学物质名称、CAS 号与结构式查询，属于独立化学数据模块，详情见 [CAS Common Chemistry 说明](./chemistry.md)。
 
-`research_sources` 只读列出状态，不联网。`literature_search`、`literature_get`、`literature_graph`、`journal_metrics` 和 `literature_fulltext` 都要求来源能力真实存在；全文 `resolve` 与 `fetch` 分开。
+## 工具集与操作说明
 
-`chemical_sources`、`chemical_search` 和 `chemical_get` 属于独立化学数据工具；它们读取 `data.providers["cas-common-chemistry"]`，当前契约阻断时不会发起请求。
+文献模块向 Pi 注册了以下工具：
 
-请求仅允许官方 HTTPS 主机。需要密钥的来源可直接使用 `apiKey`，也可用 `apiKeyEnv` 或标准环境变量；Unpaywall 联系邮箱通过 `research.contact` 或 provider 的 `contact` 提供。URL、诊断和工具输出都会脱敏。GET 使用有界重试并遵守 `Retry-After`，POST 默认不重试；请求超时、请求数、页数和响应体大小均有上限。
+- `research_sources`：离线查看各数据源的启用状态、已配置凭据与接口能力。
+- `literature_search`：在已启用的数据源中检索论文，支持限制年份、关键词以及筛选仅开放获取（OA）。
+- `literature_get`：根据特定数据源的 ID（如 DOI、arXiv ID、PMID 等）获取详细元数据。
+- `literature_graph`：获取指定论文的参考文献（`references`）、施引文献（`citations`）或相关推荐（`recommendations`）。
+- `journal_metrics`：查询期刊指标与分区信息（主要由 easyScholar 提供）。
+- `literature_fulltext`：处理全文资源。支持两种操作：
+  - `action: "resolve"`：解析合法的全文下载地址与许可信息；
+  - `action: "fetch"`：直接下载并本地缓存全文文件（如 arXiv PDF）。
 
 ## 配置示例
 
@@ -30,8 +38,11 @@ CAS Common Chemistry 是独立的 `src/chemistry` 数据边界，使用 `Chemica
 {
   "schemaVersion": 3,
   "research": {
-    "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },
-    "contact": "you@example.org",
+    "policy": {
+      "allowPaidFallback": false,
+      "allowExternalFulltextUpload": false
+    },
+    "contact": "your-email@example.org",
     "providers": {
       "semantic-scholar": { "enabled": true, "apiKeyEnv": "SEMANTIC_SCHOLAR_API_KEY" },
       "openalex": { "enabled": true, "apiKeyEnv": "OPENALEX_API_KEY" },
@@ -45,15 +56,22 @@ CAS Common Chemistry 是独立的 `src/chemistry` 数据边界，使用 `Chemica
 }
 ```
 
-上例使用环境变量，也可以把 `apiKeyEnv` 换成直接 `apiKey`。Semantic Scholar、OpenAlex 和 PubMed 的 key 可选；easyScholar 的 SecretKey 必需。缺少联系邮箱时，Unpaywall 请求会在执行前明确失败。
+- 需要密钥的服务既可以使用环境变量（`apiKeyEnv`），也可以直接填写 `apiKey`。
+- Semantic Scholar、OpenAlex 和 PubMed 的 API Key 为可选项；easyScholar 的 `SecretKey` 为必填项。
+- Unpaywall 依赖有效联系邮箱，可通过全局 `research.contact` 或 `unpaywall.contact` 配置。
 
-## 官方契约
+## 网络请求与安全规范
+
+- 所有请求均直接连接各服务商官方 HTTPS 端点，不支持重定向至非官方第三方镜像。
+- 密钥、令牌与认证头会自动从日志、终端输出与生成文件中脱敏。
+- 内置请求超时限制、结果分页上限及遵循 `Retry-After` 的节流重试，防止触发平台风控封禁。
+
+## 官方 API 参考
 
 - [Semantic Scholar Graph API](https://api.semanticscholar.org/api-docs/graph)
 - [OpenAlex API](https://docs.openalex.org/)
 - [NCBI E-utilities 与 PMC OA](https://www.ncbi.nlm.nih.gov/books/NBK25497/)
-- [arXiv API 手册](https://info.arxiv.org/help/api/user-manual.html)
+- [arXiv API 用户手册](https://info.arxiv.org/help/api/user-manual.html)
 - [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)
 - [Unpaywall REST API](https://unpaywall.org/api)
 - [easyScholar 期刊等级接口](https://www.easyscholar.cc/open/getPublicationRank)
-- [CAS Common Chemistry API](https://www.cas.org/services/commonchemistry-api)

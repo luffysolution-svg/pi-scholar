@@ -20,13 +20,13 @@ Pi Scholar 是面向 Pi 的一体化科研扩展，在一个安装包中提供�
 - 查询 Materials Project 的 MP01-MP17 能力，包括路由筛选、完整对象桥接、导出、相图和模拟 XRD；CAS Common Chemistry 化学物质记录独立存储
 - 通过显式选择的 Ai4Scholar 工具访问 Google Scholar、专利及高级工作流，不作自动付费兜底
 - 查询论文、作者、引用网络、相关推荐、全文片段和数据集
-- 查询 JCR / 中科院分区并进行投稿期刊推荐
+- 查询 JCR / 中科院分区并推荐投稿期刊
 - 只读搜索 Zotero 收藏夹、条目、笔记、批注和附件
 - 使用 MinerU 解析 PDF 中的正文、公式、表格和图片
 - 生成引用、参考文献并为学术文本自动补充引用
 - 生成、编辑、评审和矢量化科研图片
 - 按需发现并加载在线 MCP 工具
-- 限制 Zotero 为本地回环访问，检查压缩包，脱敏密钥，并以事务方式发布文件
+- 安全可靠：Zotero 仅限本地只读访问、密钥自动脱敏、文件写入支持原子保护与故障恢复
 
 ## 安装
 
@@ -39,7 +39,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 也可以固定版本或从 GitHub 安装：
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@1.0.1
+pi install npm:@luffysolution/pi-scholar@1.0.2
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -89,7 +89,7 @@ Ai4Scholar 只在用户选择相应工具时调用。需要凭据的服务都支
 | `materials-project` | 材料筛选、结构、性质、计算来源和导出 |
 | `chemical-data` | CAS Common Chemistry 化学物质名称、CAS RN、结构与基本信息 |
 
-日常使用只需记住 `/pi-scholar`；专用技能也可通过 `/skill:<技能名>` 显式调用。
+日常直接使用 `/pi-scholar` 即可；各专用技能也支持通过 `/skill:<技能名>` 单独调用。
 
 ## 输出结构
 
@@ -128,7 +128,7 @@ Ai4Scholar 只在用户选择相应工具时调用。需要凭据的服务都支
 
 直接填写的凭据优先，环境变量用于回退。Zotero 和输出路径的专用环境变量可以覆盖 JSON；相对路径按配置文件所在目录解析。
 
-科研绘图原生支持 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 与自定义 OpenAI 兼容服务。支持文生图、图生图/编辑、多参考图、尺寸/分辨率、张数、质量、透明背景及模型支持的 1K/2K/4K 档位，并提供连接测试和模型目录读取。
+科研绘图原生接入了 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 与自定义 OpenAI 兼容服务，覆盖文生图、图生图/编辑、多参考图、透明背景、尺寸与各模型允许的 1K/2K/4K 档位，并提供连接测试与模型目录查看。
 
 > 模型、参数与平台限制见 [科研绘图供应商兼容性](./docs/IMAGE_PROVIDERS.md)。
 >
@@ -151,12 +151,12 @@ npx @luffysolution/pi-scholar --help
 <details>
 <summary>安全与隐私</summary>
 
-- Zotero 请求硬性限制为 `localhost:23119/api` 或 `127.0.0.1:23119/api`，仅允许 GET 并禁用重定向。
-- MinerU 会通过网络接收所选 PDF，只有需要结构化全文、公式、表格或图片时才应调用。
-- API Key、Authorization 请求头和签名 URL 不会写入 Markdown、YAML、元数据或工具输出。
-- MinerU ZIP 在写盘前检查条目数量、展开大小、加密、符号链接、绝对路径、路径穿越和重复条目。
-- 每篇论文先写入临时目录，再原子替换最终目录；失败或取消时恢复原内容。
-- 在线检索、自动引用、MinerU 和科研绘图可能消耗配额或积分。
+- Zotero 请求严格限制在本地回环地址（`127.0.0.1:23119/api`），仅支持 GET 查询且禁用外部重定向。
+- MinerU 仅在需要深度解析 PDF 中的公式、表格或图表时调用，上传所选文件。
+- API Key、Authorization 认证头和签名 URL 绝不会写入生成的 Markdown、YAML 或输出日志。
+- 解压 MinerU ZIP 归档时自动校验相对路径与体积，避免恶意路径穿越。
+- 论文与附件采用先写临时目录再原子替换的方式发布，出现中断或异常时自动回滚，保护原有文件不受破坏。
+- 在线检索、自动引用、MinerU 与科研绘图会正常消耗对应平台的配额或积分。
 
 </details>
 

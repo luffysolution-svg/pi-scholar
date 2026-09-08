@@ -39,7 +39,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@1.0.1
+pi install npm:@luffysolution/pi-scholar@1.0.2
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -89,7 +89,7 @@ The package contains one orchestrator and seven focused skills:
 | `materials-project` | Materials screening, structures, properties, calculation provenance, and export |
 | `chemical-data` | CAS Common Chemistry names, CAS RN, structures, and basic substance data |
 
-For everyday use, remember only `/pi-scholar`. Focused skills can also be invoked explicitly with `/skill:<name>`.
+Use `/pi-scholar` directly for daily workflows; individual skills can also be called explicitly with `/skill:<name>`.
 
 ## Output layout
 
@@ -128,7 +128,7 @@ Discovery order:
 
 Direct credentials win and environment variables are fallbacks. Zotero and output-path environment variables can override JSON. Relative JSON paths resolve from the configuration file's directory.
 
-Scientific image tools natively support Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text generation, image generation/editing, multiple references, dimensions/resolution, count, quality, transparency, and model-supported 1K/2K/4K tiers. Connection checks and live model catalogs are available.
+Scientific image tools natively connect to Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text-to-image, image editing, multi-reference guidance, custom dimensions, transparency, and 1K/2K/4K tiers, with non-generating connection checks.
 
 > See [Image Provider Compatibility](./docs/IMAGE_PROVIDERS.en.md) for models, controls, and platform limits.
 >

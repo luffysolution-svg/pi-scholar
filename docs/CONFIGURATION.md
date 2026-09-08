@@ -1,15 +1,17 @@
-# Pi Scholar 配置
+# Pi Scholar 配置指南
 
 [English](./CONFIGURATION.en.md)
 
-Pi Scholar 1.0 使用 `schemaVersion: 3`。需要密钥的服务都接受两种配置：
+Pi Scholar 1.0 使用 `schemaVersion: 3` 配置文件。需要认证的服务均支持两种配置方式：
 
-- `apiKey`：直接填写密钥。
-- `apiKeyEnv`：填写环境变量名，运行时读取该变量。
+- `apiKey`：直接填写 API Key 明文。
+- `apiKeyEnv`：指定自定义环境变量名称，运行时自动读取。
 
-同一服务同时配置两者时，`apiKey` 优先；随后检查 `apiKeyEnv`，最后检查服务的标准环境变量。配置文件可能包含明文密钥，请只放在本机。仓库已忽略 `pi-scholar.config.json`，但用户级文件仍需自行保护。
+**凭据优先级**：如果同时提供了多种凭据来源，系统将按 `apiKey` → `apiKeyEnv` 所指变量 → 服务默认标准环境变量的顺序依次匹配。
 
-## 最小可用示例
+> 提示：若配置文件中包含明文密钥，请妥善保管。项目根目录已默认忽略 `pi-scholar.config.json`，避免意外提交密钥至版本库。
+
+## 快速上手配置
 
 ```json
 {
@@ -44,11 +46,11 @@ Pi Scholar 1.0 使用 `schemaVersion: 3`。需要密钥的服务都接受两种�
 }
 ```
 
-完整示例见 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json)。占位值必须替换或删除，不能直接作为有效凭据使用。
+完整配置模板可参考根目录下的 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json)。
 
-## 使用环境变量
+## 环境变量使用方式
 
-将某个服务的 `apiKey` 改为 `apiKeyEnv` 即可使用自定义变量名：
+如果你更习惯将密钥存放在环境变量中，可以将对应项配置为 `apiKeyEnv`：
 
 ```json
 {
@@ -61,8 +63,9 @@ Pi Scholar 1.0 使用 `schemaVersion: 3`。需要密钥的服务都接受两种�
 }
 ```
 
-PowerShell 当前会话：
+或者直接设置各服务默认的标准环境变量：
 
+**PowerShell**：
 ```powershell
 $env:SEMANTIC_SCHOLAR_API_KEY = "YOUR_KEY"
 $env:OPENALEX_API_KEY = "YOUR_KEY"
@@ -74,8 +77,7 @@ $env:AI4SCHOLAR_API_KEY = "YOUR_KEY"
 $env:MINERU_API_TOKEN = "YOUR_KEY"
 ```
 
-Bash、zsh：
-
+**Bash / zsh**：
 ```bash
 export SEMANTIC_SCHOLAR_API_KEY="YOUR_KEY"
 export OPENALEX_API_KEY="YOUR_KEY"
@@ -87,77 +89,75 @@ export AI4SCHOLAR_API_KEY="YOUR_KEY"
 export MINERU_API_TOKEN="YOUR_KEY"
 ```
 
-绘图服务的标准变量包括 `GEMINI_API_KEY`、`GOOGLE_API_KEY`、`OPENAI_API_KEY`、`XAI_API_KEY`、`FAL_KEY`、`FAL_API_KEY`、`DASHSCOPE_API_KEY`、`QWENCLOUD_API_KEY` 和 `ATLAS_API_KEY`。Vertex 使用 ADC 或 `GOOGLE_APPLICATION_CREDENTIALS`。
+科研绘图供应商的环境变量包括：`GEMINI_API_KEY`、`GOOGLE_API_KEY`、`OPENAI_API_KEY`、`XAI_API_KEY`、`FAL_KEY`、`DASHSCOPE_API_KEY`（或 `QWENCLOUD_API_KEY`）及 `ATLAS_API_KEY`。Vertex AI 支持 Google 应用默认凭据（ADC）或通过 `GOOGLE_APPLICATION_CREDENTIALS` 指定服务账号 JSON。
 
-## 配置文件位置
+## 配置文件查找顺序
 
-程序按以下顺序读取首个可用文件：
+启动与加载时，系统按以下顺序定位首个存在的配置文件：
 
-1. `PI_SCHOLAR_CONFIG` 指定的文件。
-2. 可信项目中，从当前目录向上找到的 `pi-scholar.config.json`。
-3. `~/.config/pi-scholar/config.json`。Windows 路径为 `%USERPROFILE%\.config\pi-scholar\config.json`。
-4. `~/.pi-scholar.json`。
-5. 内置默认值。
+1. 环境变量 `PI_SCHOLAR_CONFIG` 指定的绝对路径。
+2. 当前可信项目目录及其父级目录中递归向上查找到的 `pi-scholar.config.json`。
+3. 用户全局配置目录：`~/.config/pi-scholar/config.json`（Windows 对应 `%USERPROFILE%\.config\pi-scholar\config.json`）。
+4. 用户根目录配置：`~/.pi-scholar.json`。
+5. 扩展内置的默认参数。
 
-JSON 中的相对路径以配置文件目录为基准。路径环境变量仍以运行时工作目录为基准。
+配置文件中的相对路径均以该配置文件所在的目录为解析基准。
 
-## 服务凭据
+## 服务凭据一览表
 
-| 服务 | 配置位置 | 标准环境变量 | 说明 |
+| 服务 | 配置路径 | 标准环境变量 | 备注 |
 |---|---|---|---|
-| Semantic Scholar | `research.providers.semantic-scholar` | `SEMANTIC_SCHOLAR_API_KEY` | key 可选，配置后使用对应账户额度 |
-| OpenAlex | `research.providers.openalex` | `OPENALEX_API_KEY` | key 可选 |
-| PubMed / PMC | `research.providers.pubmed` | `NCBI_API_KEY` | key 可选；PMC 全文仍受许可限制 |
-| arXiv | `research.providers.arxiv` | 无 | 不接受无意义的 key 字段 |
-| Crossref | `research.providers.crossref` | 无 | 可在 `research.contact` 配置联系信息 |
-| Unpaywall | `research.providers.unpaywall` | 无 | 使用 `contact` 邮箱，不使用 API key |
-| easyScholar | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | 只接入已核验的期刊等级/分区接口 |
-| Materials Project | `data.providers.materials-project` | `MP_API_KEY` | REST 与可选 Python 桥接共用该 key |
-| CAS Common Chemistry | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | 可保存 key；公开契约不足时仍会阻止网络调用 |
-| Ai4Scholar | `ai4scholar` | `AI4SCHOLAR_API_KEY` | 提供显式调用的独立工具，不作为自动付费兜底 |
-| MinerU | `mineru` | `MINERU_API_TOKEN` | PDF 解析会上传所选文件 |
+| **Semantic Scholar** | `research.providers.semantic-scholar` | `SEMANTIC_SCHOLAR_API_KEY` | Key 可选，配置后享有更高请求配额 |
+| **OpenAlex** | `research.providers.openalex` | `OPENALEX_API_KEY` | Key 可选，开放数据源 |
+| **PubMed / PMC** | `research.providers.pubmed` | `NCBI_API_KEY` | Key 可选，配置后提高 NCBI 请求速率限制 |
+| **arXiv** | `research.providers.arxiv` | 无 | 免 Key 开放检索 |
+| **Crossref** | `research.providers.crossref` | 无 | 可在 `research.contact` 配置联系邮箱以接入 Polite 池 |
+| **Unpaywall** | `research.providers.unpaywall` | 无 | 需在 `contact` 中填写联系邮箱 |
+| **easyScholar** | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | 需填写 SecretKey 以查询期刊等级与分区 |
+| **Materials Project** | `data.providers.materials-project` | `MP_API_KEY` | REST API 与 Python 扩展计算共用该 Key |
+| **CAS Common Chemistry** | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | 可预填 Key；官方接入开放后即可使用 |
+| **Ai4Scholar** | `ai4scholar` | `AI4SCHOLAR_API_KEY` | 独立调用工具，按需使用 |
+| **MinerU** | `mineru` | `MINERU_API_TOKEN` | 用于本地 PDF 的深度解析与结构化提取 |
 
-`enabled` 只允许路由，不代表账户权限、配额或数据可用性已经验证。`/pi-scholar status`、`research_sources` 和 `materials_capabilities` 不会发起网络请求，也不会显示密钥。
+查看配置状态命令 `/pi-scholar status` 仅在本地做信息汇总，不会向服务商发起不必要的网络校验，也不会在终端输出明文密码。
 
-## Materials Project
+## Materials Project 材料数据
 
-`data.providers.materials-project` 支持：
+在 `data.providers.materials-project` 下可配置以下选项：
 
-| 字段 | 默认值 | 范围或用途 |
+| 字段 | 默认值 | 作用说明 |
 |---|---|---|
-| `enabled` | `false` | 是否允许材料工具联网 |
-| `apiKey` | 无 | 直接密钥 |
-| `apiKeyEnv` | `MP_API_KEY` | 自定义环境变量名 |
-| `timeoutMs` | `20000` | 1,000 到 120,000 毫秒 |
-| `maxRequests` / `maxPages` | `10` | 单次操作的请求上限 |
-| `maxResults` | `100` | 单次结果上限，最大 10,000 |
-| `maxResponseBytes` | `5242880` | 1 KiB 到 64 MiB |
+| `enabled` | `false` | 是否开启 Materials Project 相关功能 |
+| `apiKey` / `apiKeyEnv` | 无 / `MP_API_KEY` | 认证密钥或对应环境变量名 |
+| `timeoutMs` | `20000` | 网络超时时间（毫秒），范围 1,000 ~ 120,000 |
+| `maxRequests` / `maxPages` | `10` | 单次查询的最大翻页/子请求限制 |
+| `maxResults` | `100` | 单次操作返回的最大记录数，上限 10,000 |
+| `maxResponseBytes` | `5242880` (5 MiB) | 单次响应的最大字节数，防止超大体积响应占用内存 |
 
-`materials_search` 用于 summary 筛选；`materials_get` 按材料 ID 合并可直接寻址的属性；`materials_route_search` 处理 task、phonon identifier、电极、衬底和合成等独立路由；`materials_advanced` 提供固定的 Python 操作及本地相图、模拟 XRD。完整矩阵见 [`materials-capabilities.md`](./materials-capabilities.md)。
+### Python 计算桥接（可选）
 
-完整能带、DOS、声子对象、官方结构辅助方法和多元相图需要 Python 3.11 以上及官方包：
+Materials Project 的基础 REST 查询（如材料概览、结构筛选、热力学与基础性质）无需安装额外环境。
 
-```powershell
-python -m pip install mp-api pymatgen
-$env:PI_SCHOLAR_PYTHON = "C:\Path\To\python.exe"
+如果你需要计算**完整能带图、态密度（DOS）、声子谱、相图（Phase Diagram）或模拟 XRD 衍射图谱**，请安装 Python 3.11+ 及官方推荐库：
+
+```sh
+pip install mp-api pymatgen
 ```
 
-```bash
-python -m pip install mp-api pymatgen
+若 Python 未加入系统环境变量，可通过环境变量指定解释器路径：
+```sh
 export PI_SCHOLAR_PYTHON="/path/to/python"
+# Windows PowerShell: $env:PI_SCHOLAR_PYTHON = "C:\Path\To\python.exe"
 ```
 
-桥接器只接受固定操作和 JSON 输入输出，不运行用户或模型提供的 Python、shell、pickle。相图会标明热力学类型、0 K/0 atm 条件和本地派生身份；模拟 XRD 不会标作实验数据。
+相图分析和模拟 XRD 为基于理论参数在本地进行的推导与计算，不额外消耗远程 API 额度。完整能力清单请参阅 [Materials Project 能力说明](./materials-capabilities.md)。
 
-## Ai4Scholar 与 MinerU
+## Ai4Scholar 与 MinerU 选项
 
-Ai4Scholar 还支持 `baseUrl`、`timeoutMs` 和 `proxyUrl`。`proxyUrl` 可以是 HTTP(S) 代理或 `direct`。对应环境变量是 `AI4SCHOLAR_BASE_URL`、`AI4SCHOLAR_TIMEOUT_MS`、`AI4SCHOLAR_PROXY` 和 `AI4SCHOLAR_MCP_URL`。`/pi-scholar setup` 将新密钥写入统一配置，`clear-key` 只删除 `ai4scholar.apiKey`。
+- **Ai4Scholar**：支持通过 `baseUrl`、`timeoutMs` 和 `proxyUrl` 配置自定义中转地址或网络代理（`proxyUrl` 支持 HTTP/HTTPS 代理地址，或设为 `direct` 直连）。相关环境变量为 `AI4SCHOLAR_BASE_URL`、`AI4SCHOLAR_TIMEOUT_MS` 及 `AI4SCHOLAR_PROXY`。
+- **MinerU**：支持配置解析超时 `timeoutMs`、轮询策略（`pollInitialMs`、`pollMaxMs`、`maxAttempts`）以及解析控制项：`language`（语言）、`enableFormula`（公式提取）、`enableTable`（表格提取）、`isOcr`（OCR 识别）和 `modelVersion`（模型版本，默认为 `vlm`）。支持通过 `MINERU_*` 系列环境变量覆盖。
 
-MinerU 支持 `timeoutMs`、`pollInitialMs`、`pollMaxMs`、`maxAttempts`、`language`、`enableFormula`、`enableTable`、`isOcr` 和 `modelVersion`。`MINERU_*` 环境变量可覆盖这些非凭据字段。外部上传必须同时满足 `research.policy.allowExternalFulltextUpload` 和调用时授权。
-
-## 同步、输出与 Zotero
-
-同步策略只接受以下保守值：
+## 本地同步、Zotero 与输出目录
 
 ```json
 {
@@ -167,23 +167,28 @@ MinerU 支持 `timeoutMs`、`pollInitialMs`、`pollMaxMs`、`maxAttempts`、`lan
     "metadataPolicy": "three-way-merge",
     "reparsePolicy": "when-required-and-authorized",
     "backupRetentionDays": 30
+  },
+  "output": {
+    "directory": "~/pi-scholar",
+    "literaturesDirectory": "Literatures",
+    "assetFilePrefix": "figure-",
+    "filenameSeparator": "-",
+    "tagSpaceReplacement": "-"
   }
 }
 ```
 
-`sync.namespace` 用于隔离不同资料库，`sync.cacheDir` 指定解析缓存。缺失输出默认只报告；恢复、排除和修复必须使用各自的显式动作。元数据刷新不会因此重传 PDF。
+- **同步安全**：同步遵循保护本地内容的原则。发生改动冲突时优先保留本地内容；元数据更新时不会重新上传 PDF，最大化节省网络与解析开销。
+- **输出管理**：`output.directory` 可直接指向你的 Obsidian Vault 目录。各篇论文以独立目录存储，图表等资产自动归入子目录 `assets` 中。
+- **Zotero 设置**：Zotero 本地 API 默认地址为 `http://127.0.0.1:23119/api`（在 Zotero 首选项 → 高级中勾选“允许其他应用程序与 Zotero 通信”）。
 
-`output.directory` 默认为 `~/pi-scholar`；`literaturesDirectory`、`assetFilePrefix`、`filenameSeparator` 和 `tagSpaceReplacement` 控制目录与文件名。对应的 `PI_SCHOLAR_OUTPUT_DIR` 等环境变量仍可覆盖 JSON。
+## 科研绘图配置
 
-Zotero `baseUrl` 只允许 `http://localhost:23119/api` 或 `http://127.0.0.1:23119/api`。`timeoutMs` 范围为 1,000 到 120,000 毫秒，`maxItems` 范围为 1 到 50,000。不要将 23119 端口暴露到外网。
+科研绘图支持在 `media` 节点下配置 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 以及自定义 OpenAI 兼容模型服务。支持按需指定生图质量、透明背景、参考图数量与分辨率档位。详细支持列表与兼容性说明见 [科研绘图供应商指南](./IMAGE_PROVIDERS.md)。
 
-## 绘图服务
+## 配置自检与诊断
 
-`media.providerOptions.<id>.apiKey` 和 `apiKeyEnv` 的优先级与其他服务相同。内置供应商为 Gemini、Vertex、OpenAI、xAI、fal.ai、Qwen/DashScope 和 Atlas，也支持显式声明的 OpenAI 兼容服务。模型、尺寸、连接测试和字段限制见 [`IMAGE_PROVIDERS.md`](./IMAGE_PROVIDERS.md)。
-
-## 校验
-
-加载配置时会检查未知字段、错误类型、数值范围、URL 和路径安全。配置文件使用 `schemaVersion: 3`，凭据字段统一为 `apiKey` 和 `apiKeyEnv`。可运行以下命令检查配置：
+修改配置文件后，可直接通过内置诊断命令检查配置是否有效、网络是否通畅：
 
 ```sh
 npx @luffysolution/pi-scholar doctor

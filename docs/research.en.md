@@ -1,37 +1,48 @@
-# Literature and research data sources
+# Literature Data Sources and Search
 
-`src/research` is limited to Semantic Scholar, OpenAlex, PubMed/PMC, arXiv, Crossref, Unpaywall, and the easyScholar journal-rank endpoint. Literature records use `LiteratureRecord` while preserving provider identifiers, retrieval time, licenses, and raw provenance.
+Pi Scholar includes a multi-source scholarly literature layer that aggregates major open academic APIs and search engines. Retrieved records are normalized into a unified format while retaining original identifiers, citation relationships, licenses, and raw provider payloads.
 
-| Source | Capabilities | Boundary |
-| --- | --- | --- |
-| Semantic Scholar | Search, lookup, references, citations, recommendations | Graph permissions and quotas remain account-specific |
-| OpenAlex | Search, structured filters, lookup, authors/institutions, references and citation relations | A key is optional and only increases quota |
-| PubMed / PMC | PubMed search/lookup/links; PMC OA license check, resolution, and XML retrieval | Full text is fetched only after an explicit OA license is returned |
-| arXiv | Atom search, version-preserving lookup, abstracts, PDF resolution and retrieval | Follow the official pacing guidance; peer-review status is not inferred |
-| Crossref | DOI search/lookup, metadata completion, references, and preserved update/retraction relations | Metadata is not full-text authorization |
-| Unpaywall | DOI-based OA status, version, license, and location resolution | Resolves locations only; it does not download or grant content rights |
-| easyScholar | Journal rank and partition enhancement (`getPublicationRank`) | Requires `SecretKey`; only this endpoint is claimed |
+## Supported Data Sources
 
-The `ai4scholar_*` tools cover explicitly selected Google Scholar, patent, dataset, journal, and advanced workflows. Ai4Scholar is outside the first-party registry above and is never called or charged as an automatic fallback when another source fails.
+| Source | Core Capabilities | Notes and Tips |
+|---|---|---|
+| **Semantic Scholar** | Paper search, paper details, reference/citation graphs, recommendations | Free to use; adding an API key unlocks higher concurrency and daily request limits |
+| **OpenAlex** | Institution/author lookup, multi-field structured filtering, global citation graph | Open access and community-driven; no API key needed for full functionality |
+| **PubMed / PMC** | Biomedical literature search, open-access PMC full text discovery and retrieval | Free search; an optional NCBI API key improves rate limits; retrieves OA full text |
+| **arXiv** | Computer science, physics, and math preprints; direct PDF retrieval | Free to use; resolves and downloads the exact versioned preprint PDF |
+| **Crossref** | Authoritative DOI metadata lookup, publication updates, errata, and retractions | Ideal for completing publication year, volume, issue, and page numbers via DOI |
+| **Unpaywall** | Resolves legal, free open-access full-text URLs and licenses by DOI | Requires a valid contact email in configuration (`contact`) |
+| **easyScholar** | Quick lookup for journal ratings and JCR / CAS divisions | Requires your easyScholar `SecretKey` in configuration |
 
-CAS Common Chemistry is an independent `src/chemistry` data boundary using `ChemicalRecord`; it is not a literature provider. CAS API access and endpoint terms require provider approval, so its client is `contract_blocked` / `permission_required` and does not guess routes. Its scope is limited to substance names, CAS RNs, structures, and basic information. It does not cover literature, reactions, or SciFinder search.
+### Independent Add-on Services
 
-## Tools and safety
+- **Ai4Scholar**: Provides Google Scholar discovery, patent search, scholarly dataset lookup, and advanced workflows. These tools use the `ai4scholar_*` prefix and are called only when explicitly requested, preventing unexpected quota consumption.
+- **CAS Common Chemistry**: Provides substance name, CAS Registry Number, and structure lookups in a dedicated chemistry module. See [CAS Common Chemistry](./chemistry.en.md) for details.
 
-`research_sources` is a side-effect-free status query. `literature_search`, `literature_get`, `literature_graph`, `journal_metrics`, and `literature_fulltext` are capability-gated; full-text `resolve` and `fetch` are separate actions.
+## Tool Set and Actions
 
-`chemical_sources`, `chemical_search`, and `chemical_get` are separate chemical-data tools. They read `data.providers["cas-common-chemistry"]` and make no request while the CAS contract is blocked.
+The research module registers the following tools with Pi:
 
-Only official HTTPS hosts are allowed. Keyed providers accept direct `apiKey`, `apiKeyEnv`, or their standard environment variable. The Unpaywall contact email comes from `research.contact` or the provider `contact`. URLs, diagnostics, and tool output are redacted. GET requests use bounded retries with `Retry-After`; POST is not retried by default. Timeouts, request/page budgets, and response-body limits are enforced.
+- `research_sources`: Inspect provider configuration, credentials, and capabilities offline without making network requests.
+- `literature_search`: Search across enabled providers with support for year ranges, keywords, and open-access filtering.
+- `literature_get`: Fetch detailed paper metadata using a provider-specific identifier (such as DOI, arXiv ID, or PMID).
+- `literature_graph`: Fetch citation networks for a paper: `references`, `citations`, or `recommendations`.
+- `journal_metrics`: Query journal metrics and ranking tiers (powered by easyScholar).
+- `literature_fulltext`: Handle full-text paper resources with two explicit actions:
+  - `action: "resolve"`: Look up open-access download URLs and license terms.
+  - `action: "fetch"`: Download and locally cache paper full-text files (such as arXiv PDFs).
 
-## Configuration
+## Configuration Example
 
 ```json
 {
   "schemaVersion": 3,
   "research": {
-    "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },
-    "contact": "you@example.org",
+    "policy": {
+      "allowPaidFallback": false,
+      "allowExternalFulltextUpload": false
+    },
+    "contact": "your-email@example.org",
     "providers": {
       "semantic-scholar": { "enabled": true, "apiKeyEnv": "SEMANTIC_SCHOLAR_API_KEY" },
       "openalex": { "enabled": true, "apiKeyEnv": "OPENALEX_API_KEY" },
@@ -45,15 +56,22 @@ Only official HTTPS hosts are allowed. Keyed providers accept direct `apiKey`, `
 }
 ```
 
-This example uses environment variables. Replace `apiKeyEnv` with `apiKey` to store a direct key. Keys are optional for Semantic Scholar, OpenAlex, and PubMed; the easyScholar SecretKey is required. A missing contact email makes an Unpaywall request fail before execution.
+- Providers that accept keys support either environment variables (`apiKeyEnv`) or direct keys (`apiKey`).
+- API keys for Semantic Scholar, OpenAlex, and PubMed are optional; the easyScholar `SecretKey` is required when enabled.
+- Unpaywall requires a valid contact email, which can be configured via `research.contact` or `unpaywall.contact`.
 
-## Official contracts
+## Network and Safety Notes
+
+- All network requests connect directly to official provider HTTPS endpoints; redirects to unverified third-party hosts are rejected.
+- API keys, authorization tokens, and credentials are automatically redacted from logs, outputs, and generated documents.
+- Built-in request timeouts, page limits, and `Retry-After` pacing protect your access against upstream rate limiting.
+
+## Official API Documentation
 
 - [Semantic Scholar Graph API](https://api.semanticscholar.org/api-docs/graph)
 - [OpenAlex API](https://docs.openalex.org/)
 - [NCBI E-utilities and PMC OA](https://www.ncbi.nlm.nih.gov/books/NBK25497/)
-- [arXiv API manual](https://info.arxiv.org/help/api/user-manual.html)
+- [arXiv API Manual](https://info.arxiv.org/help/api/user-manual.html)
 - [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)
 - [Unpaywall REST API](https://unpaywall.org/api)
-- [easyScholar journal-rank endpoint](https://www.easyscholar.cc/open/getPublicationRank)
-- [CAS Common Chemistry API](https://www.cas.org/services/commonchemistry-api)
+- [easyScholar Journal Rank API](https://www.easyscholar.cc/open/getPublicationRank)
