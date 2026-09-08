@@ -50,7 +50,7 @@ test("publication creates self-contained paper directories, handles collisions a
   const first=await publishPaper(root,paper(),normalized,publication);assert.equal(path.basename(path.dirname(first.markdownPath)),"Lovelace-2024-A Study α β");assert.equal(path.basename(first.markdownPath),"Lovelace-2024-A Study α β.md");assert.equal(path.basename(first.assetsDirectory),"assets");assert.equal(await readFile(path.join(first.assetsDirectory,"figure-01.png"),"utf8"),"image");const firstMarkdown=await readFile(first.markdownPath,"utf8");assert.match(firstMarkdown,/!\[x\]\(<\.\/assets\/figure-01.png>\)/);assert.equal(first.metadataPath,path.join(path.dirname(first.markdownPath),"metadata.json"));const sidecar=JSON.parse(await readFile(first.metadataPath,"utf8"));assert.equal(sidecar.zotero.selected_key,"PAPER001");
   const other=paper({zoteroKey:"PAPER002"});const second=await publishPaper(root,other,normalized,publication);assert.match(path.basename(second.markdownPath),/ \(2\)\.md$/);
   const updated=await publishPaper(root,paper({title:"Renamed title"}),{body:"# Updated\n",assets:[]},publication);assert.equal(updated.markdownPath,first.markdownPath);assert.match(await readFile(first.markdownPath,"utf8"),/# Updated/);
-  assert.deepEqual((await readdir(path.join(root,"Literatures"))).filter(n=>n.startsWith(".pi-scholar-")),[]);
+  assert.equal((await readdir(path.join(root,"Literatures"))).filter(n=>n.startsWith(".pi-scholar-backup-")).length,1);
 });
 
 test("literature directory, image prefix and tag style are configurable",async()=>{
@@ -79,5 +79,5 @@ test("publication honors cancellation without emitting final artifacts",async()=
 });
 
 test("concurrent publications cannot race on a shared readable basename",async()=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-lock-"));const normalized={body:"body\n",assets:[]};const settled=await Promise.allSettled([publishPaper(root,paper(),normalized,publication),publishPaper(root,paper({zoteroKey:"PAPER002"}),normalized,publication)]);assert.equal(settled.filter(x=>x.status==="fulfilled").length,1);assert.match(String((settled.find(x=>x.status==="rejected") as PromiseRejectedResult).reason),/Another parse publication/);
+  const root=await mkdtemp(path.join(os.tmpdir(),"pi-scholar-lock-"));const normalized={body:"body\n",assets:[]};const settled=await Promise.allSettled([publishPaper(root,paper(),normalized,publication),publishPaper(root,paper({zoteroKey:"PAPER002"}),normalized,publication)]);assert.equal(settled.filter(x=>x.status==="fulfilled").length,1);assert.match(String((settled.find(x=>x.status==="rejected") as PromiseRejectedResult).reason),/CONFLICT/);
 });

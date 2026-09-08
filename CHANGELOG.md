@@ -2,6 +2,16 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 0.5.0 - 2026-09-08
+
+- Add versioned research, materials, and sync configuration, source setup candidates, and non-overwriting configuration migration previews/backups.
+- Route local parsing through synchronization checks and protect publication identity and user content.
+- Add the bounded first-party literature set (Semantic Scholar, OpenAlex, PubMed/PMC, arXiv, Crossref, Unpaywall, and SecretKey-gated easyScholar journal ranks), Materials Project workflows, and an independent contract-gated CAS Common Chemistry model.
+- Preserve Ai4Scholar as an explicitly selected compatible service; it is not a required first-party routing dependency or automatic paid fallback.
+- Stop automatic retransmission after uncertain MinerU task creation/upload; enforce an overall operation deadline.
+- Update research/reading skills and add Materials Project and chemical-data workflows.
+- Fix canonical Materials Project collection URLs and capability routing for DOI-only Unpaywall lookup.
+
 ## 0.4.3 - 2026-09-06
 
 ### Changed

@@ -39,7 +39,7 @@ test("truncation is line and UTF-8 byte aware and discloses totals",()=>{
 
 test("local tools register exactly once with strict action schemas and named guidance",()=>{
   const tools:any[]=[];registerScholarTools({registerTool:(tool:any)=>tools.push(tool)} as any);
-  assert.deepEqual(tools.map(t=>t.name),["zotero_collections","zotero_search","zotero_item","pi_scholar_parse"]);
+  assert.deepEqual(tools.map(t=>t.name),["zotero_collections","zotero_search","zotero_item","pi_scholar_parse","pi_scholar_sync"]);
   for(const tool of tools){assert.ok(tool.label&&tool.description&&tool.promptSnippet);assert.ok(tool.promptGuidelines.every((g:string)=>g.includes(tool.name)));assert.equal(typeof tool.execute,"function");}
   const collections=tools[0].parameters;assert.ok(collections.required.includes("action"));assert.deepEqual(collections.properties.action.enum,["list","read","items"]);
 });

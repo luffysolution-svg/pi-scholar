@@ -11,9 +11,14 @@ Pi Scholar 是面向 Pi 的一体化科研扩展，在一个安装包中提供�
 
 输出是普通 UTF-8 Markdown、JSON 元数据和图片文件，不依赖 Obsidian 插件或数据库；将输出目录设置为 Obsidian Vault 后即可直接使用。
 
+安全同步、多源文献和 Materials Project 使用版本化配置；升级步骤、费用边界和迁移预览见 [v2 使用说明](docs/UPGRADE_V2.md)。
+
 ## ✨ 主要功能
 
-- 🔎 检索 Semantic Scholar、PubMed、Google Scholar 和 Google Patents
+- 🔎 通过 Semantic Scholar、OpenAlex、PubMed/PMC、arXiv 和 Crossref 发现并核验文献
+- 🔓 通过 Unpaywall 定位带版本与许可信息的开放获取全文
+- 🧪 查询 Materials Project 材料数据，并隔离管理 CAS Common Chemistry 化学物质记录
+- 🛰️ 保留可显式选择的 Ai4Scholar 服务（包括 Google Scholar、专利及高级工作流），不作自动付费兜底
 - 🧭 查询论文、作者、引用网络、相关推荐、全文片段和数据集
 - 📊 查询 JCR / 中科院分区并进行投稿期刊推荐
 - 🗂️ 只读搜索 Zotero 收藏夹、条目、笔记、批注和附件
@@ -34,7 +39,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 也可以固定版本或从 GitHub 安装：
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.4.3
+pi install npm:@luffysolution/pi-scholar@0.5.0
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -64,13 +69,15 @@ pi remove npm:@luffysolution/pi-scholar
 /pi-scholar credits     查询在线服务积分
 /pi-scholar docs        打开配置文档地址
 /pi-scholar clear-key   删除本机保存的密钥
+/pi-scholar setup-sources  预览并生成多源配置候选
+/pi-scholar config-migrate  安全生成 v2 配置候选和备份
 ```
 
-Ai4Scholar API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentials.json`。绘图平台密钥统一由 `pi-scholar.config.json` 的 `media` 段读取，可直接填写 `apiKey`，也可填写 `apiKeyEnv` 指定环境变量；不要提交含密钥的配置。
+Ai4Scholar 服务不会删除：API Key 仍只保存在环境变量或 `~/.pi/agent/pi-scholar.credentials.json`，并仅在用户显式选择相关工具时调用。新文献/数据来源在统一配置中只保存凭据环境变量名；绘图平台继续兼容 `media` 段的直接 `apiKey` 或 `apiKeyEnv`。不要提交含密钥的配置。
 
 ## 🧠 内置技能
 
-安装包同时提供一个编排技能和五个专用技能：
+安装包同时提供一个编排技能和七个专用技能：
 
 | 技能 | 用途 |
 |---|---|
@@ -80,6 +87,8 @@ Ai4Scholar API Key 只保存在环境变量或 `~/.pi/agent/pi-scholar.credentia
 | `paper-reading` | MinerU PDF 解析与正文、公式、表格、图片精读 |
 | `academic-citation` | 引用核验、格式化、参考文献和自动引用 |
 | `scientific-figure` | 科研图片生成、编辑、评审和矢量化 |
+| `materials-project` | 材料筛选、结构、性质、计算来源和导出 |
+| `chemical-data` | CAS Common Chemistry 化学物质名称、CAS RN、结构与基本信息 |
 
 日常使用只需记住 `/pi-scholar`；专用技能也可通过 `/skill:<技能名>` 显式调用。
 

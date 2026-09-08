@@ -18,10 +18,55 @@ Relative JSON values for `output.directory`, `zotero.dataDir`, `media.outputDir`
 
 > `pi-scholar.config.json` is ignored by Git. Do not commit personal filesystem paths to a public repository.
 
+## `schemaVersion: 2`: research sources, data sources, and safe sync
+
+All sources are enabled from one configuration file while retaining their official APIs and distinct data models. `research.providers` accepts only `semantic-scholar`, `openalex`, `pubmed`, `arxiv`, `crossref`, `unpaywall`, and `easyscholar`. Materials Project and CAS Common Chemistry live under `data.providers` and are never converted into ordinary literature records. Existing `ai4scholar_*` tools and `/pi-scholar setup` remain available, but Ai4Scholar is an explicitly selected independent service—not a required dependency or automatic paid fallback for the multi-source router.
+
+```json
+{
+  "schemaVersion": 2,
+  "research": {
+    "policy": {
+      "allowPaidFallback": false,
+      "allowExternalFulltextUpload": false
+    },
+    "providers": {
+      "semantic-scholar": { "enabled": true, "credentialEnv": "SEMANTIC_SCHOLAR_API_KEY" },
+      "openalex": { "enabled": true, "credentialEnv": "OPENALEX_API_KEY" },
+      "pubmed": { "enabled": true, "credentialEnv": "NCBI_API_KEY" },
+      "arxiv": { "enabled": true },
+      "crossref": { "enabled": true },
+      "unpaywall": { "enabled": true, "contact": "researcher@example.org" },
+      "easyscholar": { "enabled": false, "credentialEnv": "EASYSCHOLAR_SECRET_KEY" }
+    }
+  },
+  "data": {
+    "providers": {
+      "materials-project": { "enabled": false, "credentialEnv": "MP_API_KEY" },
+      "cas-common-chemistry": { "enabled": false }
+    }
+  },
+  "sync": {
+    "missingPolicy": "skip-and-report",
+    "conflictPolicy": "preserve-local",
+    "metadataPolicy": "three-way-merge",
+    "reparsePolicy": "when-required-and-authorized",
+    "backupRetentionDays": 30
+  }
+}
+```
+
+`credentialEnv` stores only an environment-variable name. Semantic Scholar, OpenAlex, and PubMed may permit basic calls without a key; a configured key only selects the relevant account quota. Unpaywall REST v2 requires a contact email on requests, so it uses `contact`, not an API-key field. easyScholar's `getPublicationRank` endpoint requires `EASYSCHOLAR_SECRET_KEY` and supports journal rank/partition lookup only; it does not imply access to other membership features. Materials Project requires `MP_API_KEY`. CAS supplies Common Chemistry API access information on request; authentication and contract behavior must match those supplied documents, and Common Chemistry must never be represented as SciFinder literature or reaction search.
+
+`enabled` permits routing but performs no network probe and proves no entitlement. Use `research_sources` to inspect independent implementation, credential, access, and validation states; live checks require an explicit user action. See [`research.en.md`](./research.en.md) for provider contracts, [`materials-capabilities.md`](./materials-capabilities.md) for the Materials Project matrix, and [`chemistry.en.md`](./chemistry.en.md) for the CAS boundary.
+
+The sync section currently accepts only the four conservative values shown above. Missing output is reported and skipped by default; restore and exclusion are separate explicit operations, and metadata refresh must not retransmit a PDF. `sync.namespace` isolates libraries, `sync.cacheDir` selects the parse cache, and `backupRetentionDays` ranges from 1–3650. A MinerU upload requires both configuration permission and explicit authorization on the call.
+
 ## Full example
 
 ```json
 {
+  "schemaVersion": 2,
   "output": {
     "directory": "F:/my-vault",
     "literaturesDirectory": "Literatures",

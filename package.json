@@ -1,6 +1,6 @@
 {
   "name": "@luffysolution/pi-scholar",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "All-in-one Pi research extension for literature discovery, Zotero, PDF parsing, citations, and multi-provider scientific image generation",
   "type": "module",
   "license": "MIT",
@@ -39,6 +39,7 @@
     "src",
     "skills",
     "bin",
+    "scripts/live-sources.ts",
     "docs",
     "README.md",
     "README.en.md",
@@ -58,6 +59,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
+    "test:live": "tsx scripts/live-sources.ts",
     "pack:check": "node scripts/check-pack.mjs",
     "prepublishOnly": "npm test && npm run check && npm run pack:check"
   },
@@ -65,6 +67,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "adm-zip": "^0.6.0",
     "google-auth-library": "^10.9.1",
+    "saxes": "^6.0.0",
     "undici": "^8.9.0",
     "yaml": "^2.8.1"
   },

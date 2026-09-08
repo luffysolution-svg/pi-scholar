@@ -119,8 +119,13 @@ export class MinerUClient {
         "MinerU API",
         deadline,
       );
-      const json = JSON.parse(Buffer.from(await readResponseBytes(response, 2 * 1024 * 1024, signal)).toString("utf8")) as Record<string, unknown>;
-      if (!json || typeof json !== "object" || Array.isArray(json)) throw new Error("MinerU API returned malformed JSON");
+      let json: Record<string, unknown>;
+      try {
+        json = JSON.parse(Buffer.from(await readResponseBytes(response, 2 * 1024 * 1024, signal)).toString("utf8")) as Record<string, unknown>;
+        if (!json || typeof json !== "object" || Array.isArray(json) || !["number", "string"].includes(typeof json.code)) throw new Error("Malformed response");
+      } catch {
+        throw new Error(init.method === "POST" ? "AMBIGUOUS_SUBMISSION: MinerU task response was unreadable; do not resubmit automatically" : "MinerU API returned malformed JSON");
+      }
       if (json.code === 0) return json;
       if (json.code !== -10001 || attempt === MAX_HTTP_ATTEMPTS - 1) {
         throw new Error(
@@ -141,6 +146,7 @@ export class MinerUClient {
     deadline?: number,
   ): Promise<Response> {
     let last: unknown;
+    const safeToRetry = !init.method || init.method === "GET" || init.method === "HEAD";
     for (let attempt = 0; attempt < MAX_HTTP_ATTEMPTS; attempt += 1) {
       const remaining = this.remaining(deadline);
       if (remaining !== undefined && remaining <= 0) break;
@@ -155,9 +161,10 @@ export class MinerUClient {
         const response = await this.fetcher(url, { ...init, redirect: "error", signal: requestSignal });
         if (response.ok) return response;
         await response.body?.cancel().catch(() => undefined);
-        if (response.status < 500 && response.status !== 429) {
+        if (response.status < 500 && (response.status !== 429 || !safeToRetry)) {
           throw new Error(`${stage} rejected (${response.status})`);
         }
+        if (!safeToRetry) throw new Error(`AMBIGUOUS_SUBMISSION: ${stage} returned ${response.status}; do not resubmit automatically`);
         last = new Error(`${stage} transient failure (${response.status})`);
         if (attempt < MAX_HTTP_ATTEMPTS - 1) {
           const retryAfterSeconds = Number(response.headers.get("retry-after"));
@@ -167,8 +174,9 @@ export class MinerUClient {
           if (!await this.wait(requestedDelay, signal, deadline)) break;
         }
       } catch (error) {
-        if (signal?.aborted) throw signal.reason ?? new Error("MinerU operation cancelled");
         if (error instanceof Error && /rejected \(4\d\d\)/.test(error.message)) throw error;
+        if (!safeToRetry) throw new Error(`AMBIGUOUS_SUBMISSION: ${stage} may have succeeded; do not resubmit automatically`);
+        if (signal?.aborted) throw signal.reason ?? new Error("MinerU operation cancelled");
         last = error;
         if (attempt < MAX_HTTP_ATTEMPTS - 1 && !await this.wait(1000 * 2 ** attempt, signal, deadline)) break;
       }
@@ -178,6 +186,9 @@ export class MinerUClient {
   }
 
   async extract(pdfPath: string, signal?: AbortSignal, progress?: Progress): Promise<MinerURun> {
+    const deadline = Date.now() + (this.options.timeoutMs ?? 600_000);
+    const totalTimeout = AbortSignal.timeout(Math.max(1, this.options.timeoutMs ?? 600_000));
+    signal = signal ? AbortSignal.any([signal, totalTimeout]) : totalTimeout;
     const info = await stat(pdfPath);
     if (!info.isFile()) throw new Error("Selected Zotero PDF is not a file");
     if (info.size > MAX_PDF_BYTES) throw new Error("Selected PDF exceeds MinerU's 200 MB limit");
@@ -203,11 +214,12 @@ export class MinerUClient {
       "/api/v4/file-urls/batch",
       { method: "POST", body: JSON.stringify(requestBody) },
       signal,
+      deadline,
     );
     const data = creation.data as Record<string, unknown> | undefined;
     const batchId = String(data?.batch_id ?? "");
     const signed = (data?.file_urls as unknown[] | undefined)?.[0];
-    if (!batchId || typeof signed !== "string") throw new Error("MinerU signed-upload response was malformed");
+    if (!batchId || typeof signed !== "string") throw new Error("AMBIGUOUS_SUBMISSION: MinerU signed-upload response was malformed");
 
     progress?.("uploading PDF");
     await this.retry(
@@ -215,10 +227,10 @@ export class MinerUClient {
       { method: "PUT", body: bytes as unknown as BodyInit },
       signal,
       "MinerU signed upload",
+      deadline,
     );
 
     progress?.("waiting for extraction");
-    const deadline = Date.now() + (this.options.timeoutMs ?? 600_000);
     const maxAttempts = this.options.maxAttempts ?? 120;
     let interval = this.options.initialPollMs ?? 3000;
     let completed: Record<string, unknown> | null = null;
@@ -256,6 +268,7 @@ export class MinerUClient {
       { method: "GET" },
       signal,
       "MinerU result download",
+      deadline,
     );
     const archive = await readResponseBytes(archiveResponse, MAX_ARCHIVE_BYTES, signal);
 

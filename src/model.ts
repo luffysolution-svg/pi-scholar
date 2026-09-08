@@ -28,7 +28,17 @@ export interface Paper {
   notes: PaperNote[]; annotations: PaperAnnotation[]; attachments: PaperAttachment[]; selectedPdf: PaperAttachment | null;
 }
 export interface MinerUInfo { batchId: string; state: "done"; fileName: string; dataId: string | null; modelVersion: string | null; parserVersion: string | null; options: Record<string, unknown> }
-export interface PublishedPaper { markdownPath: string; metadataPath: string; assetsDirectory: string; pdfSha256: string; mineru: MinerUInfo; parsedAt: string }
+export interface PublishedPaper {
+  markdownPath: string; metadataPath: string; assetsDirectory: string; pdfSha256: string; mineru: MinerUInfo; parsedAt: string;
+  /** Stable local publication identity and manifest namespace. */
+  publicationId?: string; namespace?: string;
+  /** True when the old backup could not be removed after commit. */
+  cleanupPending?: boolean;
+}
+
+export function zoteroPublicationId(namespace: string, paper: Pick<Paper, "zoteroKey"|"selectedPdf">): string {
+  return `zotero:${namespace}:${paper.zoteroKey}:${paper.selectedPdf?.key ?? "no-attachment"}`;
+}
 
 export function scholarlyIdentity(paper: Pick<Paper, "doi" | "title" | "year">): string {
   if (paper.doi) return `doi:${paper.doi.trim().toLowerCase().replace(/^https?:\/\/(dx\.)?doi\.org\//, "")}`;

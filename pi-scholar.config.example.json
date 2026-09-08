@@ -1,4 +1,30 @@
 {
+  "schemaVersion": 2,
+  "research": {
+    "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },
+    "providers": {
+      "semantic-scholar": { "enabled": true, "credentialEnv": "SEMANTIC_SCHOLAR_API_KEY" },
+      "openalex": { "enabled": true, "credentialEnv": "OPENALEX_API_KEY" },
+      "pubmed": { "enabled": true, "credentialEnv": "NCBI_API_KEY" },
+      "arxiv": { "enabled": true },
+      "crossref": { "enabled": true },
+      "unpaywall": { "enabled": true, "contact": "researcher@example.org" },
+      "easyscholar": { "enabled": false, "credentialEnv": "EASYSCHOLAR_SECRET_KEY" }
+    }
+  },
+  "data": {
+    "providers": {
+      "materials-project": { "enabled": false, "credentialEnv": "MP_API_KEY", "maxRequests": 10, "maxResults": 100 },
+      "cas-common-chemistry": { "enabled": false }
+    }
+  },
+  "sync": {
+    "missingPolicy": "skip-and-report",
+    "conflictPolicy": "preserve-local",
+    "metadataPolicy": "three-way-merge",
+    "reparsePolicy": "when-required-and-authorized",
+    "backupRetentionDays": 30
+  },
   "zotero": {
     "baseUrl": "http://127.0.0.1:23119/api",
     "timeoutMs": 15000,

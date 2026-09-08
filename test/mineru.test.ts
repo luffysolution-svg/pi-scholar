@@ -8,6 +8,42 @@ import { archive, json } from "./helpers.js";
 
 async function pdfFile():Promise<string>{const dir=await mkdtemp(path.join(os.tmpdir(),"mineru-"));const file=path.join(dir,"paper.pdf");await writeFile(file,"%PDF-mocked-content");return file;}
 
+test("ambiguous task creation and upload failures are never resubmitted", async () => {
+  const pdf = await pdfFile();
+  for (const failedStage of ["POST", "PUT"]) {
+    const calls: string[] = [];
+    const fetcher: typeof fetch = async (_input, init = {}) => {
+      calls.push(init.method!);
+      if (init.method === failedStage) throw new Error("socket closed after sending PRIVATE-TOKEN");
+      return json({ code: 0, data: { batch_id: "batch", file_urls: ["https://signed.example/u"] } });
+    };
+    await assert.rejects(new MinerUClient({ token: "PRIVATE-TOKEN" }, fetcher, async () => {}).extract(pdf), error => {
+      assert.match(String(error), /AMBIGUOUS_SUBMISSION/);
+      assert.doesNotMatch(String(error), /PRIVATE-TOKEN/);
+      return true;
+    });
+    assert.equal(calls.filter(method => method === failedStage).length, 1);
+  }
+});
+
+test("HTTP 503 after creation is ambiguous and does not create a second job", async () => {
+  let calls = 0;
+  const pdf = await pdfFile();
+  await assert.rejects(new MinerUClient({ token: "secret" }, async () => {
+    calls++;
+    return new Response(null, { status: 503 });
+  }, async () => {}).extract(pdf), /AMBIGUOUS_SUBMISSION/);
+  assert.equal(calls, 1);
+});
+
+test("body cancellation interrupts a stalled stream read", async () => {
+  const controller = new AbortController();
+  const response = new Response(new ReadableStream<Uint8Array>({ start() {} }));
+  const pending = readResponseBytes(response, 1024, controller.signal);
+  controller.abort(new Error("cancel stalled body"));
+  await assert.rejects(pending, /cancel stalled body/);
+});
+
 test("MinerU performs signed raw PUT, bounded polling and archive download without exposing secrets",async()=>{
   const pdf=await pdfFile();const zip=archive("# Result\n![x](images/x.png)",{"images/x.png":"image"});const calls:{url:string;init:RequestInit}[]=[];let polls=0;const stages:string[]=[];
   const fetcher:typeof fetch=async(input,init={})=>{const url=String(input);calls.push({url,init});if(url.endsWith("/file-urls/batch"))return json({code:0,data:{batch_id:"batch-secret",file_urls:["https://signed.example/upload?signature=SECRET"]}});if(url.startsWith("https://signed.example/upload"))return new Response(null,{status:200});if(url.includes("/extract-results/batch/")){polls++;return json({code:0,data:{extract_result:[polls===1?{data_id:"different",state:"pending"}:{state:"done",file_name:"paper.pdf",full_zip_url:"https://download.example/result?signature=SECRET",model_version:"vlm",version:"2.5"}]}});}if(url.startsWith("https://download.example/"))return new Response(zip.buffer.slice(zip.byteOffset,zip.byteOffset+zip.byteLength) as ArrayBuffer,{status:200,headers:{"content-length":String(zip.length)}});throw new Error("unexpected request");};

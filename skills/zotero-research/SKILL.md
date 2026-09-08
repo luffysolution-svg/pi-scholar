@@ -15,6 +15,6 @@ Treat Zotero as read-only. Never create, edit, move, tag, or delete library item
 4. Use `zotero_item` with `mode=aggregate` for the selected parent item. Inspect complete metadata, notes, PDF annotations, attachment paths, indexed-text status, and selected PDF.
 5. If several PDFs exist, require or explain the selected attachment key. Do not assume similarly named attachments are identical.
 6. Treat indexed-text unavailability as unknown content, not as an empty paper.
-7. Use `pi_scholar_parse` only when structured full text, formulas, tables, or figures are actually needed; otherwise avoid uploading the PDF.
+7. Inspect `pi_scholar_sync` status/plan before using `pi_scholar_parse`. Parsing is only for necessary structured full text, formulas, tables, or figures with authorized upload; bibliographic refreshes use local paths. A missing or excluded publication does not authorize re-import.
 
 If Zotero is unavailable, ask the user to start Zotero and enable local application communication. Never suggest exposing port 23119 externally.

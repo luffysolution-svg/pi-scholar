@@ -11,9 +11,14 @@ Pi Scholar is an all-in-one research extension for Pi. One package provides onli
 
 Output is ordinary UTF-8 Markdown, JSON metadata, and image files. No Obsidian plugin or database is required; point the output directory at an Obsidian vault if desired.
 
+Safe sync, multi-source literature, and Materials Project use versioned configuration. See the [v2 guide](docs/UPGRADE_V2.en.md) for migration previews and cost boundaries.
+
 ## ✨ Features
 
-- Search Semantic Scholar, PubMed, Google Scholar, and Google Patents
+- Discover and verify literature through Semantic Scholar, OpenAlex, PubMed/PMC, arXiv, and Crossref
+- Resolve open-access versions with version and license metadata through Unpaywall
+- Query Materials Project while keeping CAS Common Chemistry substance records in a separate data model
+- Preserve explicitly selected Ai4Scholar workflows, including Google Scholar and patents, without automatic paid fallback
 - Inspect papers, authors, citation networks, recommendations, snippets, and datasets
 - Query JCR/CAS journal metrics and recommend submission venues
 - Read Zotero collections, items, notes, annotations, and attachments without mutation
@@ -34,7 +39,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@0.4.3
+pi install npm:@luffysolution/pi-scholar@0.5.0
 pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
 ```
 
@@ -64,13 +69,15 @@ Setup and status are handled by the same command:
 /pi-scholar credits     Check online-service credits
 /pi-scholar docs        Show the configuration documentation URL
 /pi-scholar clear-key   Delete the locally stored key
+/pi-scholar setup-sources  Preview and write a multi-source configuration candidate
+/pi-scholar config-migrate  Safely write a v2 candidate and verified backup
 ```
 
-The Ai4Scholar key lives only in an environment variable or `~/.pi/agent/pi-scholar.credentials.json`. Image-provider keys are read from the unified `media` configuration: enter `apiKey` directly or set `apiKeyEnv` to an environment-variable name. Never commit a credential-bearing config.
+The Ai4Scholar service remains available: its key still lives only in an environment variable or `~/.pi/agent/pi-scholar.credentials.json`, and the service is called only when the user explicitly selects its tools. New literature/data source configuration stores credential environment-variable names. Image providers retain their existing direct `media.apiKey` or `apiKeyEnv` compatibility. Never commit a credential-bearing config.
 
 ## 🧠 Included skills
 
-The package contains one orchestrator and five focused skills:
+The package contains one orchestrator and seven focused skills:
 
 | Skill | Purpose |
 |---|---|
@@ -80,6 +87,8 @@ The package contains one orchestrator and five focused skills:
 | `paper-reading` | MinerU parsing and close reading of text, formulas, tables, and figures |
 | `academic-citation` | Citation verification, formatting, bibliographies, and automatic citation |
 | `scientific-figure` | Scientific figure generation, editing, critique, and vectorization |
+| `materials-project` | Materials screening, structures, properties, calculation provenance, and export |
+| `chemical-data` | CAS Common Chemistry names, CAS RN, structures, and basic substance data |
 
 For everyday use, remember only `/pi-scholar`. Focused skills can also be invoked explicitly with `/skill:<name>`.
 

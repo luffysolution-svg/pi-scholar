@@ -14,12 +14,15 @@ export async function readResponseBytes(
   if (!response.body) return new Uint8Array();
 
   const reader = response.body.getReader();
+  const abort = () => { void reader.cancel(signal?.reason).catch(() => undefined); };
+  signal?.addEventListener("abort", abort, { once: true });
   const chunks: Uint8Array[] = [];
   let total = 0;
   try {
     while (true) {
       signal?.throwIfAborted();
       const { done, value } = await reader.read();
+      signal?.throwIfAborted();
       if (done) break;
       if (!value) continue;
       total += value.byteLength;
@@ -32,6 +35,9 @@ export async function readResponseBytes(
   } catch (error) {
     await reader.cancel().catch(() => undefined);
     throw error;
+  } finally {
+    signal?.removeEventListener("abort", abort);
+    reader.releaseLock();
   }
 
   const output = new Uint8Array(total);
@@ -57,7 +63,7 @@ export async function readFileBounded(file: string, maxBytes: number, signal?: A
       if (!bytesRead) break;
       offset += bytesRead;
     }
-    if (offset > info.size || offset > maxBytes) throw new Error("File grew while reading; retry with a stable input");
+    if (offset !== info.size || offset > maxBytes) throw new Error("File changed while reading; retry with a stable input");
     return bytes.subarray(0, offset);
   } finally { await handle.close(); }
 }

@@ -18,10 +18,55 @@ JSON 中的相对 `output.directory`、`zotero.dataDir`、`media.outputDir` 和 
 
 > `pi-scholar.config.json` 已被 `.gitignore` 忽略。不要把包含本地路径的个人配置提交到公开仓库。
 
+## `schemaVersion: 2`：科研来源、数据来源与安全同步
+
+所有来源在同一份配置中启用，但仍使用各自的官方接口和数据模型。`research.providers` 只接受 `semantic-scholar`、`openalex`、`pubmed`、`arxiv`、`crossref`、`unpaywall` 和 `easyscholar`；Materials Project 与 CAS Common Chemistry 位于 `data.providers`，不会被转换成普通文献记录。现有 `ai4scholar_*` 服务和 `/pi-scholar setup` 保持可用，但它是用户显式选择的独立服务，不是多源路由的必需依赖或自动付费兜底。
+
+```json
+{
+  "schemaVersion": 2,
+  "research": {
+    "policy": {
+      "allowPaidFallback": false,
+      "allowExternalFulltextUpload": false
+    },
+    "providers": {
+      "semantic-scholar": { "enabled": true, "credentialEnv": "SEMANTIC_SCHOLAR_API_KEY" },
+      "openalex": { "enabled": true, "credentialEnv": "OPENALEX_API_KEY" },
+      "pubmed": { "enabled": true, "credentialEnv": "NCBI_API_KEY" },
+      "arxiv": { "enabled": true },
+      "crossref": { "enabled": true },
+      "unpaywall": { "enabled": true, "contact": "researcher@example.org" },
+      "easyscholar": { "enabled": false, "credentialEnv": "EASYSCHOLAR_SECRET_KEY" }
+    }
+  },
+  "data": {
+    "providers": {
+      "materials-project": { "enabled": false, "credentialEnv": "MP_API_KEY" },
+      "cas-common-chemistry": { "enabled": false }
+    }
+  },
+  "sync": {
+    "missingPolicy": "skip-and-report",
+    "conflictPolicy": "preserve-local",
+    "metadataPolicy": "three-way-merge",
+    "reparsePolicy": "when-required-and-authorized",
+    "backupRetentionDays": 30
+  }
+}
+```
+
+`credentialEnv` 只保存环境变量名称。Semantic Scholar、OpenAlex 和 PubMed 的基本调用可在官方允许时不带 key；配置 key 只用于相应账户额度。Unpaywall REST v2 要求请求携带联系邮箱，因此使用 `contact`，它不是 API 密钥。easyScholar 的 `getPublicationRank` 接口要求 `EASYSCHOLAR_SECRET_KEY`，仅提供期刊等级/分区查询，不代表其会员产品的其他能力。Materials Project 需要 `MP_API_KEY`。CAS Common Chemistry 的 API 访问资料需向 CAS 申请；获得的认证和合同必须与实际文档匹配，不能用 Common Chemistry 冒充 SciFinder 文献或反应检索。
+
+`enabled` 只表示允许路由，不会在加载配置时联网，也不表示账户 entitlement 已验证。使用 `research_sources` 读取 implementation、credential、access 和 validation 状态；live 检查必须由用户显式发起。完整接口边界见 [`research.md`](./research.md)，Materials Project 能力见 [`materials-capabilities.md`](./materials-capabilities.md)，CAS 边界见 [`chemistry.md`](./chemistry.md)。
+
+同步策略目前只接受上例中的四个保守值。缺失输出默认报告并跳过，恢复和排除是不同的显式动作；元数据刷新不应触发 PDF 重传。`sync.namespace` 可隔离多个库，`sync.cacheDir` 可指定解析缓存，`backupRetentionDays` 范围为 1–3650。外部 MinerU 上传同时要求配置允许和调用时显式授权。
+
 ## 完整示例
 
 ```json
 {
+  "schemaVersion": 2,
   "output": {
     "directory": "F:/个人知识库",
     "literaturesDirectory": "Literatures",
