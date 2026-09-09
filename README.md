@@ -33,7 +33,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 也可以固定版本或从 GitHub 安装：
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@1.1.0
+pi install npm:@luffysolution/pi-scholar@1.1.1
 pi install git:github.com/luffysolution-svg/pi-scholar@main
 ```
 

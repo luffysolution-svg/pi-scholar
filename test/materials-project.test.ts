@@ -203,6 +203,16 @@ test("materials tool output is bounded by bytes and lines", async () => {
   assert.ok(text.split(/\r?\n/).length <= 2_000);
 });
 
+test("materials tool schemas use provider-compatible homogeneous array items", () => {
+  const tools: any[] = [];
+  registerMaterialsTools({ registerTool: (tool: unknown) => tools.push(tool) } as any);
+  const schema = tools.find((item) => item.name === "materials_advanced").parameters.properties.twoThetaRange;
+  assert.equal(Array.isArray(schema.items), false);
+  assert.deepEqual(schema.items, { type: "number", minimum: 0, maximum: 360 });
+  assert.equal(schema.minItems, 2);
+  assert.equal(schema.maxItems, 2);
+});
+
 test("capability and source status matrix is truthful and side-effect free", () => {
   const capabilities = getMaterialsCapabilities();
   assert.equal(capabilities.length, 17);

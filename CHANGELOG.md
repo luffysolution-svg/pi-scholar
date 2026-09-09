@@ -2,6 +2,10 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 1.1.1 - 2026-09-09
+
+- Fix the `materials_advanced.twoThetaRange` tool schema so Vertex AI and Gemini accept the registered Materials Project tools.
+
 ## 1.1.0 - 2026-09-08
 
 - Publish compiled JavaScript from `dist` and build it automatically during `npm pack`.

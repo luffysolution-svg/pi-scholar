@@ -166,7 +166,7 @@ export function registerMaterialsTools(pi: ExtensionAPI, resolver?: MaterialsCon
       energyField: Type.Optional(Type.Union([Type.Literal("formation_energy_per_atom"), Type.Literal("energy_per_atom"), Type.Literal("uncorrected_energy_per_atom")])),
       tolerance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
       wavelength: Type.Optional(Type.Union([Type.String(), Type.Number({ exclusiveMinimum: 0 })])),
-      twoThetaRange: Type.Optional(Type.Tuple([Type.Number({ minimum: 0 }), Type.Number({ maximum: 360 })])),
+      twoThetaRange: Type.Optional(Type.Array(Type.Number({ minimum: 0, maximum: 360 }), { minItems: 2, maxItems: 2 })),
       pathType: Type.Optional(Type.String()),
       lineMode: Type.Optional(Type.Boolean()),
       loadProjections: Type.Optional(Type.Boolean()),
@@ -186,7 +186,7 @@ export function registerMaterialsTools(pi: ExtensionAPI, resolver?: MaterialsCon
       }
       if (params.action === "simulated_xrd") {
         if (!records || records.length !== 1) throw new Error("simulated_xrd requires exactly one record with a structure");
-        return output(await simulateMaterialXrd(records[0], { wavelength: params.wavelength, twoThetaRange: params.twoThetaRange, ...bridgeOptions }), { source: "materials-project", network: false, derived: true });
+        return output(await simulateMaterialXrd(records[0], { wavelength: params.wavelength, twoThetaRange: params.twoThetaRange as [number, number] | undefined, ...bridgeOptions }), { source: "materials-project", network: false, derived: true });
       }
       const config = configFor(ctx, resolver);
       if (!config.apiKey) throw new Error("Materials Project apiKey is required for this advanced operation");

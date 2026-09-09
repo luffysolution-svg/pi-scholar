@@ -33,7 +33,7 @@ pi install npm:@luffysolution/pi-scholar@latest
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@1.1.0
+pi install npm:@luffysolution/pi-scholar@1.1.1
 pi install git:github.com/luffysolution-svg/pi-scholar@main
 ```
 
