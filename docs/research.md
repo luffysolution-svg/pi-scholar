@@ -16,7 +16,7 @@ Pi Scholar 将不同数据源的论文记录转换为同一结构，同时保留
 
 ### 其他数据服务
 
-Ai4Scholar 工具使用 `ai4scholar_*` 前缀，提供 Google Scholar、Google Patents、Semantic Scholar、PubMed、期刊和数据集接口。调用可能消耗 Ai4Scholar 积分。
+Ai4Scholar 工具使用 `ai4scholar_*` 前缀，提供 Google Scholar、Google Patents、Semantic Scholar、PubMed、期刊和数据集接口。调用可能消耗 Ai4Scholar 积分。凭据通过根级 `ai4scholar.apiKey`、`ai4scholar.apiKeyEnv` 或 `AI4SCHOLAR_API_KEY` 环境变量配置。
 
 CAS Common Chemistry 单独处理化学物质记录，见 [化学数据源说明](./chemistry.md)。
 
@@ -28,12 +28,16 @@ CAS Common Chemistry 单独处理化学物质记录，见 [化学数据源说明
 - `literature_graph`：读取论文的参考文献、施引文献或推荐结果。
 - `journal_metrics`：查询期刊指标和分区。
 - `literature_fulltext`：`resolve` 返回全文地址和许可信息，`fetch` 下载并缓存文件。
+- `ai4scholar_*`：Ai4Scholar 工具集，包含 `ai4scholar_search`、`ai4scholar_paper`、`ai4scholar_author`、`ai4scholar_batch`、`ai4scholar_recommend`、`ai4scholar_cite`、`ai4scholar_snippets`、`ai4scholar_citation_candidates`、`ai4scholar_dataset`、`ai4scholar_journal`、`ai4scholar_figure` 和 `ai4scholar_credits`。
 
 ## 配置示例
 
 ```json
 {
   "schemaVersion": 3,
+  "ai4scholar": {
+    "apiKeyEnv": "AI4SCHOLAR_API_KEY"
+  },
   "research": {
     "policy": {
       "allowPaidFallback": false,
@@ -53,7 +57,7 @@ CAS Common Chemistry 单独处理化学物质记录，见 [化学数据源说明
 }
 ```
 
-`apiKey` 直接保存密钥，`apiKeyEnv` 引用环境变量。Semantic Scholar、OpenAlex 和 PubMed 的 Key 可选；easyScholar 需要 `SecretKey`。Unpaywall 联系邮箱可以写在 `research.contact` 或 `unpaywall.contact`。
+`apiKey` 直接保存密钥，`apiKeyEnv` 引用环境变量。Semantic Scholar、OpenAlex 和 PubMed 的 Key 可选；easyScholar 需要 `SecretKey`；Ai4Scholar 在根级 `ai4scholar` 节点配置。Unpaywall 联系邮箱可以写在 `research.contact` 或 `unpaywall.contact`。
 
 ## 请求行为
 
@@ -68,3 +72,4 @@ CAS Common Chemistry 单独处理化学物质记录，见 [化学数据源说明
 - [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)
 - [Unpaywall REST API](https://unpaywall.org/api)
 - [easyScholar 期刊等级接口](https://www.easyscholar.cc/open/getPublicationRank)
+- [Ai4Scholar API 文档](https://ai4scholar.net/api-docs)
