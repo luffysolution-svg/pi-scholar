@@ -35,6 +35,7 @@ export interface Ai4ScholarConfig {
   apiKeyEnv?: string;
   baseUrl?: string;
   timeoutMs?: number;
+  crawlerTimeoutMs?: number;
   proxyUrl?: string;
 }
 
@@ -173,7 +174,7 @@ function readConfig(file: string): ConfigFile {
 
 function validateAi4ScholarConfig(value: unknown): void {
   const config = mediaObject(value, "ai4scholar");
-  mediaFields(config, ["apiKey", "apiKeyEnv", "baseUrl", "timeoutMs", "proxyUrl"], "ai4scholar");
+  mediaFields(config, ["apiKey", "apiKeyEnv", "baseUrl", "timeoutMs", "crawlerTimeoutMs", "proxyUrl"], "ai4scholar");
   if (config.apiKey !== undefined && (typeof config.apiKey !== "string" || !config.apiKey.trim())) throw new Error("ai4scholar.apiKey must be a non-empty string");
   validateApiKeyEnv(config.apiKeyEnv, "ai4scholar.apiKeyEnv");
   if (config.baseUrl !== undefined) {
@@ -183,7 +184,10 @@ function validateAi4ScholarConfig(value: unknown): void {
   if (config.proxyUrl !== undefined) {
     if (config.proxyUrl !== "direct") mediaUrl(config.proxyUrl, "ai4scholar.proxyUrl");
   }
-  if (config.timeoutMs !== undefined) integer(config.timeoutMs as number, 30_000, 1, 3_600_000);
+  for (const key of ["timeoutMs", "crawlerTimeoutMs"] as const) {
+    if (config[key] !== undefined && typeof config[key] !== "number") throw new Error(`ai4scholar.${key} must be numeric`);
+    integer(config[key] as number | undefined, 30_000, 1, 3_600_000);
+  }
 }
 
 function validateDataConfig(value: unknown): void {
@@ -336,7 +340,7 @@ export function discoverConfigPath(env: NodeJS.ProcessEnv = process.env, cwd = p
     if (parent === current) break;
     current = parent;
   }
-  for (const candidate of [path.join(home, ".config", "pi-scholar", "config.json"), path.join(home, ".pi-scholar.json")]) {
+  for (const candidate of [path.join(env.PI_CODING_AGENT_DIR || path.join(home, ".pi", "agent"), "pi-scholar.json"), path.join(home, ".config", "pi-scholar", "config.json"), path.join(home, ".pi-scholar.json")]) {
     if (existsSync(candidate)) return candidate;
   }
   return undefined;
@@ -350,7 +354,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
   const file = configPath ? readConfig(configPath) : {};
   const baseDir = configPath ? path.dirname(configPath) : cwd;
   const ai4scholarKey = resolveApiKey(file.ai4scholar, env, ["AI4SCHOLAR_API_KEY"]);
-  const ai4scholar = file.ai4scholar ? { ...file.ai4scholar, ...(ai4scholarKey ? { apiKey: ai4scholarKey } : {}) } : undefined;
+  const ai4scholar = file.ai4scholar || ai4scholarKey ? { ...file.ai4scholar, ...(ai4scholarKey ? { apiKey: ai4scholarKey } : {}) } : undefined;
   const fileOutput = configuredString(file.output?.directory, "output.directory");
   const fileDataDir = configuredString(file.zotero?.dataDir, "zotero.dataDir");
   const outputDir = env.PI_SCHOLAR_OUTPUT_DIR

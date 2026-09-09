@@ -2,6 +2,18 @@
 
 All notable changes to Pi Scholar are documented in this file.
 
+## 1.1.0 - 2026-09-08
+
+- Publish compiled JavaScript from `dist` and build it automatically during `npm pack`.
+- Expose all Ai4Scholar operations as native Pi tools and remove the MCP adapter and direct MCP SDK dependency.
+- Read Ai4Scholar credentials from the unified Pi Scholar config or environment variables only.
+- Use separate default timeouts for crawler-backed and structured Ai4Scholar requests, with cancellation and progress reporting.
+- Correct Google Scholar, recommendation, dataset, PubMed, and Google Patents request mappings.
+- Replace the previous streaming citation inserter with verifiable Semantic Scholar citation candidates.
+- Download Ai4Scholar images to the output directory and return supported images inline.
+- Rewrite the Chinese and English user guides, add compact bilingual Materials Project capability pages, and validate bundled skills against the Agent Skills frontmatter rules.
+- Remove obsolete contract notes, draft specifications, generated capability JSON, and local release artifacts.
+
 ## 1.0.2 - 2026-09-08
 
 - Humanize documentation tone across Chinese and English documentation.

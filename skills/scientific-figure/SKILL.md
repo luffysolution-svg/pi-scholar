@@ -1,6 +1,8 @@
 ---
 name: scientific-figure
 description: Generate, edit, compose, critique, restyle, iterate, or vectorize scientific figures with Pi Scholar. Use for mechanism diagrams, graphical abstracts, publication illustrations, figure revision, reference-guided generation, transparent assets, or raster-to-vector workflows.
+license: MIT
+compatibility: Requires Pi 0.84.4 or newer with the @luffysolution/pi-scholar package. Generation requires network access and credentials for a configured image provider.
 ---
 
 # Scientific figure workflow
@@ -38,7 +40,7 @@ Omit `model` to use the newest compatible catalog candidate or configured defaul
 
 - Call `pi_scholar_image_generate` for text-to-image, image-to-image, or reference-guided generation.
 - Call `pi_scholar_image_edit` when the user expects an existing image to remain the base composition or supplies a mask.
-- Use `ai4scholar_figure` for specialized `smart`, `style`, `compose`, `iterate`, `critic`, or `vectorize` operations.
+- Use `ai4scholar_figure` for `smart`, `style`, `compose`, `iterate`, `critic`, or `vectorize` operations. Inspect the returned inline image and report its saved path.
 - Call `pi_scholar_image_service` with `test_connection` only for setup diagnosis. It must not submit a paid generation.
 - If `balance` returns `unsupported`, direct the user to the provider billing console. Never invent quota or credit values.
 

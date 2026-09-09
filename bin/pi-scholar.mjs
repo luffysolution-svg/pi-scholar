@@ -57,7 +57,7 @@ function discoverConfigPath(env, cwd, home) {
     if (parent === current) break;
     current = parent;
   }
-  for (const candidate of [path.join(home, ".config", "pi-scholar", "config.json"), path.join(home, ".pi-scholar.json")]) {
+  for (const candidate of [path.join(env.PI_CODING_AGENT_DIR || path.join(home, ".pi", "agent"), "pi-scholar.json"), path.join(home, ".config", "pi-scholar", "config.json"), path.join(home, ".pi-scholar.json")]) {
     if (existsSync(candidate)) return { path: candidate, source: "user" };
   }
   return { path: null, source: null };
@@ -117,8 +117,8 @@ async function doctor() {
   console.log(`MinerU token (${tokenEnv}): ${hasToken ? "set" : "not set (MinerU parsing will be unavailable)"}`);
 
   const ai4Env = scholarConfig?.ai4scholar?.apiKeyEnv ?? "AI4SCHOLAR_API_KEY";
-  const hasAi4Token = Boolean(scholarConfig?.ai4scholar?.apiKey ?? process.env[ai4Env] ?? process.env.AI4SCHOLAR_API_KEY);
-  console.log(`Ai4Scholar token (${ai4Env}): ${hasAi4Token ? "set" : "not set (use ai4scholar.apiKey, /pi-scholar setup, or AI4SCHOLAR_API_KEY)"}`);
+  const hasAi4Token = Boolean(scholarConfig?.ai4scholar?.apiKey || process.env[ai4Env] || process.env.AI4SCHOLAR_API_KEY);
+  console.log(`Ai4Scholar token (${ai4Env}): ${hasAi4Token ? "set" : "not set (use ai4scholar.apiKey/apiKeyEnv or AI4SCHOLAR_API_KEY)"}`);
 
   const configuredSources = [];
   for (const [id, provider] of Object.entries(scholarConfig?.research?.providers ?? {})) {

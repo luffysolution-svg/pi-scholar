@@ -20,7 +20,7 @@ test("loadConfig reads supported environment variables", () => {
       { AI4SCHOLAR_API_KEY: " key ", AI4SCHOLAR_BASE_URL: "https://example.test/", AI4SCHOLAR_TIMEOUT_MS: "1234" },
       { configPath: null },
     ),
-    { apiKey: "key", baseUrl: "https://example.test", timeoutMs: 1234, proxyUrl: undefined },
+    { apiKey: "key", baseUrl: "https://example.test", timeoutMs: 1234, crawlerTimeoutMs: 1234, proxyUrl: undefined },
   );
 });
 

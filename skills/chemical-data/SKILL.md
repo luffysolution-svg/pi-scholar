@@ -1,6 +1,8 @@
 ---
 name: chemical-data
-description: Query and interpret CAS Common Chemistry substance records with Pi Scholar. Use for chemical names, CAS Registry Numbers, structure identifiers, and basic compound information; not literature, reaction, or materials-property discovery.
+description: Inspect CAS Common Chemistry availability and interpret substance records when the runtime permits queries. Use for chemical names, CAS Registry Numbers, structure identifiers, and basic compound information; not literature, reaction, or materials-property discovery.
+license: MIT
+compatibility: Requires Pi 0.84.4 or newer with the @luffysolution/pi-scholar package. This release reports CAS query access as contract-blocked until an official endpoint contract is configured.
 ---
 
 # Chemical substance data

@@ -1,7 +1,7 @@
 {
   "name": "@luffysolution/pi-scholar",
-  "version": "1.0.2",
-  "description": "All-in-one Pi research extension for literature discovery, Zotero, PDF parsing, citations, and multi-provider scientific image generation",
+  "version": "1.1.0",
+  "description": "Pi extension for literature search, Zotero, PDF parsing, citations, materials data, and scientific image generation",
   "type": "module",
   "license": "MIT",
   "author": "pi-scholar contributors",
@@ -28,7 +28,8 @@
   "engines": {
     "node": ">=22.19.0"
   },
-  "exports": "./src/index.ts",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
     "pi-scholar": "bin/pi-scholar.mjs"
   },
@@ -36,6 +37,7 @@
     "access": "public"
   },
   "files": [
+    "dist",
     "src",
     "!src/**/__pycache__/**",
     "!src/**/*.pyc",
@@ -43,6 +45,7 @@
     "bin",
     "scripts/live-sources.ts",
     "scripts/generate-materials-capabilities.ts",
+    "scripts/check-skills.mjs",
     "docs",
     "README.md",
     "README.en.md",
@@ -53,23 +56,25 @@
   ],
   "pi": {
     "extensions": [
-      "./src/index.ts"
+      "./dist/index.js"
     ],
     "skills": [
       "./skills"
     ]
   },
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build",
     "check": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
     "test:live": "tsx scripts/live-sources.ts",
     "docs:materials": "tsx scripts/generate-materials-capabilities.ts",
     "docs:materials:check": "tsx scripts/generate-materials-capabilities.ts --check",
+    "skills:check": "node scripts/check-skills.mjs",
     "pack:check": "node scripts/check-pack.mjs",
-    "prepublishOnly": "npm test && npm run check && npm run docs:materials:check && npm run pack:check"
+    "prepublishOnly": "npm test && npm run check && npm run skills:check && npm run docs:materials:check && npm run pack:check"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
     "adm-zip": "^0.6.0",
     "google-auth-library": "^10.9.1",
     "saxes": "^6.0.0",

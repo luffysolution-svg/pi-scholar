@@ -15,6 +15,7 @@ export interface Ai4ScholarConfig {
   apiKey: string;
   baseUrl: string;
   timeoutMs: number;
+  crawlerTimeoutMs?: number;
   proxyUrl?: string;
 }
 
@@ -47,6 +48,8 @@ export class Ai4ScholarError extends Error {
 export function getConfigPath(env: NodeJS.ProcessEnv = process.env): string {
   if (env.PI_SCHOLAR_CONFIG?.trim()) return resolve(process.cwd(), env.PI_SCHOLAR_CONFIG);
   const home = env.HOME ?? env.USERPROFILE ?? homedir();
+  const native = join(env.PI_CODING_AGENT_DIR || join(home, ".pi", "agent"), "pi-scholar.json");
+  if (existsSync(native)) return native;
   return join(home, ".config", "pi-scholar", "config.json");
 }
 
@@ -65,10 +68,14 @@ export function loadConfig(
   const apiKey = resolveApiKey(unified, env, ["AI4SCHOLAR_API_KEY"]) ?? "";
   const baseUrl = (env.AI4SCHOLAR_BASE_URL?.trim() || unified?.baseUrl?.trim() || "https://ai4scholar.net").replace(/\/+$/, "");
   const parsedTimeout = Number(env.AI4SCHOLAR_TIMEOUT_MS || unified?.timeoutMs || 30_000);
-  const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30_000;
+  const timeoutMs = parsedTimeout;
   const proxyUrl = env.AI4SCHOLAR_PROXY?.trim() || unified?.proxyUrl?.trim() || env.HTTPS_PROXY?.trim() || env.HTTP_PROXY?.trim() || undefined;
 
-  return { apiKey, baseUrl, timeoutMs, proxyUrl };
+  const crawlerTimeoutMs = Number(env.AI4SCHOLAR_CRAWLER_TIMEOUT_MS || unified?.crawlerTimeoutMs || env.AI4SCHOLAR_TIMEOUT_MS || unified?.timeoutMs || 60_000);
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 3_600_000 || !Number.isInteger(crawlerTimeoutMs) || crawlerTimeoutMs < 1 || crawlerTimeoutMs > 3_600_000) {
+    throw new Ai4ScholarError("Ai4Scholar timeout must be an integer between 1 and 3600000 ms");
+  }
+  return { apiKey, baseUrl, timeoutMs, crawlerTimeoutMs, proxyUrl };
 }
 
 export async function saveStoredApiKey(apiKey: string, env: NodeJS.ProcessEnv = process.env): Promise<string> {
@@ -136,7 +143,11 @@ export function buildUrl(baseUrl: string, path: string, query?: Query): URL {
     throw new Ai4ScholarError(`API 路径必须以 / 开头：${path}`);
   }
 
+  const base = new URL(baseUrl);
   const url = new URL(path, `${baseUrl.replace(/\/+$/, "")}/`);
+  if (base.protocol !== "https:" || base.username || base.password || url.origin !== base.origin) {
+    throw new Ai4ScholarError("Ai4Scholar requires an HTTPS URL and a same-origin API path");
+  }
   for (const [key, rawValue] of Object.entries(query ?? {})) {
     if (rawValue === undefined || rawValue === null || rawValue === "") continue;
     const values = Array.isArray(rawValue) ? rawValue : [rawValue];
@@ -230,6 +241,7 @@ interface RequestOptions {
   signal?: AbortSignal;
   accept?: string;
   timeoutMs?: number;
+  onProgress?: (message: string) => void;
 }
 
 async function fetchAi4ScholarResponse(
@@ -252,7 +264,7 @@ async function fetchAi4ScholarResponse(
 
   const proxyUrl = resolveProxyUrl(config);
   try {
-    const timeoutMs = options.timeoutMs ?? config.timeoutMs;
+    const timeoutMs = options.timeoutMs ?? (options.path.startsWith("/google-scholar/") ? config.crawlerTimeoutMs ?? config.timeoutMs : config.timeoutMs);
     const response = proxyUrl
       ? await undiciFetch(url, {
           method,
@@ -260,8 +272,10 @@ async function fetchAi4ScholarResponse(
           body,
           signal: combineSignals(options.signal, timeoutMs),
           dispatcher: getProxyAgent(proxyUrl),
+          redirect: "error",
         })
       : await fetch(url, {
+          redirect: "error",
           method,
           headers,
           body,
@@ -273,7 +287,8 @@ async function fetchAi4ScholarResponse(
     const cause = error && typeof error === "object" ? (error as { cause?: unknown }).cause : undefined;
     const causeMessage = cause instanceof Error ? cause.message : cause ? String(cause) : "";
     const detail = causeMessage && causeMessage !== message ? `${message}（${causeMessage}）` : message;
-    const proxyHint = proxyUrl ? `（代理 ${proxyUrl}）` : "";
+    options.signal?.throwIfAborted();
+    const proxyHint = proxyUrl ? "（已启用代理）" : "";
     throw new Ai4ScholarError(`Ai4Scholar 请求失败${proxyHint}：${detail}`, undefined, url.toString());
   }
 }
@@ -304,9 +319,35 @@ export async function requestAi4Scholar<T = unknown>(
   config: Ai4ScholarConfig,
   options: RequestOptions,
 ): Promise<Ai4ScholarResponse<T>> {
-  const { response, url } = await fetchAi4ScholarResponse(config, options);
-  if (!response.ok) return throwResponseError(response, url);
-  return responseMeta(response, url, parseBody(await response.text()) as T);
+  const crawler = options.path.startsWith("/google-scholar/");
+  const budget = options.timeoutMs ?? (crawler ? config.crawlerTimeoutMs ?? config.timeoutMs : config.timeoutMs);
+  const deadline = new AbortController();
+  const signal = options.signal ? AbortSignal.any([options.signal, deadline.signal]) : deadline.signal;
+  const timer = setTimeout(() => deadline.abort(new DOMException("Ai4Scholar request timed out", "TimeoutError")), budget);
+  const start = Date.now();
+  const progress = options.onProgress ? setInterval(() => options.onProgress?.(`Ai4Scholar ${crawler ? "爬虫代理" : "结构化 API"}：已等待 ${Math.floor((Date.now() - start) / 1000)} 秒，预算 ${budget / 1000} 秒，可取消。`), 3000) : undefined;
+  let abortHandler: (() => void) | undefined;
+  try {
+    signal.throwIfAborted();
+    const aborted = new Promise<never>((_, reject) => {
+      abortHandler = () => reject(signal.reason);
+      signal.addEventListener("abort", abortHandler, { once: true });
+    });
+    const operation = (async () => {
+      const { response, url } = await fetchAi4ScholarResponse(config, { ...options, signal, timeoutMs: budget });
+      if (!response.ok) return throwResponseError(response, url);
+      return responseMeta(response, url, parseBody(await response.text()) as T);
+    })();
+    return await Promise.race([operation, aborted]);
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    if (deadline.signal.aborted) throw new Ai4ScholarError(`Ai4Scholar 请求超过 ${budget} ms。${crawler ? "爬虫源暂不可用；普通论文检索可改用 semantic_scholar 或 pubmed（来源与筛选语义不同），或显式提高 crawlerTimeoutMs。未自动重试或切换来源，避免重复计费。" : "请稍后重试或缩小查询范围。"}`);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    if (progress) clearInterval(progress);
+    if (abortHandler) signal.removeEventListener("abort", abortHandler);
+  }
 }
 
 function parseSseBlock(block: string): Ai4ScholarSseEvent | undefined {

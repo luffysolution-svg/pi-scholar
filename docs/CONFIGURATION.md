@@ -2,16 +2,11 @@
 
 [English](./CONFIGURATION.en.md)
 
-Pi Scholar 1.0 使用 `schemaVersion: 3` 配置文件。需要认证的服务均支持两种配置方式：
+配置文件使用 `schemaVersion: 3`。服务凭据可以直接写在 `apiKey` 中，也可以通过 `apiKeyEnv` 引用环境变量。
 
-- `apiKey`：直接填写 API Key 明文。
-- `apiKeyEnv`：指定自定义环境变量名称，运行时自动读取。
+凭据按以下顺序读取：`apiKey`、`apiKeyEnv` 指向的变量、服务默认环境变量。项目的 `.gitignore` 已忽略 `pi-scholar.config.json`；其他位置的配置文件仍需自行排除，避免提交明文密钥。
 
-**凭据优先级**：如果同时提供了多种凭据来源，系统将按 `apiKey` → `apiKeyEnv` 所指变量 → 服务默认标准环境变量的顺序依次匹配。
-
-> 提示：若配置文件中包含明文密钥，请妥善保管。项目根目录已默认忽略 `pi-scholar.config.json`，避免意外提交密钥至版本库。
-
-## 快速上手配置
+## 配置示例
 
 ```json
 {
@@ -46,11 +41,11 @@ Pi Scholar 1.0 使用 `schemaVersion: 3` 配置文件。需要认证的服务均
 }
 ```
 
-完整配置模板可参考根目录下的 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json)。
+所有字段见 [`pi-scholar.config.example.json`](../pi-scholar.config.example.json)。
 
-## 环境变量使用方式
+## 环境变量
 
-如果你更习惯将密钥存放在环境变量中，可以将对应项配置为 `apiKeyEnv`：
+用 `apiKeyEnv` 指定变量名：
 
 ```json
 {
@@ -63,9 +58,9 @@ Pi Scholar 1.0 使用 `schemaVersion: 3` 配置文件。需要认证的服务均
 }
 ```
 
-或者直接设置各服务默认的标准环境变量：
+也可以直接设置服务默认变量。
 
-**PowerShell**：
+PowerShell：
 ```powershell
 $env:SEMANTIC_SCHOLAR_API_KEY = "YOUR_KEY"
 $env:OPENALEX_API_KEY = "YOUR_KEY"
@@ -77,7 +72,7 @@ $env:AI4SCHOLAR_API_KEY = "YOUR_KEY"
 $env:MINERU_API_TOKEN = "YOUR_KEY"
 ```
 
-**Bash / zsh**：
+Bash / zsh：
 ```bash
 export SEMANTIC_SCHOLAR_API_KEY="YOUR_KEY"
 export OPENALEX_API_KEY="YOUR_KEY"
@@ -89,37 +84,38 @@ export AI4SCHOLAR_API_KEY="YOUR_KEY"
 export MINERU_API_TOKEN="YOUR_KEY"
 ```
 
-科研绘图供应商的环境变量包括：`GEMINI_API_KEY`、`GOOGLE_API_KEY`、`OPENAI_API_KEY`、`XAI_API_KEY`、`FAL_KEY`、`DASHSCOPE_API_KEY`（或 `QWENCLOUD_API_KEY`）及 `ATLAS_API_KEY`。Vertex AI 支持 Google 应用默认凭据（ADC）或通过 `GOOGLE_APPLICATION_CREDENTIALS` 指定服务账号 JSON。
+绘图供应商使用以下环境变量：`GEMINI_API_KEY`、`GOOGLE_API_KEY`、`OPENAI_API_KEY`、`XAI_API_KEY`、`FAL_KEY`、`DASHSCOPE_API_KEY`（或 `QWENCLOUD_API_KEY`）及 `ATLAS_API_KEY`。Vertex AI 支持 Google 应用默认凭据（ADC）或通过 `GOOGLE_APPLICATION_CREDENTIALS` 指定服务账号 JSON。
 
 ## 配置文件查找顺序
 
-启动与加载时，系统按以下顺序定位首个存在的配置文件：
+Pi Scholar 使用找到的第一个配置文件，不合并多个文件：
 
-1. 环境变量 `PI_SCHOLAR_CONFIG` 指定的绝对路径。
-2. 当前可信项目目录及其父级目录中递归向上查找到的 `pi-scholar.config.json`。
-3. 用户全局配置目录：`~/.config/pi-scholar/config.json`（Windows 对应 `%USERPROFILE%\.config\pi-scholar\config.json`）。
-4. 用户根目录配置：`~/.pi-scholar.json`。
-5. 扩展内置的默认参数。
+1. `PI_SCHOLAR_CONFIG` 指定的文件。
+2. 已信任项目及其父目录中的 `pi-scholar.config.json`。
+3. `~/.pi/agent/pi-scholar.json`，或 `PI_CODING_AGENT_DIR` 指定目录中的 `pi-scholar.json`。
+4. `~/.config/pi-scholar/config.json`。
+5. `~/.pi-scholar.json`。
+6. 内置默认值。
 
-配置文件中的相对路径均以该配置文件所在的目录为解析基准。
+相对路径以配置文件所在目录为准。
 
 ## 服务凭据一览表
 
 | 服务 | 配置路径 | 标准环境变量 | 备注 |
 |---|---|---|---|
-| **Semantic Scholar** | `research.providers.semantic-scholar` | `SEMANTIC_SCHOLAR_API_KEY` | Key 可选，配置后享有更高请求配额 |
-| **OpenAlex** | `research.providers.openalex` | `OPENALEX_API_KEY` | Key 可选，开放数据源 |
-| **PubMed / PMC** | `research.providers.pubmed` | `NCBI_API_KEY` | Key 可选，配置后提高 NCBI 请求速率限制 |
-| **arXiv** | `research.providers.arxiv` | 无 | 免 Key 开放检索 |
-| **Crossref** | `research.providers.crossref` | 无 | 可在 `research.contact` 配置联系邮箱以接入 Polite 池 |
-| **Unpaywall** | `research.providers.unpaywall` | 无 | 需在 `contact` 中填写联系邮箱 |
-| **easyScholar** | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | 需填写 SecretKey 以查询期刊等级与分区 |
-| **Materials Project** | `data.providers.materials-project` | `MP_API_KEY` | REST API 与 Python 扩展计算共用该 Key |
-| **CAS Common Chemistry** | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | 可预填 Key；官方接入开放后即可使用 |
-| **Ai4Scholar** | `ai4scholar` | `AI4SCHOLAR_API_KEY` | 独立调用工具，按需使用 |
-| **MinerU** | `mineru` | `MINERU_API_TOKEN` | 用于本地 PDF 的深度解析与结构化提取 |
+| Semantic Scholar | `research.providers.semantic-scholar` | `SEMANTIC_SCHOLAR_API_KEY` | Key 可选，配置后享有更高请求配额 |
+| OpenAlex | `research.providers.openalex` | `OPENALEX_API_KEY` | Key 可选，开放数据源 |
+| PubMed / PMC | `research.providers.pubmed` | `NCBI_API_KEY` | Key 可选，配置后提高 NCBI 请求速率限制 |
+| arXiv | `research.providers.arxiv` | 无 | 免 Key 开放检索 |
+| Crossref | `research.providers.crossref` | 无 | 可在 `research.contact` 配置联系邮箱以接入 Polite 池 |
+| Unpaywall | `research.providers.unpaywall` | 无 | 需在 `contact` 中填写联系邮箱 |
+| easyScholar | `research.providers.easyscholar` | `EASYSCHOLAR_SECRET_KEY` | 需填写 SecretKey 以查询期刊等级与分区 |
+| Materials Project | `data.providers.materials-project` | `MP_API_KEY` | REST API 与 Python 扩展计算共用该 Key |
+| CAS Common Chemistry | `data.providers.cas-common-chemistry` | `CAS_API_KEY` | 当前版本未实现查询端点 |
+| Ai4Scholar | `ai4scholar` | `AI4SCHOLAR_API_KEY` | 独立调用工具，按需使用 |
+| MinerU | `mineru` | `MINERU_API_TOKEN` | 用于本地 PDF 的深度解析与结构化提取 |
 
-查看配置状态命令 `/pi-scholar status` 仅在本地做信息汇总，不会向服务商发起不必要的网络校验，也不会在终端输出明文密码。
+`/pi-scholar status` 读取本地配置并显示已启用的服务。它不测试远端权限或余额，也不显示密钥。
 
 ## Materials Project 材料数据
 
@@ -127,35 +123,33 @@ export MINERU_API_TOKEN="YOUR_KEY"
 
 | 字段 | 默认值 | 作用说明 |
 |---|---|---|
-| `enabled` | `false` | 是否开启 Materials Project 相关功能 |
-| `apiKey` / `apiKeyEnv` | 无 / `MP_API_KEY` | 认证密钥或对应环境变量名 |
-| `timeoutMs` | `20000` | 网络超时时间（毫秒），范围 1,000 ~ 120,000 |
-| `maxRequests` / `maxPages` | `10` | 单次查询的最大翻页/子请求限制 |
-| `maxResults` | `100` | 单次操作返回的最大记录数，上限 10,000 |
-| `maxResponseBytes` | `5242880` (5 MiB) | 单次响应的最大字节数，防止超大体积响应占用内存 |
+| `enabled` | `false` | 启用 Materials Project 工具 |
+| `apiKey` / `apiKeyEnv` | 无 / `MP_API_KEY` | 密钥或变量名 |
+| `timeoutMs` | `20000` | 请求超时，单位为毫秒；范围 1,000 到 300,000 |
+| `maxRequests` / `maxPages` | `10` | 单次查询的翻页或子请求上限 |
+| `maxResults` | `100` | 单次操作的记录上限，最高 10,000 |
+| `maxResponseBytes` | `5242880` (5 MiB) | 单次响应大小上限 |
 
 ### Python 计算桥接（可选）
 
-Materials Project 的基础 REST 查询（如材料概览、结构筛选、热力学与基础性质）无需安装额外环境。
-
-如果你需要计算**完整能带图、态密度（DOS）、声子谱、相图（Phase Diagram）或模拟 XRD 衍射图谱**，请安装 Python 3.11+ 及官方推荐库：
+材料概览、结构筛选、热力学和基础性质查询只使用 REST API。相图和模拟 XRD 等本地计算需要 Python 3.11+、`mp-api` 和 `pymatgen`：
 
 ```sh
 pip install mp-api pymatgen
 ```
 
-若 Python 未加入系统环境变量，可通过环境变量指定解释器路径：
+用 `PI_SCHOLAR_PYTHON` 指定 Python 路径：
 ```sh
 export PI_SCHOLAR_PYTHON="/path/to/python"
 # Windows PowerShell: $env:PI_SCHOLAR_PYTHON = "C:\Path\To\python.exe"
 ```
 
-相图分析和模拟 XRD 为基于理论参数在本地进行的推导与计算，不额外消耗远程 API 额度。完整能力清单请参阅 [Materials Project 能力说明](./materials-capabilities.md)。
+相图和模拟 XRD 在本地计算，不消耗额外的 Materials Project 请求额度。能力清单见 [Materials Project 能力说明](./materials-capabilities.md)。
 
 ## Ai4Scholar 与 MinerU 选项
 
-- **Ai4Scholar**：支持通过 `baseUrl`、`timeoutMs` 和 `proxyUrl` 配置自定义中转地址或网络代理（`proxyUrl` 支持 HTTP/HTTPS 代理地址，或设为 `direct` 直连）。相关环境变量为 `AI4SCHOLAR_BASE_URL`、`AI4SCHOLAR_TIMEOUT_MS` 及 `AI4SCHOLAR_PROXY`。
-- **MinerU**：支持配置解析超时 `timeoutMs`、轮询策略（`pollInitialMs`、`pollMaxMs`、`maxAttempts`）以及解析控制项：`language`（语言）、`enableFormula`（公式提取）、`enableTable`（表格提取）、`isOcr`（OCR 识别）和 `modelVersion`（模型版本，默认为 `vlm`）。支持通过 `MINERU_*` 系列环境变量覆盖。
+- Ai4Scholar：`baseUrl` 设置服务地址，`timeoutMs` 设置普通请求超时，`crawlerTimeoutMs` 设置 Google Scholar 和 Google Patents 超时，`proxyUrl` 设置 HTTP/HTTPS 代理；`direct` 表示直连。对应变量为 `AI4SCHOLAR_BASE_URL`、`AI4SCHOLAR_TIMEOUT_MS`、`AI4SCHOLAR_CRAWLER_TIMEOUT_MS` 和 `AI4SCHOLAR_PROXY`。
+- MinerU：`timeoutMs` 设置总超时；`pollInitialMs`、`pollMaxMs` 和 `maxAttempts` 控制轮询；`language`、`enableFormula`、`enableTable`、`isOcr` 和 `modelVersion` 控制解析。对应变量使用 `MINERU_*` 前缀。
 
 ## 本地同步、Zotero 与输出目录
 
@@ -178,17 +172,19 @@ export PI_SCHOLAR_PYTHON="/path/to/python"
 }
 ```
 
-- **同步安全**：同步遵循保护本地内容的原则。发生改动冲突时优先保留本地内容；元数据更新时不会重新上传 PDF，最大化节省网络与解析开销。
-- **输出管理**：`output.directory` 可直接指向你的 Obsidian Vault 目录。各篇论文以独立目录存储，图表等资产自动归入子目录 `assets` 中。
-- **Zotero 设置**：Zotero 本地 API 默认地址为 `http://127.0.0.1:23119/api`（在 Zotero 首选项 → 高级中勾选“允许其他应用程序与 Zotero 通信”）。
+同步冲突时保留本地内容。只更新元数据时，不会重新上传 PDF。
+
+`output.directory` 可以指向 Obsidian Vault。每篇论文使用一个目录，图片保存在其 `assets` 子目录。
+
+Zotero 本地 API 默认地址是 `http://127.0.0.1:23119/api`。使用前，在 Zotero 首选项的“高级”页面启用“允许其他应用程序与 Zotero 通信”。
 
 ## 科研绘图配置
 
-科研绘图支持在 `media` 节点下配置 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 以及自定义 OpenAI 兼容模型服务。支持按需指定生图质量、透明背景、参考图数量与分辨率档位。详细支持列表与兼容性说明见 [科研绘图供应商指南](./IMAGE_PROVIDERS.md)。
+`media` 节点配置 Gemini API、Vertex AI、OpenAI、xAI、fal.ai、Qwen/DashScope、Atlas 和自定义 OpenAI 兼容服务。模型支持的尺寸、参考图数量和输出选项见 [绘图供应商说明](./IMAGE_PROVIDERS.md)。
 
-## 配置自检与诊断
+## 检查配置
 
-修改配置文件后，可直接通过内置诊断命令检查配置是否有效、网络是否通畅：
+以下命令检查配置文件、Zotero 连接和凭据是否存在，不验证远端账号权限：
 
 ```sh
 npx @luffysolution/pi-scholar doctor

@@ -4,14 +4,22 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 const directory = mkdtempSync(path.join(tmpdir(), "pi-scholar-pack-"));
+const forbiddenFiles = [
+  "docs/MINERU_CONTRACT.md",
+  "docs/materials-capabilities.json",
+  "src/ai4scholar/mcp.ts",
+];
 const requiredFiles = [
   "package.json",
+  "dist/index.js",
+  "dist/config.js",
+  "dist/ai4scholar/client.js",
+  "dist/materials-project/python-bridge.py",
   "src/index.ts",
   "src/ai4scholar/index.ts",
   "src/ai4scholar/client.ts",
   "src/ai4scholar/rest-tools.ts",
   "src/ai4scholar/advanced-tools.ts",
-  "src/ai4scholar/mcp.ts",
   "src/media/tools.ts",
   "src/media/router.ts",
   "src/research/tools.ts",
@@ -27,6 +35,7 @@ const requiredFiles = [
   "src/sync/index.ts",
   "scripts/live-sources.ts",
   "scripts/generate-materials-capabilities.ts",
+  "scripts/check-skills.mjs",
   "src/media/adapters/google.ts",
   "src/media/adapters/openai.ts",
   "skills/pi-scholar/SKILL.md",
@@ -45,13 +54,12 @@ const requiredFiles = [
   "CHANGELOG.md",
   "docs/CONFIGURATION.md",
   "docs/CONFIGURATION.en.md",
-  "docs/MINERU_CONTRACT.md",
   "docs/research.md",
   "docs/research.en.md",
   "docs/chemistry.md",
   "docs/chemistry.en.md",
-  "docs/materials-capabilities.json",
   "docs/materials-capabilities.md",
+  "docs/materials-capabilities.en.md",
   "docs/IMAGE_PROVIDERS.md",
   "docs/IMAGE_PROVIDERS.en.md",
   "LICENSE",
@@ -67,6 +75,9 @@ try {
   const files = new Set(info.files.map((entry) => entry.path));
   for (const packed of files) {
     if (packed.includes("/__pycache__/") || packed.endsWith(".pyc")) throw new Error(`packed artifact contains Python cache ${packed}`);
+  }
+  for (const forbidden of forbiddenFiles) {
+    if (files.has(forbidden)) throw new Error(`packed artifact contains obsolete file ${forbidden}`);
   }
   for (const required of requiredFiles) {
     if (!files.has(required)) throw new Error(`packed artifact missing ${required}`);

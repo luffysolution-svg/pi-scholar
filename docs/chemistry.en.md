@@ -1,30 +1,26 @@
-# CAS Common Chemistry Data Source
+# CAS Common Chemistry data source
 
 [中文版](./chemistry.md)
 
-Pi Scholar includes built-in support for CAS Common Chemistry substance data through three dedicated tools:
+Pi Scholar registers three CAS Common Chemistry tools:
 
-- `chemical_sources`: Inspect the chemical provider configuration and status offline.
-- `chemical_search`: Search substance records by chemical name, CAS Registry Number, or structure.
-- `chemical_get`: Look up complete substance details by CAS Registry Number (CAS RN).
+- `chemical_sources`: show configuration and current availability without a network request.
+- `chemical_search`: search by name, CAS Registry Number, or structure.
+- `chemical_get`: fetch a substance by CAS Registry Number.
 
-Results use an independent `ChemicalRecord` data model that stores chemical names, CAS RNs, synonyms, molecular formula and mass, SMILES, InChI/InChIKey, and source license details. Chemical data is stored separately from literature and materials records.
+Results use the `ChemicalRecord` schema, with names, CAS RN, synonyms, formula, molecular mass, SMILES, InChI, InChIKey, source, and license fields.
 
-## Current Access Status
+## Current status
 
-CAS requires developers to submit an application before receiving official API documentation and endpoint details:
+CAS provides API details after an access application. This release does not implement the query endpoint. `chemical_search` and `chemical_get` return `contract_blocked` or `permission_required` without sending a request; `chemical_sources` reports that status.
 
-- Pi Scholar includes complete data models and configuration fields for CAS Common Chemistry. Until official endpoint specifications are validated, query tools remain gated (reporting `contract_blocked` / `permission_required`) to avoid guessing private or unstable endpoints.
-- You can store your API key in advance in the unified configuration via `apiKey`, `apiKeyEnv`, or the `CAS_API_KEY` environment variable.
-- Once official API access is granted and verified, the tools will be connected directly.
+The configuration accepts `apiKey`, `apiKeyEnv`, and `CAS_API_KEY`, but this release does not use the credential for a query.
 
-## Data Scope
+## Data coverage
 
-CAS Common Chemistry focuses on basic physical and chemical identifiers for common substances:
+CAS Common Chemistry provides names, identifiers, and basic properties for common substances. It does not include SciFinder literature, reaction mechanisms, patent analysis, synthesis recipes, or supplier search.
 
-- It **does not** include SciFinder scholarly literature, chemical reactions, patent data, formulation recipes, or commercial supplier searches.
+## Official resources
 
-## Official Resources
-
-- Request API Access: [CAS Common Chemistry API](https://www.cas.org/services/commonchemistry-api).
-- Content License: Web substance data is provided under CC BY-NC 4.0; specific API usage terms remain governed by your CAS agreement.
+- [CAS Common Chemistry API access](https://www.cas.org/services/common-chemistry-api)
+- Web substance data uses the CC BY-NC 4.0 license. API terms are set by the user's CAS agreement.

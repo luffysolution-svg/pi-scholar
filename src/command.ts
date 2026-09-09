@@ -1,31 +1,19 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
-  clearStoredApiKey,
-  getConfigPath,
   loadConfig as loadOnlineConfig,
   requestAi4Scholar,
   resolveProxyUrl,
 } from "./ai4scholar/client.js";
-import { promptAndSaveApiKey, resolveConfig as resolveOnlineConfig } from "./ai4scholar/config.js";
+import { resolveConfig as resolveOnlineConfig } from "./ai4scholar/config.js";
 import { loadMediaConfig } from "./media/config.js";
 import { CapabilityRouter } from "./media/router.js";
 import { loadConfig as loadScholarConfig } from "./config.js";
-import { DEFAULT_PROVIDERS } from "./research/config.js";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
-import { randomUUID } from "node:crypto";
+const ADMIN_ACTIONS = ["status", "credits", "docs"] as const;
 
-const ADMIN_ACTIONS = ["setup", "status", "credits", "docs", "clear-key", "setup-sources"] as const;
-const DATA_PROVIDER_DEFAULTS = {
-  "materials-project": { apiKeyEnv: "MP_API_KEY" },
-  "cas-common-chemistry": {},
-} as const;
-
-/** Route research requests through the orchestrator skill and keep setup under one command. */
+/** Research entry point with read-only diagnostics; credentials are file/env only. */
 export function registerScholarCommand(pi: ExtensionAPI): void {
   pi.registerCommand("pi-scholar", {
-    description: "科研入口：/pi-scholar <自然语言|setup|status|credits|docs|clear-key|setup-sources>",
+    description: "科研入口：/pi-scholar <自然语言|status|credits|docs>；凭据仅通过配置文件或环境变量设置",
     getArgumentCompletions(prefix) {
       const items = ADMIN_ACTIONS
         .filter((value) => value.startsWith(prefix))
@@ -36,57 +24,8 @@ export function registerScholarCommand(pi: ExtensionAPI): void {
       const raw = args.trim();
       const action = raw.toLowerCase();
 
-      if (action === "setup-sources") {
-        if (!ctx.hasUI) throw new Error("Source setup requires interactive Pi; edit apiKey or apiKeyEnv in the example config in noninteractive mode.");
-        const config = loadScholarConfig(process.env, ctx.cwd, ctx.isProjectTrusted());
-        const providerId = await ctx.ui.select("选择要配置的来源（不进行联网测试）", [...Object.keys(DEFAULT_PROVIDERS), ...Object.keys(DATA_PROVIDER_DEFAULTS)]);
-        if (!providerId) return;
-        const isDataProvider = Object.hasOwn(DATA_PROVIDER_DEFAULTS, providerId);
-        const defaults = isDataProvider ? DATA_PROVIDER_DEFAULTS[providerId as keyof typeof DATA_PROVIDER_DEFAULTS] : DEFAULT_PROVIDERS[providerId]!;
-        const rawApiKeyEnv = (defaults as { apiKeyEnv?: unknown }).apiKeyEnv;
-        const apiKeyEnv = typeof rawApiKeyEnv === "string" ? rawApiKeyEnv : undefined;
-        const credentialRequired = providerId === "materials-project" || providerId === "easyscholar";
-        const reference = apiKeyEnv ? (await ctx.ui.input(credentialRequired ? "凭据环境变量名（直接密钥请编辑统一配置）" : "可选凭据环境变量名（可留空）", apiKeyEnv))?.trim() : undefined;
-        if (credentialRequired && !reference) return;
-        if (reference && !/^[A-Z_][A-Z0-9_]*$/.test(reference)) throw new Error("Expected an uppercase environment variable name, not a secret.");
-        const original = config.configPath ? await readFile(config.configPath, "utf8") : "{}";
-        const proposed = JSON.parse(original);
-        proposed.schemaVersion = 3;
-        const section = isDataProvider ? "data" : "research";
-        proposed[section] ??= {};
-        proposed[section].providers ??= {};
-        proposed[section].providers[providerId] = { ...proposed[section].providers[providerId], enabled: true, ...(reference ? { apiKeyEnv: reference } : {}) };
-        const base = config.configPath ?? path.join(os.homedir(), ".config", "pi-scholar", "config.json");
-        const candidate = `${base}.sources-${randomUUID()}.json`;
-        const preview = `启用 ${providerId}${reference ? `，凭据引用 ${reference}` : ""}；不推断账户授权。生成独立配置 ${candidate}，保留当前配置。`;
-        if (!await ctx.ui.confirm("保存来源配置候选", preview)) return;
-        if (config.configPath && await readFile(config.configPath, "utf8") !== original) throw new Error("Configuration changed; restart source setup.");
-        await mkdir(path.dirname(candidate), { recursive: true });
-        await writeFile(candidate, JSON.stringify(proposed, null, 2) + "\n", { flag: "wx", mode: 0o600 });
-        loadScholarConfig({ PI_SCHOLAR_CONFIG: candidate });
-        ctx.ui.notify(`已生成 ${candidate}；检查后用 PI_SCHOLAR_CONFIG 选择。可在 apiKey 中直接填写密钥，或使用 apiKeyEnv。`, "info");
-        return;
-      }
-
-      if (action === "setup") {
-        if (!ctx.hasUI) throw new Error("Setup requires interactive Pi; alternatively set AI4SCHOLAR_API_KEY.");
-        if (process.env.AI4SCHOLAR_API_KEY) {
-          ctx.ui.notify("当前密钥来自 AI4SCHOLAR_API_KEY；请在启动 Pi 的环境中修改或移除该变量。", "warning");
-          return;
-        }
-        const current = loadOnlineConfig(process.env, { cwd: ctx.cwd, projectTrusted: ctx.isProjectTrusted?.() === true });
-        if (current.apiKey && !await ctx.ui.confirm("重新配置在线科研服务", "当前已有密钥，是否替换？")) return;
-        try { await promptAndSaveApiKey(ctx); }
-        catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "warning"); }
-        return;
-      }
-
-      if (action === "clear-key") {
-        const root = loadScholarConfig(process.env, ctx.cwd, ctx.isProjectTrusted());
-        const removed = await clearStoredApiKey(root.configPath ? { ...process.env, PI_SCHOLAR_CONFIG: root.configPath } : process.env);
-        const envStillSet = Boolean(process.env.AI4SCHOLAR_API_KEY);
-        ctx.ui.notify(envStillSet ? "已删除本机配置，但环境变量中的密钥仍然生效。" : removed ? "已删除本机保存的在线服务密钥。" : "没有找到本机保存的密钥。", envStillSet ? "warning" : "info");
-        return;
+      if (["setup", "setup-sources", "clear-key"].includes(action)) {
+        throw new Error("配置命令已移除。请编辑统一配置的 apiKey/apiKeyEnv，或设置对应环境变量；Pi Scholar 不会写入或删除凭据。");
       }
 
       if (action === "docs") {
@@ -104,7 +43,7 @@ export function registerScholarCommand(pi: ExtensionAPI): void {
 
       if (action === "status") {
         const current = loadOnlineConfig(process.env, { cwd: ctx.cwd, projectTrusted: ctx.isProjectTrusted?.() === true });
-        const source = process.env.AI4SCHOLAR_API_KEY ? "环境变量" : current.apiKey ? `本机配置 ${getConfigPath()}` : "未配置";
+        const source = current.apiKey ? "已配置（配置文件或环境变量；未验证权限）" : "未配置";
         let imageProviders = "未配置";
         let researchProviders = "未启用";
         let materials = "未启用";

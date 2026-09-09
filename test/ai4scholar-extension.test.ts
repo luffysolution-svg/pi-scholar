@@ -10,8 +10,10 @@ test("integrated online research layer registers tools without a separate comman
     registerCommand(name: string) { commands.push(name); },
     on() {},
   } as any);
-  assert.equal(tools.length, 13);
+  assert.equal(tools.length, 12);
   assert.ok(tools.includes("ai4scholar_search"));
-  assert.ok(tools.includes("ai4scholar_mcp"));
+  assert.ok(tools.includes("ai4scholar_citation_candidates"));
+  assert.ok(tools.includes("ai4scholar_figure"));
+  assert.ok(!tools.some(name => name.includes("mcp")));
   assert.deepEqual(commands, []);
 });

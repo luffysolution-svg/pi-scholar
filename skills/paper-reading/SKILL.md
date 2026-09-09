@@ -1,6 +1,8 @@
 ---
 name: paper-reading
-description: Parse and analyze a real local Zotero PDF with Pi Scholar and MinerU. Use when the task requires structured full text, formulas, tables, figures, captions, or close reading beyond metadata and Zotero notes.
+description: Parse and analyze a local Zotero PDF with Pi Scholar and MinerU. Use when the task requires structured full text, formulas, tables, figures, captions, or close reading beyond metadata and Zotero notes.
+license: MIT
+compatibility: Requires Pi 0.84.4 or newer, the @luffysolution/pi-scholar package, Zotero 7, network access, and MinerU credentials.
 ---
 
 # PDF parsing and close reading

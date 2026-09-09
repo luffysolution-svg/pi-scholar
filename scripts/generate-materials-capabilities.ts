@@ -1,14 +1,24 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { getMaterialsCapabilities, renderMaterialsCapabilitiesMarkdown } from "../src/materials-project/capabilities.js";
+import { renderMaterialsCapabilitiesMarkdown } from "../src/materials-project/capabilities.js";
 
-const markdownPath = new URL("../docs/materials-capabilities.md", import.meta.url);
-const jsonPath = new URL("../docs/materials-capabilities.json", import.meta.url);
-const markdown = renderMaterialsCapabilitiesMarkdown();
-const json = `${JSON.stringify({ schemaVersion: 1, source: "src/materials-project/capabilities.ts", capabilities: getMaterialsCapabilities() }, null, 2)}\n`;
+const documents = [
+  {
+    path: new URL("../docs/materials-capabilities.md", import.meta.url),
+    content: renderMaterialsCapabilitiesMarkdown("zh"),
+  },
+  {
+    path: new URL("../docs/materials-capabilities.en.md", import.meta.url),
+    content: renderMaterialsCapabilitiesMarkdown("en"),
+  },
+];
 
 if (process.argv.includes("--check")) {
-  const [currentMarkdown, currentJson] = await Promise.all([readFile(markdownPath, "utf8"), readFile(jsonPath, "utf8")]);
-  if (currentMarkdown !== markdown || currentJson !== json) throw new Error("Materials capability docs are stale; run npm run docs:materials");
+  for (const document of documents) {
+    const current = await readFile(document.path, "utf8");
+    if (current !== document.content) {
+      throw new Error("Materials capability docs are stale; run npm run docs:materials");
+    }
+  }
 } else {
-  await Promise.all([writeFile(markdownPath, markdown, "utf8"), writeFile(jsonPath, json, "utf8")]);
+  await Promise.all(documents.map((document) => writeFile(document.path, document.content, "utf8")));
 }

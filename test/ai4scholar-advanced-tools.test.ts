@@ -75,8 +75,8 @@ test("Google Scholar search forwards result limit, cites, and cluster", async (t
     return new Response('{"results":[]}');
   });
   const tool = capture(registerRestTools).get("ai4scholar_search")!;
-  await tool.execute("1", { source: "google_scholar", query: "LLM", limit: 7, cites: "c1", cluster: "v1" }, undefined, undefined, {});
-  assert.deepEqual(JSON.parse(body), { query: "LLM", page: 1, limit: 7, cites: "c1", cluster: "v1" });
+  await tool.execute("1", { source: "google_scholar", query: "LLM", limit: 7, language: "en", cites: "c1", cluster: "v1" }, undefined, undefined, {});
+  assert.deepEqual(JSON.parse(body), { query: "LLM", page: 1, results: 7, language: "en", cites: "c1", cluster: "v1" });
 });
 
 test("PubMed dates and patent result count use documented parameter names", async (t) => {
@@ -113,7 +113,7 @@ test("dataset tool covers release, download, and diff paths", async (t) => {
   await tool.execute("3", { action: "dataset_download", releaseId: "r1", datasetName: "papers" }, undefined, undefined, {});
   await tool.execute("4", { action: "diffs", startReleaseId: "r1", endReleaseId: "r2", datasetName: "papers" }, undefined, undefined, {});
   assert.deepEqual(paths, [
-    "/datasets/v1/release/",
+    "/datasets/v1/release",
     "/datasets/v1/release/2025-01-01",
     "/datasets/v1/release/r1/dataset/papers",
     "/datasets/v1/diffs/r1/to/r2/papers",
@@ -143,30 +143,25 @@ test("journal tool maps search filters and recommendation body", async (t) => {
   });
 });
 
-test("auto-cite parses progress and result SSE events", async (t) => {
+test("citation candidates search Semantic Scholar without silently inserting references", async (t) => {
   configure(t);
   const updates: string[] = [];
-  process.env.AI4SCHOLAR_TIMEOUT_MS = "1";
-  mockFetch(t, async (_input, init) => {
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    assert.equal(init?.signal?.aborted, false, "Auto-Cite should override the short generic timeout");
-    return new Response(
-      'event: progress\ndata: {"message":"Searching","percent":50}\n\n' +
-      'event: result\ndata: {"annotatedText":"Text [1]","references":[{"title":"Paper"}]}\n\n',
-      { headers: { "content-type": "text/event-stream", "x-credits-charged": "2" } },
-    );
+  mockFetch(t, async (input) => {
+    assert.equal(new URL(String(input)).pathname, "/graph/v1/paper/search");
+    return new Response('{"data":[{"paperId":"p1","title":"Verified candidate"}]}', { headers: { "x-credits-charged": "1" } });
   });
-  const tool = capture(registerAdvancedTools).get("ai4scholar_auto_cite")!;
+  const tool = capture(registerAdvancedTools).get("ai4scholar_citation_candidates")!;
   const result = await tool.execute(
     "1",
-    { text: "A".repeat(100), mode: "auto", minCitations: 2, citationStyle: "nature" },
+    { text: "Transformers use self-attention to model token relationships. [CITE]", mode: "markers", maxClaims: 1, citationStyle: "nature" },
     undefined,
     (update: any) => updates.push(update.content[0].text),
     {},
   );
-  assert.match(updates[0], /Searching/);
-  assert.equal(result.details.creditsCharged, 2);
-  assert.equal(result.details.data.annotatedText, "Text [1]");
+  assert.match(updates[0], /1\/1/);
+  assert.equal(result.details.creditsCharged, 1);
+  assert.equal(result.details.data.reviewRequired, true);
+  assert.equal(result.details.data.matches[0].candidates[0].paperId, "p1");
 });
 
 test("Google Scholar author search warns that an empty profile result is inconclusive", async (t) => {
@@ -182,7 +177,7 @@ test("figure tool supports GPT Image 2 and all-action endpoint", async (t) => {
   let request: { url: string; body: string } | undefined;
   mockFetch(t, async (input, init) => {
     request = { url: String(input), body: String(init?.body) };
-    return new Response('{"success":true,"imageUrl":"https://example.test/image.png"}');
+    return new Response('{"success":true}');
   });
   const tool = capture(registerAdvancedTools).get("ai4scholar_figure")!;
   await tool.execute("1", { action: "smart", prompt: "cell pathway", model: "gptimage", imageSize: "2K", lang: "zh" }, undefined, undefined, {});

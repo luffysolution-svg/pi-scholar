@@ -1,7 +1,9 @@
 {
   "schemaVersion": 3,
   "ai4scholar": {
-    "apiKey": "YOUR_AI4SCHOLAR_API_KEY"
+    "apiKey": "YOUR_AI4SCHOLAR_API_KEY",
+    "timeoutMs": 30000,
+    "crawlerTimeoutMs": 60000
   },
   "research": {
     "policy": { "allowPaidFallback": false, "allowExternalFulltextUpload": false },

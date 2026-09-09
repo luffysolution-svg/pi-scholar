@@ -81,7 +81,7 @@ export function registerRestTools(pi: ExtensionAPI): void {
     ],
     parameters: Type.Object({
       source: StringEnum(["semantic_scholar", "pubmed", "google_scholar", "google_patents"] as const, {
-        description: "Data source",
+        description: "Data source. Prefer semantic_scholar or pubmed for ordinary literature searches; Google sources use slower crawler proxies with a shorter default time budget.",
       }),
       query: Type.String({ description: "Search query" }),
       limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, description: "Result count" })),
@@ -108,7 +108,7 @@ export function registerRestTools(pi: ExtensionAPI): void {
       venue: Type.Optional(Type.String()),
       fieldsOfStudy: Type.Optional(Type.String()),
       country: Type.Optional(Type.String({ description: "Patent country codes, comma-separated, e.g. US,CN,WO" })),
-      language: Type.Optional(Type.String({ description: "Patent languages, comma-separated" })),
+      language: Type.Optional(Type.String({ description: "Google Scholar result language (for example en or zh-CN), or Google Patents languages such as ENGLISH,CHINESE." })),
       status: Type.Optional(StringEnum(["GRANT", "APPLICATION"] as const)),
       patentType: Type.Optional(StringEnum(["PATENT", "DESIGN"] as const)),
       inventor: Type.Optional(Type.String()),
@@ -172,7 +172,8 @@ export function registerRestTools(pi: ExtensionAPI): void {
           body: compactObject({
             query: params.query,
             page: params.page ?? 1,
-            limit: params.limit ?? 10,
+            results: params.limit ?? 10,
+            language: params.language,
             yearFrom: params.yearFrom,
             yearTo: params.yearTo,
             reviewOnly: params.reviewOnly,
@@ -180,6 +181,7 @@ export function registerRestTools(pi: ExtensionAPI): void {
             cites: params.cites,
             cluster: params.cluster,
           }),
+          onProgress: text => onUpdate?.({ content: [{ type: "text", text }], details: {} }),
           signal,
         });
       } else {
@@ -200,6 +202,7 @@ export function registerRestTools(pi: ExtensionAPI): void {
             before: params.before,
             after: params.after,
           }),
+          onProgress: text => onUpdate?.({ content: [{ type: "text", text }], details: {} }),
           signal,
         });
       }
@@ -372,7 +375,7 @@ export function registerRestTools(pi: ExtensionAPI): void {
     async execute(_id, params, signal, _onUpdate, ctx) {
       const response = await requestAi4Scholar(await resolveConfig(ctx), {
         method: "POST",
-        path: "/recommendations/v1/papers/",
+        path: "/recommendations/v1/papers",
         query: { limit: params.limit ?? 20, fields: params.fields ?? DEFAULT_PAPER_FIELDS },
         body: compactObject({
           positivePaperIds: params.positivePaperIds,

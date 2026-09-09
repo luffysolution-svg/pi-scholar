@@ -7,26 +7,20 @@
 
 [简体中文](./README.md) | English
 
-Pi Scholar is an all-in-one research extension for Pi. One package provides online scholarly discovery, read-only local Zotero access, MinerU PDF parsing, citation and journal analysis, scientific figures, and on-demand MCP capabilities.
+Pi Scholar adds literature search, Zotero access, PDF parsing, citation tools, materials data, and scientific image generation to Pi. Models call these tools directly; MCP is not required.
 
-Output is ordinary UTF-8 Markdown, JSON metadata, and image files. No Obsidian plugin or database is required; point the output directory at an Obsidian vault if desired.
-
-Safe sync, literature sources, and Materials Project share one configuration. See the [configuration reference](docs/CONFIGURATION.en.md) for supported fields.
+Parsed papers are saved as UTF-8 Markdown, JSON, and image files. The output can be a regular directory or an Obsidian vault. See the [configuration reference](docs/CONFIGURATION.en.md).
 
 ## Features
 
-- Discover and verify literature through Semantic Scholar, OpenAlex, PubMed/PMC, arXiv, and Crossref
-- Resolve open-access versions with version and license metadata through Unpaywall
-- Use the MP01-MP17 Materials Project workflow, including route searches, full-object bridging, exports, phase diagrams, and simulated XRD; CAS Common Chemistry records stay separate
-- Preserve explicitly selected Ai4Scholar workflows, including Google Scholar and patents, without automatic paid fallback
-- Inspect papers, authors, citation networks, recommendations, snippets, and datasets
-- Query JCR/CAS journal metrics and recommend submission venues
-- Read Zotero collections, items, notes, annotations, and attachments without mutation
-- Parse PDF text, formulas, tables, and figures through MinerU
-- Format references and automatically add citations to academic prose
-- Generate, edit, critique, and vectorize scientific figures
-- Discover and load hosted MCP tools on demand
-- Enforce loopback-only Zotero access, secret redaction, safe ZIP extraction, and transactional publishing
+- Search Semantic Scholar, OpenAlex, PubMed/PMC, arXiv, Crossref, and Google Scholar
+- Fetch paper metadata, authors, citation graphs, snippets, patents, datasets, and journal metrics
+- Find open-access copies and license information through Unpaywall
+- Read Zotero collections, items, notes, annotations, and attachments without changing the Zotero library
+- Extract PDF text, formulas, tables, and figures through MinerU
+- Find citation candidates and format references
+- Query and export Materials Project records, calculate phase diagrams, and simulate XRD
+- Generate, edit, and vectorize scientific images through Ai4Scholar or a configured image provider
 
 ## Install
 
@@ -39,11 +33,11 @@ pi install npm:@luffysolution/pi-scholar@latest
 Pin a version or install from GitHub:
 
 ```sh
-pi install npm:@luffysolution/pi-scholar@1.0.2
-pi install git:https://github.com/luffysolution-svg/pi-scholar.git#main
+pi install npm:@luffysolution/pi-scholar@1.1.0
+pi install git:github.com/luffysolution-svg/pi-scholar@main
 ```
 
-Restart Pi or run `/reload`. For a pinned installation, run `pi install npm:@luffysolution/pi-scholar@latest` to switch to the latest channel; update or uninstall with:
+Restart Pi or run `/reload`. To update or uninstall:
 
 ```sh
 pi update npm:@luffysolution/pi-scholar@latest
@@ -59,20 +53,21 @@ pi remove npm:@luffysolution/pi-scholar
 /pi-scholar add verified APA citations to this related-work section
 ```
 
-With no arguments it opens an input dialog. With natural-language arguments it invokes the orchestrator skill directly, allowing the model to select only the online, local, parsing, citation, or figure tools needed.
+With no arguments, the command opens an input box. With an argument, Pi Scholar chooses the search, Zotero, parsing, citation, or image tools needed for the request.
 
-Setup and status are handled by the same command:
+Store credentials in the config file or reference environment variables. The command does not write credentials. Status commands:
 
 ```text
-/pi-scholar setup       Configure the online-service API key
 /pi-scholar status      Show configuration source, connection mode, and image providers
 /pi-scholar credits     Check online-service credits
 /pi-scholar docs        Show the configuration documentation URL
-/pi-scholar clear-key   Delete the locally stored key
-/pi-scholar setup-sources  Preview and write a multi-source configuration candidate
 ```
 
-Ai4Scholar is called only when its tools are selected. Every keyed service accepts `apiKey` in the unified config and can instead use `apiKeyEnv`. Resolution order is `apiKey`, the named environment variable, then the service's standard environment variable. Never commit a credential-bearing config.
+Credential order is `apiKey`, the variable named by `apiKeyEnv`, then the service's default environment variable. Do not commit a config file containing a plaintext key.
+
+Google Scholar and Google Patents requests through Ai4Scholar default to a 60-second timeout; other Ai4Scholar requests default to 30 seconds. See [Configuration](docs/CONFIGURATION.en.md) for overrides. Generated Ai4Scholar images are saved under `ai4scholar-images/` in the output directory and returned inline so the model can view them.
+
+`ai4scholar_citation_candidates` searches Semantic Scholar for claims marked with `[CITE]` or supplied as statements. It returns candidates for review rather than selecting a citation on the user's behalf.
 
 ## Included skills
 
@@ -84,12 +79,12 @@ The package contains one orchestrator and seven focused skills:
 | `scholar-search` | Online literature, patents, authors, citation networks, journals, and datasets |
 | `zotero-research` | Local Zotero search, matching, notes, annotations, and attachments |
 | `paper-reading` | MinerU parsing and close reading of text, formulas, tables, and figures |
-| `academic-citation` | Citation verification, formatting, bibliographies, and automatic citation |
+| `academic-citation` | Citation verification, formatting, bibliographies, and insertion |
 | `scientific-figure` | Scientific figure generation, editing, critique, and vectorization |
 | `materials-project` | Materials screening, structures, properties, calculation provenance, and export |
 | `chemical-data` | CAS Common Chemistry names, CAS RN, structures, and basic substance data |
 
-Use `/pi-scholar` directly for daily workflows; individual skills can also be called explicitly with `/skill:<name>`.
+Use `/pi-scholar` for general requests or `/skill:<name>` when you want a specific workflow.
 
 ## Output layout
 
@@ -106,13 +101,12 @@ Default layout:
             └── figure-02.png
 ```
 
-- `output.directory` is the vault or ordinary output root.
-- `output.literaturesDirectory` renames `Literatures`, for example to `Papers` or another safe single directory name.
-- Each paper is one transactional unit, making it safe to copy, move, archive, or delete with its metadata and figures.
-- Reprocessing the same Zotero item reuses its directory; different items with the same readable name receive ` (2)`, ` (3)`, and so on.
-- The asset directory is always the short name `assets`, with image names such as `figure-01.png`, so the paper title is not repeated in image paths.
-- Paper directory names are shortened against the actual output root as needed, keeping final Markdown and image paths within 240 characters. The complete title remains in frontmatter and `metadata.json`.
-- Markdown uses relative image paths, so moving the complete paper directory preserves rendering.
+- `output.directory` sets the output root.
+- `output.literaturesDirectory` sets the paper directory name, such as `Literatures` or `Papers`. It must be a single path component.
+- Reprocessing a Zotero item reuses its directory. Items with the same display name receive ` (2)`, ` (3)`, and so on.
+- Images are stored under `assets` with names such as `figure-01.png`.
+- Long directory names are shortened to keep Markdown and image paths within 240 characters. The full title remains in frontmatter and `metadata.json`.
+- Markdown uses relative image paths, so a paper directory can be moved as a unit.
 
 ## Configuration
 
@@ -121,20 +115,21 @@ Copy [`pi-scholar.config.example.json`](./pi-scholar.config.example.json) to `pi
 Discovery order:
 
 1. File named by `PI_SCHOLAR_CONFIG`
-2. Nearest `pi-scholar.config.json` in a trusted project
-3. `~/.config/pi-scholar/config.json`
-4. `~/.pi-scholar.json`
-5. Built-in defaults
+2. `pi-scholar.config.json` in a trusted project or one of its parent directories
+3. `~/.pi/agent/pi-scholar.json`
+4. `~/.config/pi-scholar/config.json`
+5. `~/.pi-scholar.json`
+6. Built-in defaults
 
 Direct credentials win and environment variables are fallbacks. Zotero and output-path environment variables can override JSON. Relative JSON paths resolve from the configuration file's directory.
 
-Scientific image tools natively connect to Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. They support text-to-image, image editing, multi-reference guidance, custom dimensions, transparency, and 1K/2K/4K tiers, with non-generating connection checks.
+Image tools support Gemini API, Vertex AI, OpenAI, xAI, fal.ai, Qwen/DashScope, Atlas, and custom OpenAI-compatible services. Editing modes, sizes, and output formats depend on the provider and model.
 
 > See [Image Provider Compatibility](./docs/IMAGE_PROVIDERS.en.md) for models, controls, and platform limits.
 >
 > See the [full English configuration reference](./docs/CONFIGURATION.en.md) or [中文版](./docs/CONFIGURATION.md) for every field, default, range, and environment variable.
 
-Enable “Allow other applications on this computer to communicate with Zotero” in Zotero. Never expose port `23119` externally.
+Enable “Allow other applications on this computer to communicate with Zotero” in Zotero. Keep port `23119` on the local machine.
 
 ## Diagnostics
 
@@ -146,17 +141,17 @@ npx @luffysolution/pi-scholar --version
 npx @luffysolution/pi-scholar --help
 ```
 
-`doctor` checks Node, config discovery, Zotero reachability, and whether MinerU/online-service keys exist. It never displays secrets or reads library content.
+`doctor` checks the Node version, config location, Zotero connection, and whether MinerU and Ai4Scholar credentials are present. It does not print keys or read library content.
 
 <details>
-<summary>Security and privacy</summary>
+<summary>Data and files</summary>
 
-- Zotero requests are hard-restricted to `localhost:23119/api` or `127.0.0.1:23119/api`, GET-only, with redirects disabled.
-- MinerU receives the selected PDF over the network; call it only when structured text, formulas, tables, or figures are required.
-- API keys, Authorization headers, and signed URLs are never written to Markdown, YAML, metadata, or tool output.
-- MinerU ZIPs are checked before writing for entry count, expanded size, encryption, symlinks, absolute paths, traversal, and duplicates.
-- Each paper is written to a staging directory and atomically replaces the final directory; failure or cancellation restores prior content.
-- Online search, automatic citation, MinerU, and figure operations may consume quota or credits.
+- Zotero tools send GET requests only to `localhost:23119/api` or `127.0.0.1:23119/api`.
+- MinerU parsing uploads the PDF selected by the user.
+- Keys, authorization headers, and signed URLs are excluded from Markdown, YAML, and logs.
+- MinerU archives are checked for unsafe paths and size before extraction.
+- Paper files are written to a temporary directory before replacing the destination; interrupted writes leave the previous directory in place.
+- Online search, MinerU, and image generation may use provider quota or credits.
 
 </details>
 

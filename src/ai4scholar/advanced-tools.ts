@@ -1,16 +1,20 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { Type } from "typebox";
 import {
   Ai4ScholarError,
   encodeId,
   requestAi4Scholar,
-  requestAi4ScholarSse,
   type Ai4ScholarResponse,
   type Query,
 } from "./client.js";
 import { resolveConfig } from "./config.js";
 import { toToolResult } from "./rest-tools.js";
+import { loadConfig as loadScholarConfig } from "../config.js";
+import { ArtifactDownloader, extractArtifacts } from "../media/artifacts.js";
+import { HttpClient } from "../media/http.js";
 
 function compactObject<T extends Record<string, unknown>>(value: T): Partial<T> {
   return Object.fromEntries(
@@ -18,8 +22,19 @@ function compactObject<T extends Record<string, unknown>>(value: T): Partial<T> 
   ) as Partial<T>;
 }
 
-function objectValue(value: unknown, key: string): unknown {
-  return value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
+function imageMime(data: Buffer): string | undefined {
+  if (data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return "image/png";
+  if (data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) return "image/jpeg";
+  if (data.subarray(0, 6).toString("ascii").match(/^GIF8[79]a$/)) return "image/gif";
+  if (data.subarray(0, 4).toString("ascii") === "RIFF" && data.subarray(8, 12).toString("ascii") === "WEBP") return "image/webp";
+  return undefined;
+}
+
+function replaceDownloadedUrls(value: unknown, urls: Set<string>): unknown {
+  if (typeof value === "string") return urls.has(value) ? "[downloaded to local artifact]" : value;
+  if (Array.isArray(value)) return value.map(item => replaceDownloadedUrls(item, urls));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceDownloadedUrls(item, urls)]));
 }
 
 export function registerAdvancedTools(pi: ExtensionAPI): void {
@@ -39,7 +54,7 @@ export function registerAdvancedTools(pi: ExtensionAPI): void {
     async execute(_id, params, signal, _onUpdate, ctx) {
       let path: string;
       if (params.action === "list_releases") {
-        path = "/datasets/v1/release/";
+        path = "/datasets/v1/release";
       } else if (params.action === "release_detail") {
         if (!params.releaseId) throw new Error("release_detail 需要 releaseId。");
         path = `/datasets/v1/release/${encodeURIComponent(params.releaseId)}`;
@@ -149,55 +164,66 @@ export function registerAdvancedTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "ai4scholar_auto_cite",
-    label: "Ai4Scholar Auto Cite",
+    name: "ai4scholar_citation_candidates",
+    label: "Ai4Scholar Citation Candidates",
     description:
-      "Automatically identify citation points in 100-10,000 characters of academic text and return annotated text plus formatted references. Uses Ai4Scholar's streaming Auto-Cite API and consumes credits per citation.",
-    promptSnippet: "Automatically add verified scholarly citations to academic text through Ai4Scholar",
+      "Find verifiable Semantic Scholar citation candidates for [CITE] markers or selected academic statements. Returns candidates for model/human review; it never silently inserts or fabricates a citation.",
+    promptSnippet: "Find and verify citation candidates for academic claims through Semantic Scholar",
     promptGuidelines: [
-      "Use ai4scholar_auto_cite when the user asks Ai4Scholar to annotate academic prose with references; explain that automatic mode charges by minCitations and manual mode by [CITE] marker count.",
+      "Use ai4scholar_citation_candidates to retrieve candidate sources, then verify relevance and let the user/model select and format citations; do not treat the first result as automatically authoritative.",
     ],
     parameters: Type.Object({
-      text: Type.String({ minLength: 100, maxLength: 10_000 }),
-      mode: Type.Optional(StringEnum(["auto", "manual"] as const)),
-      minCitations: Type.Optional(Type.Integer({ minimum: 1 })),
-      maxReferences: Type.Optional(Type.Integer({ minimum: 1 })),
-      preferredVenues: Type.Optional(Type.Array(Type.String())),
-      field: Type.Optional(Type.String()),
-      yearPreference: Type.Optional(Type.Integer({ minimum: 1000, maximum: 3000 })),
-      excludePreprints: Type.Optional(Type.Boolean()),
-      excludeConferences: Type.Optional(Type.Boolean()),
-      citationStyle: Type.Optional(StringEnum([
-        "ieee", "apa", "apa6", "nature", "vancouver", "mla", "chicago", "harvard",
-        "acs", "ama", "acm", "turabian", "cse", "asce", "gbt7714",
-      ] as const)),
+      text: Type.String({ minLength: 20, maxLength: 10_000 }),
+      mode: Type.Optional(StringEnum(["markers", "statements"] as const, { description: "markers uses text before [CITE]; statements searches sentence-like claims." })),
+      maxClaims: Type.Optional(Type.Integer({ minimum: 1, maximum: 20 })),
+      candidatesPerClaim: Type.Optional(Type.Integer({ minimum: 1, maximum: 5 })),
+      year: Type.Optional(Type.String({ description: "Optional Semantic Scholar year/range filter." })),
+      fieldsOfStudy: Type.Optional(Type.String()),
+      citationStyle: Type.Optional(StringEnum(["ieee", "apa", "nature", "vancouver", "mla", "chicago", "harvard", "gbt7714"] as const, { description: "Requested downstream formatting style; candidates remain unformatted." })),
     }),
     async execute(_id, params, signal, onUpdate, ctx) {
-      const response = await requestAi4ScholarSse(await resolveConfig(ctx), {
-        method: "POST",
-        path: "/api/proxy/auto-cite",
-        body: compactObject({
-          ...params,
-          mode: params.mode ?? "auto",
-          minCitations: params.minCitations ?? 10,
-          citationStyle: params.citationStyle ?? "ieee",
-        }),
-        signal,
-        timeoutMs: 180_000,
-        onEvent(event) {
-          if (event.event !== "progress") return;
-          const message = objectValue(event.data, "message");
-          const percent = objectValue(event.data, "percent");
-          onUpdate?.({
-            content: [{ type: "text", text: `${typeof message === "string" ? message : "正在自动标注文献…"}${typeof percent === "number" ? ` (${percent}%)` : ""}` }],
-            details: { event },
-          });
+      const mode = params.mode ?? (params.text.includes("[CITE]") ? "markers" : "statements");
+      const maxClaims = params.maxClaims ?? 5;
+      const contexts = mode === "markers"
+        ? params.text.split("[CITE]").slice(0, -1).map(part => part.split(/(?<=[.!?。！？])\s*/).filter(Boolean).at(-1)?.trim() ?? "")
+        : params.text.split(/(?<=[.!?。！？])\s*/).map(value => value.trim()).filter(value => value.length >= 30);
+      const claims = contexts.filter(Boolean).slice(0, maxClaims);
+      if (!claims.length) throw new Error(mode === "markers" ? "未找到 [CITE] 标记或其前置论述。" : "未找到足够完整的待引证陈述。");
+      const config = await resolveConfig(ctx);
+      const matched: Array<{ claim: string; candidates: unknown[] }> = [];
+      let charged = 0;
+      let remaining: number | undefined;
+      for (let index = 0; index < claims.length; index += 1) {
+        signal?.throwIfAborted();
+        onUpdate?.({ content: [{ type: "text", text: `正在为第 ${index + 1}/${claims.length} 条论述检索候选文献…` }], details: {} });
+        const response = await requestAi4Scholar<Record<string, unknown>>(config, {
+          path: "/graph/v1/paper/search",
+          query: compactObject({
+            query: claims[index]!.slice(0, 500),
+            fields: "paperId,title,authors,year,venue,citationCount,externalIds,url,openAccessPdf",
+            limit: params.candidatesPerClaim ?? 3,
+            year: params.year,
+            fieldsOfStudy: params.fieldsOfStudy,
+          }) as Query,
+          signal,
+        });
+        charged += response.creditsCharged ?? 0;
+        remaining = response.creditsRemaining ?? remaining;
+        matched.push({ claim: claims[index]!, candidates: Array.isArray(response.data.data) ? response.data.data : [] });
+      }
+      return toToolResult({
+        status: 200,
+        url: `${config.baseUrl}/graph/v1/paper/search`,
+        creditsCharged: charged || undefined,
+        creditsRemaining: remaining,
+        data: {
+          mode,
+          requestedCitationStyle: params.citationStyle ?? "apa",
+          reviewRequired: true,
+          instruction: "Verify relevance, identifiers, and claims before selecting and formatting any candidate.",
+          matches: matched,
         },
-      });
-      const result = [...response.data].reverse().find((event) => event.event === "result")?.data
-        ?? [...response.data].reverse().find((event) => objectValue(event.data, "annotatedText") !== undefined)?.data
-        ?? { events: response.data };
-      return toToolResult({ ...response, data: result }, "auto-cite");
+      }, "citation-candidates");
     },
   });
 
@@ -205,7 +231,7 @@ export function registerAdvancedTools(pi: ExtensionAPI): void {
     name: "ai4scholar_figure",
     label: "Ai4Scholar Figure",
     description:
-      "Generate, edit, style, compose, iterate, critique, or vectorize scientific figures with Ai4Scholar Nano. Supports flash, flash31, pro, and GPT Image 2 (model=gptimage). Calls consume credits.",
+      "Generate, edit, style, compose, iterate, critique, or vectorize scientific figures with Ai4Scholar Nano. Generated artifacts are securely downloaded to the unified output directory; supported images are also returned inline for direct model viewing. Calls consume credits.",
     promptSnippet: "Generate and revise scientific figures with Ai4Scholar Nano, including GPT Image 2",
     promptGuidelines: [
       "Use ai4scholar_figure for Ai4Scholar scientific image generation, editing, critique, iteration, composition, style transfer, or PNG/JPG-to-PDF/PPTX vectorization.",
@@ -256,7 +282,29 @@ export function registerAdvancedTools(pi: ExtensionAPI): void {
         }
         throw error;
       }
-      return toToolResult(response, `figure:${params.action}`);
+      const remote = extractArtifacts(response.data, "image");
+      if (!remote.length) return toToolResult(response, `figure:${params.action}`);
+      onUpdate?.({ content: [{ type: "text", text: `生成完成，正在下载并验证 ${remote.length} 个文件…` }], details: {} });
+      const root = loadScholarConfig(process.env, ctx.cwd, ctx.isProjectTrusted?.() === true);
+      const downloaded = await new ArtifactDownloader(new HttpClient(), join(root.outputDir, "ai4scholar-images"), 50 * 1024 * 1024, 120_000).downloadAll(remote, signal);
+      const localArtifacts: Array<{ path: string; bytes: number; mimeType?: string; viewable: boolean }> = [];
+      const inline: Array<{ type: "image"; data: string; mimeType: string }> = [];
+      for (const artifact of downloaded) {
+        const bytes = await readFile(artifact.path);
+        const mimeType = imageMime(bytes);
+        localArtifacts.push({ path: artifact.path, bytes: artifact.bytes ?? bytes.byteLength, ...(mimeType ? { mimeType } : artifact.mimeType ? { mimeType: artifact.mimeType } : {}), viewable: Boolean(mimeType) });
+        if (mimeType && bytes.byteLength <= 20 * 1024 * 1024) inline.push({ type: "image", data: bytes.toString("base64"), mimeType });
+      }
+      const remoteUrls = new Set(remote.flatMap(item => item.url ? [item.url] : []));
+      const result = await toToolResult({
+        ...response,
+        data: {
+          result: replaceDownloadedUrls(response.data, remoteUrls),
+          localArtifacts,
+          instruction: inline.length ? "Images are attached for direct viewing; local paths are retained for later read/edit operations." : "Artifacts were saved locally; non-image artifacts are not attached inline.",
+        },
+      }, `figure:${params.action}`);
+      return { ...result, content: [...result.content, ...inline], details: { ...result.details, localArtifacts } };
     },
   });
 }

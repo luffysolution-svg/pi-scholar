@@ -1,6 +1,8 @@
 ---
 name: zotero-research
 description: Search and inspect the user's local Zotero library with Pi Scholar. Use for collections, bibliographic metadata, local-paper matching, notes, annotations, attachments, indexed-text availability, or selecting a PDF without modifying Zotero.
+license: MIT
+compatibility: Requires Pi 0.84.4 or newer, the @luffysolution/pi-scholar package, and Zotero 7 with local application access enabled.
 ---
 
 # Local Zotero research

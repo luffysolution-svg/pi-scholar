@@ -1,31 +1,61 @@
-# Materials Project capabilities
+# Materials Project 能力说明
 
-Generated from `src/materials-project/capabilities.ts`; the JSON matrix beside it is the machine-readable form. Statuses describe this repository's implementation, not account entitlement.
+[English](./materials-capabilities.en.md)
 
-| ID | Capability | Status | REST route | Fields | Validation | Limitations |
-|---|---|---|---|---|---|---|
-| MP01 | Summary material search | implemented | `/materials/summary` | material_id, formula_pretty, formula, elements, chemsys, band_gap, energy_above_hull, formation_energy_per_atom, density, volume, is_stable, is_metal, structure, origins, warnings | live passed | exact element-set matching is a bounded local filter |
-| MP02 | Structure retrieval | implemented | `/materials/summary (structure field)` | material_id, formula_pretty, elements, structure, symmetry, origins, warnings | live passed | CIF export supports the common lattice/sites JSON shape |
-| MP03 | Thermodynamics | implemented | `/materials/thermo` | material_id, entries, formation_energy_per_atom, energy_above_hull, energy_per_atom, uncorrected_energy_per_atom, origins, warnings | live passed | formation and hull energies remain source-method dependent |
-| MP04 | Common summary properties | implemented | `/materials/summary` | material_id, formula_pretty, formula, elements, chemsys, band_gap, energy_above_hull, formation_energy_per_atom, density, volume, is_stable, is_metal, structure, origins, warnings | live passed |  |
-| MP05 | Band structure | implemented | `/materials/electronic_structure + optional mp-api bridge` | material_id, bandstructure, band_gap, cbm, vbm, efermi, is_gap_direct, origins, warnings | rest live helper unavailable | REST metadata passed live validation; sampled complete objects were unavailable from the official helper |
-| MP06 | Density of states | implemented | `/materials/electronic_structure + optional mp-api bridge` | material_id, dos, band_gap, efermi, origins, warnings | rest live helper unavailable | REST metadata passed live validation; sampled complete objects were unavailable from the official helper |
-| MP07 | Magnetism | implemented | `/materials/magnetism` | material_id, ordering, is_magnetic, total_magnetization, total_magnetization_normalized_formula_units, total_magnetization_normalized_vol, num_magnetic_sites, num_unique_magnetic_sites, types_of_magnetic_species, origins, warnings | live passed | normalization fields remain separate |
-| MP08 | Elasticity | implemented | `/materials/elasticity` | material_id, elastic_tensor, compliance_tensor, bulk_modulus, shear_modulus, universal_anisotropy, homogeneous_poisson, warnings | live passed | tensor convention, fitting method, state, and warnings remain source data |
-| MP09 | Dielectric and piezoelectric | implemented | `/materials/dielectric, /materials/piezoelectric` | material_id, total, ionic, electronic, e_electronic, e_ionic, e_total, n, structure, origins, warnings, e_ij_max, max_direction, strain_for_max | live passed | electronic, ionic, and total response fields remain separate |
-| MP10 | Phonon | implemented | `/materials/phonon + optional mp-api bridge` | identifier, phonon_method, phonon_bandstructure, phonon_dos, structure, total_dft_energy, volume_per_formula_unit, formula_units, force_constants, last_updated | rest live helper unavailable | REST identifier search passed live validation; sampled complete objects were unavailable from the official helper |
-| MP11 | Optical and XAS | implemented | `/materials/absorption, /materials/xas` | material_id, energies, energy_max, absorption_coefficient, average_imaginary_dielectric, average_real_dielectric, bandgap, nkpoints, structure, origins, warnings, task_id, spectrum, spectrum_name, absorbing_element, spectrum_type, edge, last_updated | live passed | XAS uses task or spectrum identifiers; results are not labelled experimental unless the source says so |
-| MP12 | Insertion electrodes | implemented | `/materials/insertion_electrodes` | material_ids, battery_type, battery_formula, working_ion, average_voltage, capacity_grav, capacity_vol, energy_grav, energy_vol, framework, framework_formula, thermo_type, warnings | live passed | electrode documents use battery/chemistry filters and are not treated as single structures |
-| MP13 | Provenance and tasks | implemented | `/materials/provenance, /materials/tasks, /doi` | material_id, origins, remarks, tags, warnings, task_id, task_type, run_type, input, output, calcs_reversed, doi, citation | live passed | database version is only reported when returned by the service |
-| MP14 | Local structure descriptions | implemented | `/materials/bonds, /materials/chemenv, /materials/oxidation_states, /materials/robocrys` | material_id, structure_graph, method, bond_types, bond_length_stats, coordination_envs, coordination_envs_anonymous, origins, warnings, structure, valences, species, chemenv_symbol, chemenv_iupac, chemenv_iucr, chemenv_name, chemenv_name_with_alternatives, csm, wyckoff_positions, possible_species, possible_valences, average_oxidation_states, description, condensed_structure, robocrys_version | live passed | algorithm-derived descriptions remain labelled as derived source output |
-| MP15 | Other material routes | implemented | `/materials/eos, /materials/surface_properties, /materials/grain_boundaries, /materials/substrates, /materials/alloys, /materials/similarity, /materials/synthesis` | task_id, eos, energies, volumes, material_id, surfaces, weighted_surface_energy_EV_PER_ANG2, weighted_surface_energy, surface_anisotropy, pretty_formula, shape_factor, weighted_work_function, has_reconstructed, structure, sigma, type, rotation_axis, gb_plane, rotation_angle, gb_energy, initial_structure, final_structure, w_sep, chemsys, last_updated, sub_form, sub_id, film_orient, area, energy, film_id, _norients, orient, alloy_pair, pair_id, alloy_system, alloy_id, sim, feature_vector, method, origins, warnings, doi, paragraph_string, synthesis_type, reaction_string, reaction, target, targets_formula, precursors_formula, targets_formula_s, precursors_formula_s, precursors, operations, search_score, highlights | live passed | each collection has its own allow-listed filters and identity semantics |
-| MP16 | Safe reproducible exports | implemented | `local export` | records, raw, fields, provenance | local passed | CIF requires a finite lattice and site data |
-| MP17 | Local derived calculations | implemented | `local + optional pymatgen` | phase_diagram, simulated_xrd | local passed | phase diagrams are labelled 0 K/0 atm local derivations; simulated XRD is not experimental data |
+本页概述 Pi Scholar 已接入的 Materials Project 功能。字段、筛选器、端点和限制的实时清单可通过 `materials_capabilities` 查看；该工具不发送网络请求。
 
-## Contract notes
+下列 17 项能力均已实现。实测状态描述本项目的验证结果，不代表账号一定有权访问每种数据。
 
-The adapter sends `X-API-KEY` only to `https://api.materialsproject.org`. Direct `apiKey`, configured `apiKeyEnv`, and `MP_API_KEY` are resolved in that order. Keys are excluded from URLs, provenance, exports, and status output.
+## 能力概览
 
-The official docs note that `available_fields` does not mean a field is a valid search filter. `materials_route_search` therefore validates a separate allow-list for each collection. Missing, unrequested, unsupported, and failed values remain distinct. Computational stability is not experimental synthesizability.
+| ID | 功能 | 入口工具 | 验证状态 |
+|---|---|---|---|
+| MP01 | 材料概览检索 | `materials_search` | 已通过在线实测 |
+| MP02 | 晶体结构获取 | `materials_get`<br>`materials_advanced`<br>`materials_export` | 已通过在线实测 |
+| MP03 | 热力学数据 | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP04 | 常用概览性质 | `materials_search` | 已通过在线实测 |
+| MP05 | 能带结构 | `materials_get`<br>`materials_route_search`<br>`materials_advanced` | REST 已实测；样本未返回 Python 对象 |
+| MP06 | 态密度 | `materials_get`<br>`materials_route_search`<br>`materials_advanced` | REST 已实测；样本未返回 Python 对象 |
+| MP07 | 磁性 | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP08 | 弹性 | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP09 | 介电与压电性质 | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP10 | 声子 | `materials_route_search`<br>`materials_advanced` | REST 已实测；样本未返回 Python 对象 |
+| MP11 | 光学与 XAS | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP12 | 嵌入电极 | `materials_route_search` | 已通过在线实测 |
+| MP13 | 来源与计算任务 | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP14 | 局部结构描述 | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP15 | 其他材料数据集合 | `materials_get`<br>`materials_route_search` | 已通过在线实测 |
+| MP16 | 本地导出 | `materials_export` | 已通过本地测试 |
+| MP17 | 本地派生计算 | `materials_advanced` | 已通过本地测试 |
 
-Official references: [Getting started](https://docs.materialsproject.org/downloading-data/using-the-api/getting-started), [Querying data](https://docs.materialsproject.org/downloading-data/using-the-api/querying-data), [Advanced usage](https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage), [Examples](https://docs.materialsproject.org/downloading-data/using-the-api/examples), and [Large-download guidance](https://docs.materialsproject.org/downloading-data/using-the-api/tips-for-large-downloads).
+## 如何选择工具
+
+| 工具 | 用途 |
+|---|---|
+| `materials_capabilities` | 离线查看能力、字段、筛选器和凭据状态 |
+| `materials_search` | 按化学式、元素、带隙、稳定性等条件筛选概览记录 |
+| `materials_get` | 按材料 ID 获取结构或指定性质 |
+| `materials_route_search` | 查询使用任务 ID、光谱 ID、电极条件等专用筛选器的数据集合 |
+| `materials_advanced` | 获取完整能带、态密度或声子对象，并执行相图和模拟 XRD 计算 |
+| `materials_export` | 将已获取记录导出为 JSON、CSV、CIF 或 Markdown；不联网 |
+
+## 使用限制
+
+- MP05、MP06 和 MP10 的 REST 元数据已通过实测，但抽样时官方 Python helper 未返回完整对象。工具会保留 REST 结果并报告 helper 错误。
+- `materials_route_search` 按数据集合验证筛选器。Materials Project 的 `available_fields` 不能直接视为可搜索字段。
+- 相图标记为 0 K、0 atm 的本地推导结果；模拟 XRD 不属于实验数据。
+- CIF 导出需要有限晶格和位点数据。计算稳定性也不等同于实验可合成性。
+
+## 凭据与数据
+
+Materials Project 凭据按 `apiKey`、`apiKeyEnv` 指向的变量、`MP_API_KEY` 的顺序读取。`X-API-KEY` 只发送到 `https://api.materialsproject.org`，不会写入 URL、导出文件或状态输出。
+
+返回值会区分未请求、服务端缺失、不支持和请求失败。比较材料时还应保留单位、计算方法、任务 ID、数据库版本和警告。
+
+## 官方文档
+
+- [开始使用](https://docs.materialsproject.org/downloading-data/using-the-api/getting-started)
+- [查询数据](https://docs.materialsproject.org/downloading-data/using-the-api/querying-data)
+- [进阶用法](https://docs.materialsproject.org/downloading-data/using-the-api/advanced-usage)
+- [示例](https://docs.materialsproject.org/downloading-data/using-the-api/examples)
+- [大批量下载说明](https://docs.materialsproject.org/downloading-data/using-the-api/tips-for-large-downloads)
